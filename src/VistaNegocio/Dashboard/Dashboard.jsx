@@ -79,49 +79,20 @@ export default function Dashboard() {
   const previewPortada = portada ? URL.createObjectURL(portada) : portadaActiva;
 
   return (
-    <div className="dashboard-container">
-      
-      {/* Sidebar */}
-      <aside className="sidebar">
-        <div>
-          <div className="sidebar-brand">
-            🍔 ZetaPanel
-          </div>
-          
-          <nav className="sidebar-menu">
-            <div className="menu-section-title">Inicio</div>
-            <a href="#" className="menu-item">Inicio</a>
-            
-            <div className="menu-section-title">Gestión</div>
-            <a href="#" className="menu-item">Productos & Stock</a>
-            <a href="#" className="menu-item">Estadísticas</a>
-            <a href="#" className="menu-item active">Diseño & Colores</a>
-            <a href="#" className="menu-item">Ventas & Pedidos</a>
-          </nav>
-        </div>
-        
-        <div className="sidebar-footer">
-          <a href="/" className="menu-item" style={{border: '1px solid #e5e7eb', textAlign: 'center'}}>
-            👁️ Ver tienda online
-          </a>
-        </div>
-      </aside>
+    <>
+      <header className="main-header">
+        <h2>Diseño del Sitio</h2>
+        <div className="avatar">A</div>
+      </header>
 
-      {/* Contenido Principal */}
-      <main className="main-content">
-        <header className="main-header">
-          <h2>Diseño del Sitio</h2>
-          <div className="avatar">A</div>
-        </header>
+      <div className="scroll-area">
+        <div className="form-card">
+          <h3 style={{marginBottom: '24px', color: '#111827'}}>Configuración Visual</h3>
 
-        <div className="scroll-area">
-          <div className="form-card">
-            <h3 style={{marginBottom: '24px', color: '#111827'}}>Configuración Visual</h3>
-            
-            <form onSubmit={guardarCambios}>
-              
-              {/* Input de Logo */}
-              <div className="form-group">
+          <form onSubmit={guardarCambios}>
+
+            {/* Input de Logo */}
+            <div className="form-group">
                 <label className="form-label">Logo del negocio</label>
                 <label 
                   className="upload-box" 
@@ -198,9 +169,8 @@ export default function Dashboard() {
                 </button>
               </div>
             </form>
-          </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </>
   );
 }
