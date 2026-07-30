@@ -135,7 +135,7 @@ export default function DashboardLayout() {
         </div>
 
         <div className="sidebar-footer">
-          <a href="/" className="menu-item" style={{border: '1px solid var(--border)', textAlign: 'center'}}>
+          <a href="/" className="menu-item menu-item-externa">
             👁️ Ver tienda online
           </a>
         </div>

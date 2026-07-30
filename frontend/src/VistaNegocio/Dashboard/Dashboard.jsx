@@ -93,7 +93,7 @@ export default function Dashboard() {
 
       <div className="scroll-area">
         <div className="form-card">
-          <h3 style={{marginBottom: '24px', color: 'var(--text)'}}>Configuración Visual</h3>
+          <h3 className="form-card-title">Configuración Visual</h3>
 
           <form onSubmit={guardarCambios}>
 
@@ -102,30 +102,29 @@ export default function Dashboard() {
                 <label className="form-label">Logo del negocio</label>
                 <label 
                   className="upload-box upload-box-vibrante"
-                  style={{display: 'block'}}
                   onDragOver={prevenirNavegador}
                   onDrop={handleDropLogo}
                 >
                   {/* AQUÍ MOSTRAMOS LA IMAGEN EN VEZ DEL ÍCONO */}
                   {previewLogo ? (
-                    <img src={previewLogo} alt="Preview Logo" style={{ maxHeight: '100px', objectFit: 'contain', marginBottom: '12px' }} />
+                    <img src={previewLogo} alt="Preview Logo" className="upload-preview" />
                   ) : (
                     <div className="upload-icon">📁</div>
                   )}
                   
                   <p className="upload-text">
                     {logo ? (
-                      <span style={{color: '#10b981', fontWeight: 'bold'}}>{logo.name}</span>
+                      <span className="upload-file-name">{logo.name}</span>
                     ) : (
                       <><span className="upload-link">Cargar archivo</span> o arrastrar y soltar</>
                     )}
                   </p>
-                  <p style={{fontSize: '0.75rem', color: '#9ca3af', marginTop: '4px'}}>PNG o JPG (500x500px)</p>
+                  <p className="upload-hint">PNG o JPG (500x500px)</p>
                   
                   <input 
                     type="file" 
                     accept="image/png, image/jpeg" 
-                    style={{display: 'none'}} 
+                    className="input-file-hidden"
                     onChange={(e) => {
                       if(e.target.files && e.target.files[0]) setLogo(e.target.files[0]);
                     }}
@@ -138,30 +137,29 @@ export default function Dashboard() {
                 <label className="form-label">Imagen principal (Portada)</label>
                 <label 
                   className="upload-box upload-box-vibrante"
-                  style={{display: 'block'}}
                   onDragOver={prevenirNavegador}
                   onDrop={handleDropPortada}
                 >
                   {/* AQUÍ MOSTRAMOS LA IMAGEN DE PORTADA */}
                   {previewPortada ? (
-                    <img src={previewPortada} alt="Preview Portada" style={{ maxHeight: '120px', width: '100%', objectFit: 'cover', borderRadius: '4px', marginBottom: '12px' }} />
+                    <img src={previewPortada} alt="Preview Portada" className="upload-preview upload-preview-portada" />
                   ) : (
                     <div className="upload-icon">🖼️</div>
                   )}
 
                   <p className="upload-text">
                     {portada ? (
-                      <span style={{color: '#10b981', fontWeight: 'bold'}}>{portada.name}</span>
+                      <span className="upload-file-name">{portada.name}</span>
                     ) : (
                       <><span className="upload-link">Cargar archivo</span> o arrastrar y soltar</>
                     )}
                   </p>
-                  <p style={{fontSize: '0.75rem', color: '#9ca3af', marginTop: '4px'}}>Recomendado: 1920x1080px</p>
+                  <p className="upload-hint">Recomendado: 1920x1080px</p>
                   
                   <input 
                     type="file" 
                     accept="image/*" 
-                    style={{display: 'none'}} 
+                    className="input-file-hidden"
                     onChange={(e) => {
                       if(e.target.files && e.target.files[0]) setPortada(e.target.files[0]);
                     }}
@@ -192,7 +190,7 @@ export default function Dashboard() {
                 />
               </div>
 
-              <div style={{display: 'flex', justifyContent: 'flex-end', marginTop: '32px'}}>
+              <div className="form-actions-right">
                 <button type="submit" className="btn-vibrante">
                   Guardar Cambios
                 </button>

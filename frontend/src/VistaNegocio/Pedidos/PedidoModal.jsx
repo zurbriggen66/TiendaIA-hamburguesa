@@ -83,7 +83,7 @@ export default function PedidoModal({ productos, onClose, onSaved }) {
           </div>
 
           <div className="form-row">
-            <div className="form-group" style={{ flex: 1 }}>
+            <div className="form-group">
               <label className="form-label">Teléfono (opcional)</label>
               <input
                 type="tel"
@@ -93,7 +93,7 @@ export default function PedidoModal({ productos, onClose, onSaved }) {
                 onChange={(e) => setTelefono(e.target.value)}
               />
             </div>
-            <div className="form-group" style={{ flex: 1 }}>
+            <div className="form-group">
               <label className="form-label">Entrega</label>
               <div className="tipo-entrega-selector">
                 <button type="button" className={tipoEntrega === 'retiro' ? 'activo' : ''} onClick={() => setTipoEntrega('retiro')}>
