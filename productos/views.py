@@ -2,8 +2,8 @@ from django.db.models import ProtectedError
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Categoria, Producto
-from .serializers import CategoriaSerializer, ProductoSerializer
+from .models import Categoria, Producto, Combo
+from .serializers import CategoriaSerializer, ProductoSerializer, ComboSerializer
 
 
 class CategoriaViewSet(viewsets.ModelViewSet):
@@ -37,5 +37,19 @@ class ProductoViewSet(viewsets.ModelViewSet):
         except ProtectedError:
             return Response(
                 {'detail': 'No se puede eliminar el producto porque aparece en pedidos existentes.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class ComboViewSet(viewsets.ModelViewSet):
+    queryset = Combo.objects.prefetch_related('productos')
+    serializer_class = ComboSerializer
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError:
+            return Response(
+                {'detail': 'No se puede eliminar el combo porque aparece en pedidos existentes.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
