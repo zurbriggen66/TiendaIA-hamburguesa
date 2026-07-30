@@ -114,7 +114,7 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
           </div>
 
           <div className="form-row">
-            <div className="form-group" style={{ flex: 1 }}>
+            <div className="form-group">
               <label className="form-label">Precio</label>
               <input
                 type="number"
@@ -127,7 +127,7 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
               />
             </div>
 
-            <div className="form-group" style={{ flex: 1 }}>
+            <div className="form-group">
               <label className="form-label">Categoría</label>
               <select
                 className="input-vibrante"
@@ -185,18 +185,17 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
             <label className="form-label">Imagen</label>
             <label
               className="upload-box upload-box-vibrante"
-              style={{ display: 'block' }}
               onDragOver={prevenirNavegador}
               onDrop={handleDrop}
             >
               {previewImagen ? (
-                <img src={previewImagen} alt="Preview" style={{ maxHeight: '100px', objectFit: 'contain', marginBottom: '12px', borderRadius: '8px' }} />
+                <img src={previewImagen} alt="Preview" className="upload-preview" />
               ) : (
                 <div className="upload-icon">📷</div>
               )}
               <p className="upload-text">
                 {imagen ? (
-                  <span style={{ color: '#16a34a', fontWeight: 'bold' }}>{imagen.name}</span>
+                  <span className="upload-file-name">{imagen.name}</span>
                 ) : (
                   <><span className="upload-link">Cargar imagen</span> o arrastrar y soltar</>
                 )}
@@ -204,7 +203,7 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
               <input
                 type="file"
                 accept="image/*"
-                style={{ display: 'none' }}
+                className="input-file-hidden"
                 onChange={(e) => {
                   if (e.target.files && e.target.files[0]) setImagen(e.target.files[0]);
                 }}

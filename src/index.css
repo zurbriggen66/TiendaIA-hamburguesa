@@ -67,19 +67,20 @@ body {
 /* === VISTA NEGOCIO (Dashboard.jsx) === */
 .dashboard-container {
   display: flex;
-  height: 100vh;
+  min-height: 100vh;
   overflow: hidden;
 }
 
 /* Barra Lateral (Sidebar) */
 .sidebar {
   width: 260px;
+  min-width: 260px;
   background-color: var(--surface);
-  border-r: 1px solid var(--border);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  height: 100%;
+  height: 100vh;
 }
 
 .sidebar-brand {
@@ -95,6 +96,7 @@ body {
 
 .sidebar-menu {
   padding: 24px 16px;
+  overflow-y: auto;
 }
 
 .menu-section-title {
@@ -119,6 +121,12 @@ body {
   font-weight: 500;
   margin-bottom: 4px;
   transition: background 0.2s;
+}
+
+.menu-item-externa {
+  border: 1px solid var(--border);
+  text-align: center;
+  justify-content: center;
 }
 
 .sidebar-badge {
@@ -153,14 +161,16 @@ body {
 
 /* Área de Contenido Principal */
 .main-content {
-  flex-grow: 1;
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   background-color: var(--bg);
+  overflow: hidden;
 }
 
 .main-header {
-  height: 64px;
+  min-height: 64px;
   background-color: var(--surface);
   border-bottom: 1px solid var(--border);
   display: flex;
@@ -196,7 +206,12 @@ body {
   display: none;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 768px) {
+  .dashboard-container {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
   .sidebar-toggle-mobil {
     display: flex;
     align-items: center;
@@ -205,14 +220,15 @@ body {
     top: 14px;
     left: 14px;
     z-index: 210;
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
     border: 1px solid var(--border);
     background: var(--surface);
     color: var(--text);
     font-size: 1.1rem;
     cursor: pointer;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
   }
 
   .sidebar-backdrop {
@@ -227,6 +243,8 @@ body {
     position: fixed;
     top: 0;
     left: 0;
+    width: min(82vw, 280px);
+    min-width: 0;
     height: 100vh;
     z-index: 200;
     transform: translateX(-100%);
@@ -238,8 +256,12 @@ body {
     transform: translateX(0);
   }
 
+  .main-content {
+    overflow: auto;
+  }
+
   .main-header {
-    padding-left: 62px;
+    padding: 18px 20px 18px 58px;
   }
 
   .main-header h2 {
@@ -250,7 +272,7 @@ body {
   }
 
   .scroll-area {
-    padding: 20px 16px;
+    padding: 20px 16px 24px;
   }
 
   .form-card {
@@ -319,11 +341,56 @@ body {
   font-weight: 600;
 }
 
+.upload-file-name {
+  color: #10b981;
+  font-weight: 700;
+  display: inline-block;
+  word-break: break-word;
+}
+
+.upload-hint {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+
+.form-card-title {
+  margin-bottom: 24px;
+  color: var(--text);
+}
+
 /* === VISTA NEGOCIO - PRODUCTOS (ProductosPage.jsx) === */
 .productos-page {
   display: flex;
   flex-direction: column;
   height: 100%;
+}
+
+.upload-box {
+  display: block;
+}
+
+.upload-preview {
+  max-height: 100px;
+  width: 100%;
+  object-fit: contain;
+  margin-bottom: 12px;
+  border-radius: 8px;
+}
+
+.upload-preview-portada {
+  max-height: 120px;
+  object-fit: cover;
+}
+
+.input-file-hidden {
+  display: none;
+}
+
+.form-actions-right {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 32px;
 }
 
 /* Barra de chips de categoría */
@@ -606,8 +673,7 @@ body {
 .modal-card {
   background: var(--surface);
   border-radius: 20px;
-  width: 100%;
-  max-width: 480px;
+  width: min(100%, 480px);
   max-height: 90vh;
   overflow-y: auto;
   padding: 28px;
@@ -647,9 +713,115 @@ body {
   margin-top: 24px;
 }
 
+@media (max-width: 768px) {
+  .scroll-area {
+    padding: 20px 16px 28px;
+  }
+
+  .form-card-title {
+    margin-bottom: 16px;
+  }
+
+  .upload-hint {
+    font-size: 0.7rem;
+  }
+
+  .grafico-ventas {
+    padding: 16px 12px 10px;
+  }
+
+  .grafico-ventas-plot {
+    height: 200px;
+    gap: 8px;
+  }
+
+  .grafico-ventas-ejeY {
+    font-size: 0.64rem;
+  }
+
+  .grafico-ventas-ejeX {
+    margin-left: calc(4ch + 8px);
+    gap: 4px;
+  }
+
+  .grafico-ventas-ejeX span {
+    font-size: 0.62rem;
+  }
+
+  .ranking-nombre-linea {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .ranking-nombre-linea span {
+    white-space: normal;
+  }
+
+  .impresion-switch-fila {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .impresion-prueba {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .form-card {
+    padding: 20px;
+    max-width: none;
+    border-radius: 16px;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .upload-box {
+    padding: 24px 16px;
+  }
+
+  .modal-overlay {
+    padding: 12px;
+    align-items: flex-start;
+  }
+
+  .modal-card {
+    padding: 20px;
+    border-radius: 16px;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .modal-actions > * {
+    width: 100%;
+  }
+
+  .form-actions-right {
+    justify-content: stretch;
+  }
+
+  .form-actions-right > * {
+    width: 100%;
+  }
+}
+
 .form-row {
   display: flex;
   gap: 16px;
+}
+
+.form-row .form-group {
+  flex: 1 1 0;
 }
 
 .input-vibrante {
@@ -743,6 +915,106 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 24px;
+}
+
+@media (max-width: 768px) {
+  .productos-grid,
+  .pedidos-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .categorias-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+  }
+
+  .chip-categoria {
+    padding: 8px 12px;
+  }
+
+  .producto-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .pedido-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .pedido-card-header-derecha {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .pedido-acciones-estado {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-siguiente-estado {
+    width: 100%;
+  }
+
+  .pedido-fila {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pedido-fila-cantidad {
+    width: 100%;
+  }
+
+  .tipo-entrega-selector {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .resumen-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .stock-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .gasto-fila {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .gasto-fila-borrar {
+    justify-self: start;
+  }
+
+  .tabs-bar {
+    flex-wrap: wrap;
+    gap: 6px;
+    overflow-x: auto;
+  }
+
+  .tab-boton {
+    padding: 8px 12px;
+  }
+
+  .pedido-total-estimado {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  .resumen-grid,
+  .stock-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .pedido-card {
@@ -1894,6 +2166,7 @@ body {
   right: 0;
   height: 1px;
   background: var(--border);
+  bottom: var(--line-offset, 0%);
 }
 
 .grafico-ventas-barra-slot {
@@ -1912,6 +2185,7 @@ body {
 .grafico-ventas-barra {
   width: 100%;
   max-width: 24px;
+  height: var(--bar-height, 0%);
   background: #f97316;
   border-radius: 4px 4px 0 0;
   transition: background 0.15s;
@@ -2014,6 +2288,7 @@ body {
 
 .ranking-barra {
   height: 100%;
+  width: var(--bar-width, 0%);
   background: linear-gradient(90deg, #fb923c, #ef4444);
   border-radius: 999px;
 }

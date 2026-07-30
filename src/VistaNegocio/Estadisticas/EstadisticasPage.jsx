@@ -39,7 +39,7 @@ function GraficoVentas({ datos }) {
 
         <div className="grafico-ventas-barras">
           {marcasEje.map((m) => (
-            <div key={m} className="grafico-ventas-gridline" style={{ bottom: `${(m / maximo) * 100}%` }} />
+            <div key={m} className="grafico-ventas-gridline" style={{ '--line-offset': `${(m / maximo) * 100}%` }} />
           ))}
 
           {datos.map((d) => (
@@ -60,7 +60,7 @@ function GraficoVentas({ datos }) {
               )}
               <div
                 className={`grafico-ventas-barra ${foco === d.dia ? 'grafico-ventas-barra-activa' : ''}`}
-                style={{ height: `${Math.max((d.total / maximo) * 100, 2)}%` }}
+                style={{ '--bar-height': `${Math.max((d.total / maximo) * 100, 2)}%` }}
               />
             </button>
           ))}
@@ -154,7 +154,7 @@ export default function EstadisticasPage() {
                           <span>{p.cantidad_total} vendidos · {formatearPrecio(p.total)}</span>
                         </div>
                         <div className="ranking-barra-fondo">
-                          <div className="ranking-barra" style={{ width: `${porcentaje}%` }} />
+                          <div className="ranking-barra" style={{ '--bar-width': `${porcentaje}%` }} />
                         </div>
                       </div>
                     </div>

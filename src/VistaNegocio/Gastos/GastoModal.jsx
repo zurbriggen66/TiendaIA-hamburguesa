@@ -82,7 +82,7 @@ export default function GastoModal({ insumos, onClose, onSaved }) {
           </div>
 
           <div className="form-row">
-            <div className="form-group" style={{ flex: 1 }}>
+            <div className="form-group">
               <label className="form-label">Monto</label>
               <input
                 type="number"
@@ -101,7 +101,7 @@ export default function GastoModal({ insumos, onClose, onSaved }) {
               <p className="aviso-sin-insumos">Todavía no cargaste ningún insumo. Creá uno primero para poder sumar stock.</p>
             ) : (
               <div className="form-row">
-                <div className="form-group" style={{ flex: 1 }}>
+                <div className="form-group">
                   <label className="form-label">Insumo</label>
                   <select className="input-vibrante" value={insumoId} onChange={(e) => setInsumoId(e.target.value)}>
                     {insumos.map((i) => (
@@ -109,7 +109,7 @@ export default function GastoModal({ insumos, onClose, onSaved }) {
                     ))}
                   </select>
                 </div>
-                <div className="form-group" style={{ flex: 1 }}>
+                <div className="form-group">
                   <label className="form-label">Cantidad comprada</label>
                   <input
                     type="number"
