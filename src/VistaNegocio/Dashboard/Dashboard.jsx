@@ -9,6 +9,8 @@ export default function Dashboard() {
   const [configId, setConfigId] = useState(null);
   const [logoActivo, setLogoActivo] = useState(null);
   const [portadaActiva, setPortadaActiva] = useState(null);
+  const [whatsapp, setWhatsapp] = useState('');
+  const [instagram, setInstagram] = useState('');
 
   // Traer las imágenes activas y el ID al cargar el panel
   useEffect(() => {
@@ -20,6 +22,8 @@ export default function Dashboard() {
           setConfigId(ultimaConfig.id); // ¡Guardamos el ID del registro!
           setLogoActivo(ultimaConfig.logo);
           setPortadaActiva(ultimaConfig.imagen_principal);
+          setWhatsapp(ultimaConfig.whatsapp || '');
+          setInstagram(ultimaConfig.instagram || '');
         }
       } catch (error) {
         console.error("Error al cargar el panel:", error);
@@ -53,6 +57,8 @@ export default function Dashboard() {
     const formData = new FormData();
     if (logo) formData.append('logo', logo);
     if (portada) formData.append('imagen_principal', portada);
+    formData.append('whatsapp', whatsapp);
+    formData.append('instagram', instagram);
 
     try {
       if (configId) {
@@ -87,7 +93,7 @@ export default function Dashboard() {
 
       <div className="scroll-area">
         <div className="form-card">
-          <h3 style={{marginBottom: '24px', color: '#111827'}}>Configuración Visual</h3>
+          <h3 style={{marginBottom: '24px', color: 'var(--text)'}}>Configuración Visual</h3>
 
           <form onSubmit={guardarCambios}>
 
@@ -95,7 +101,7 @@ export default function Dashboard() {
             <div className="form-group">
                 <label className="form-label">Logo del negocio</label>
                 <label 
-                  className="upload-box" 
+                  className="upload-box upload-box-vibrante"
                   style={{display: 'block'}}
                   onDragOver={prevenirNavegador}
                   onDrop={handleDropLogo}
@@ -131,7 +137,7 @@ export default function Dashboard() {
               <div className="form-group">
                 <label className="form-label">Imagen principal (Portada)</label>
                 <label 
-                  className="upload-box" 
+                  className="upload-box upload-box-vibrante"
                   style={{display: 'block'}}
                   onDragOver={prevenirNavegador}
                   onDrop={handleDropPortada}
@@ -163,8 +169,31 @@ export default function Dashboard() {
                 </label>
               </div>
 
+              {/* Contacto */}
+              <div className="form-group">
+                <label className="form-label">WhatsApp (con código de país, sin espacios)</label>
+                <input
+                  type="text"
+                  className="input-vibrante"
+                  placeholder="5493544400993"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Instagram (URL del perfil)</label>
+                <input
+                  type="text"
+                  className="input-vibrante"
+                  placeholder="https://www.instagram.com/antojoburger_/"
+                  value={instagram}
+                  onChange={(e) => setInstagram(e.target.value)}
+                />
+              </div>
+
               <div style={{display: 'flex', justifyContent: 'flex-end', marginTop: '32px'}}>
-                <button type="submit" className="btn-guardar">
+                <button type="submit" className="btn-vibrante">
                   Guardar Cambios
                 </button>
               </div>

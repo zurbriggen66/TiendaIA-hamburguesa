@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import api from '../../services/api';
 import PedidoModal from './PedidoModal';
+import { imprimirPedido } from '../../utils/impresion';
 
 const ORDEN_ESTADOS = ['pendiente', 'en_preparacion', 'listo', 'entregado'];
 
@@ -65,6 +66,17 @@ export default function PedidosPage() {
     cambiarEstado(pedido, 'cancelado');
   };
 
+  const eliminarPedido = async (pedido) => {
+    if (!window.confirm(`¿Eliminar definitivamente el pedido de "${pedido.cliente || `Pedido #${pedido.id}`}"? Esta acción no se puede deshacer.`)) return;
+    try {
+      await api.delete(`/pedidos/${pedido.id}/`);
+      setPedidos((prev) => prev.filter((p) => p.id !== pedido.id));
+    } catch (error) {
+      console.error('Error al eliminar el pedido:', error);
+      alert('No se pudo eliminar el pedido.');
+    }
+  };
+
   const formatearPrecio = (precio) =>
     new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
 
@@ -91,13 +103,27 @@ export default function PedidosPage() {
               <div key={pedido.id} className="pedido-card">
                 <div className="pedido-card-header">
                   <h4>{pedido.cliente || `Pedido #${pedido.id}`}</h4>
-                  <span className={`badge-estado estado-${pedido.estado}`}>{ETIQUETA_ESTADO[pedido.estado]}</span>
+                  <div className="pedido-card-header-derecha">
+                    <span className={`badge-estado estado-${pedido.estado}`}>{ETIQUETA_ESTADO[pedido.estado]}</span>
+                    <button type="button" className="pedido-imprimir" title="Imprimir ticket" onClick={() => imprimirPedido(pedido)}>🖨️</button>
+                    <button type="button" className="pedido-eliminar" title="Eliminar pedido" onClick={() => eliminarPedido(pedido)}>🗑</button>
+                  </div>
+                </div>
+
+                <div className="pedido-entrega-info">
+                  <span className={`badge-entrega badge-entrega-${pedido.tipo_entrega}`}>
+                    {pedido.tipo_entrega === 'delivery' ? '🛵 Delivery' : '🏠 Retiro en local'}
+                  </span>
+                  {pedido.telefono && <span className="pedido-entrega-dato">📞 {pedido.telefono}</span>}
+                  {pedido.tipo_entrega === 'delivery' && pedido.direccion && (
+                    <span className="pedido-entrega-dato">📍 {pedido.direccion}</span>
+                  )}
                 </div>
 
                 <ul className="pedido-items-lista">
                   {pedido.items.map((item) => (
                     <li key={item.id}>
-                      <span>{item.cantidad} × {item.producto_nombre}</span>
+                      <span>{item.cantidad} × {item.producto_nombre || item.combo_nombre}</span>
                       <span>{formatearPrecio(item.subtotal)}</span>
                     </li>
                   ))}

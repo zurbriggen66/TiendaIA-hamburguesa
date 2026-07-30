@@ -6,6 +6,9 @@ const nuevaFila = () => ({ key: ++contadorFila, producto: '', cantidad: 1 });
 
 export default function PedidoModal({ productos, onClose, onSaved }) {
   const [cliente, setCliente] = useState('');
+  const [telefono, setTelefono] = useState('');
+  const [tipoEntrega, setTipoEntrega] = useState('retiro');
+  const [direccion, setDireccion] = useState('');
   const [filas, setFilas] = useState([nuevaFila()]);
   const [guardando, setGuardando] = useState(false);
 
@@ -44,6 +47,9 @@ export default function PedidoModal({ productos, onClose, onSaved }) {
     try {
       await api.post('/pedidos/', {
         cliente,
+        telefono,
+        tipo_entrega: tipoEntrega,
+        direccion: tipoEntrega === 'delivery' ? direccion : '',
         items: filasValidas.map((f) => ({ producto: f.producto, cantidad: f.cantidad })),
       });
       onSaved();
@@ -75,6 +81,43 @@ export default function PedidoModal({ productos, onClose, onSaved }) {
               autoFocus
             />
           </div>
+
+          <div className="form-row">
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">Teléfono (opcional)</label>
+              <input
+                type="tel"
+                className="input-vibrante"
+                placeholder="381..."
+                value={telefono}
+                onChange={(e) => setTelefono(e.target.value)}
+              />
+            </div>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">Entrega</label>
+              <div className="tipo-entrega-selector">
+                <button type="button" className={tipoEntrega === 'retiro' ? 'activo' : ''} onClick={() => setTipoEntrega('retiro')}>
+                  Retiro
+                </button>
+                <button type="button" className={tipoEntrega === 'delivery' ? 'activo' : ''} onClick={() => setTipoEntrega('delivery')}>
+                  Delivery
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {tipoEntrega === 'delivery' && (
+            <div className="form-group">
+              <label className="form-label">Dirección</label>
+              <input
+                type="text"
+                className="input-vibrante"
+                placeholder="Calle, número y referencia"
+                value={direccion}
+                onChange={(e) => setDireccion(e.target.value)}
+              />
+            </div>
+          )}
 
           <div className="form-group">
             <label className="form-label">Productos</label>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 
 export default function ProductoModal({ producto, categorias, categoriaPreseleccionada, onClose, onSaved }) {
@@ -9,8 +9,21 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
     producto ? producto.categoria : (categoriaPreseleccionada || (categorias[0] && categorias[0].id) || '')
   );
   const [destacado, setDestacado] = useState(producto ? producto.destacado : false);
+  const [esExtra, setEsExtra] = useState(producto ? producto.es_extra : false);
   const [imagen, setImagen] = useState(null);
   const [guardando, setGuardando] = useState(false);
+  const [insumos, setInsumos] = useState([]);
+  const [insumosSeleccionados, setInsumosSeleccionados] = useState(producto ? producto.insumos : []);
+
+  useEffect(() => {
+    api.get('/insumos/').then((res) => setInsumos(res.data)).catch((err) => console.error('Error al cargar insumos:', err));
+  }, []);
+
+  const toggleInsumo = (id) => {
+    setInsumosSeleccionados((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
 
   const previewImagen = imagen ? URL.createObjectURL(imagen) : (producto ? producto.imagen : null);
 
@@ -37,7 +50,16 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
     formData.append('precio', precio);
     formData.append('categoria', categoriaId);
     formData.append('destacado', destacado);
+    formData.append('es_extra', esExtra);
     if (imagen) formData.append('imagen', imagen);
+    // Mandamos siempre al menos una entrada (aunque sea vacía) para que el backend
+    // sepa que "insumos" se envió a propósito y pueda vaciar la relación si corresponde;
+    // omitir la clave del todo hace que Django REST Framework la ignore en un PATCH parcial.
+    if (insumosSeleccionados.length === 0) {
+      formData.append('insumos', '');
+    } else {
+      insumosSeleccionados.forEach((id) => formData.append('insumos', id));
+    }
 
     setGuardando(true);
     try {
@@ -129,6 +151,35 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
               <span>⭐ Marcar como destacado</span>
             </label>
           </div>
+
+          <div className="form-group">
+            <label className="checkbox-vibrante">
+              <input
+                type="checkbox"
+                checked={esExtra}
+                onChange={(e) => setEsExtra(e.target.checked)}
+              />
+              <span>🍟 Es un extra / topping (se vende por separado)</span>
+            </label>
+          </div>
+
+          {insumos.length > 0 && (
+            <div className="form-group">
+              <label className="form-label">Insumos que usa (opcional, para "Antojo del día")</label>
+              <div className="insumos-checkbox-lista">
+                {insumos.map((insumo) => (
+                  <label key={insumo.id} className="checkbox-vibrante checkbox-insumo">
+                    <input
+                      type="checkbox"
+                      checked={insumosSeleccionados.includes(insumo.id)}
+                      onChange={() => toggleInsumo(insumo.id)}
+                    />
+                    <span>{insumo.nombre}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="form-group">
             <label className="form-label">Imagen</label>
