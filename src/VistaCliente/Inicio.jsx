@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import api from '../services/api';
 import NavBar from './NavBar';
 import Hero from './Hero';
@@ -24,7 +23,7 @@ export default function Inicio() {
   useEffect(() => {
     const obtenerConfiguracion = async () => {
       try {
-        const respuesta = await axios.get('http://127.0.0.1:8000/api/configuracion/');
+        const respuesta = await api.get('/configuracion/');
         if (respuesta.data && respuesta.data.length > 0) {
           const ultimaConfig = respuesta.data[respuesta.data.length - 1];
           setConfiguracion((prev) => ({

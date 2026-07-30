@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../services/api';
 
 export default function Dashboard() {
   const [logo, setLogo] = useState(null);
@@ -16,7 +16,7 @@ export default function Dashboard() {
   useEffect(() => {
     const obtenerDatos = async () => {
       try {
-        const respuesta = await axios.get('http://127.0.0.1:8000/api/configuracion/');
+        const respuesta = await api.get('/configuracion/');
         if (respuesta.data && respuesta.data.length > 0) {
           const ultimaConfig = respuesta.data[respuesta.data.length - 1];
           setConfigId(ultimaConfig.id); // ¡Guardamos el ID del registro!
@@ -63,12 +63,12 @@ export default function Dashboard() {
     try {
       if (configId) {
         // Si ya existe un registro, usamos PATCH para actualizar solo ese ID y no crear duplicados
-        await axios.patch(`http://127.0.0.1:8000/api/configuracion/${configId}/`, formData, {
+        await api.patch(`/configuracion/${configId}/`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       } else {
         // Si no existe ninguno previo, usamos POST para crear el primero
-        await axios.post('http://127.0.0.1:8000/api/configuracion/', formData, {
+        await api.post('/configuracion/', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       }
