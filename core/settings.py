@@ -32,7 +32,7 @@ SECRET_KEY = 'django-insecure-ww(qv84a)bqrgav_fqesmg(yhod*hy*uhv32=%-spzeq1=#23z
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['www.odettiautomotores.online', 'odettiautomotores.online', 'webapp-3159337.pythonanywhere.com']
+ALLOWED_HOSTS = ['www.odettiautomotores.online', 'odettiautomotores.online', 'webapp-3159337.pythonanywhere.com', 'localhost', '127.0.0.1']
 
 
 # Application definition
