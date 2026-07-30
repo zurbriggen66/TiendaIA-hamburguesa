@@ -6,6 +6,9 @@ import DashboardLayout from './VistaNegocio/DashboardLayout';
 import ProductosPage from './VistaNegocio/Productos/ProductosPage';
 import PedidosPage from './VistaNegocio/Pedidos/PedidosPage';
 import GastosPage from './VistaNegocio/Gastos/GastosPage';
+import EstadisticasPage from './VistaNegocio/Estadisticas/EstadisticasPage';
+import CombosPage from './VistaNegocio/Combos/CombosPage';
+import ImpresionPage from './VistaNegocio/Impresion/ImpresionPage';
 
 function App() {
   return (
@@ -17,6 +20,9 @@ function App() {
           <Route path="productos" element={<ProductosPage />} />
           <Route path="pedidos" element={<PedidosPage />} />
           <Route path="gastos" element={<GastosPage />} />
+          <Route path="estadisticas" element={<EstadisticasPage />} />
+          <Route path="combos" element={<CombosPage />} />
+          <Route path="impresion" element={<ImpresionPage />} />
         </Route>
       </Routes>
     </Router>

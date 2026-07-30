@@ -53,7 +53,8 @@ export default function ProductosPage() {
       cargarDatos();
     } catch (error) {
       console.error('Error al eliminar el producto:', error);
-      alert('No se pudo eliminar el producto.');
+      const detalle = error.response?.data?.detail;
+      alert(detalle || 'No se pudo eliminar el producto.');
     }
   };
 
@@ -116,6 +117,7 @@ export default function ProductosPage() {
             {productosFiltrados.map((prod) => (
               <div key={prod.id} className="producto-card">
                 {prod.destacado && <span className="badge-destacado">⭐ Destacado</span>}
+                {prod.es_extra && <span className="badge-extra">🍟 Extra</span>}
                 <div className="producto-imagen-wrap">
                   {prod.imagen ? (
                     <img src={prod.imagen} alt={prod.nombre} className="producto-imagen" />
