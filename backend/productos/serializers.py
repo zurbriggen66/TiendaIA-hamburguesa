@@ -24,9 +24,13 @@ class ProductoSerializer(serializers.ModelSerializer):
         # cuando no hay ninguno tildado (multipart no permite mandar una clave sin valores);
         # limpiamos esos strings vacíos antes de que DRF intente resolverlos como PK.
         if hasattr(data, 'getlist') and 'insumos' in data:
+            # En lugar de data.copy(), habilitamos la mutabilidad del QueryDict directamente
+            if hasattr(data, '_mutable'):
+                data._mutable = True
+
             valores = [v for v in data.getlist('insumos') if v not in ('', None)]
-            data = data.copy()
             data.setlist('insumos', valores)
+
         return super().to_internal_value(data)
 
 

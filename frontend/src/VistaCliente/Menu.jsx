@@ -108,7 +108,14 @@ function ModalProducto({ producto, onCerrar, onAgregar }) {
 
         <div className="modal-producto-imagen">
           {producto.imagen ? (
-            <img src={producto.imagen} alt={producto.nombre} />
+            <>
+              <div
+                className="modal-producto-imagen-fondo"
+                style={{ backgroundImage: `url(${producto.imagen})` }}
+                aria-hidden="true"
+              />
+              <img src={producto.imagen} alt={producto.nombre} className="modal-producto-imagen-real" />
+            </>
           ) : (
             <div className="menu-tarjeta-imagen-placeholder">🍔</div>
           )}
@@ -284,23 +291,35 @@ export default function Menu({ categorias, productos, onAgregar }) {
 
         .modal-producto-imagen {
           width: 100%;
-          aspect-ratio: 4 / 3;
+          height: 340px;
           overflow: hidden;
           border-radius: 24px 24px 0 0;
           position: relative;
+          background: linear-gradient(135deg, #f5efe8, #ece1d6);
         }
-        .modal-producto-imagen img {
+        .modal-producto-imagen-fondo {
+          position: absolute;
+          inset: 0;
+          background-size: cover;
+          background-position: center;
+          filter: blur(30px) brightness(0.7) saturate(1.15);
+          transform: scale(1.25);
+        }
+        .modal-producto-imagen-real {
+          position: relative;
+          z-index: 1;
           width: 100%;
           height: 100%;
-          object-fit: cover;
+          object-fit: contain;
           display: block;
         }
         .modal-producto-imagen::after {
           content: '';
           position: absolute;
           inset: 0;
-          background: linear-gradient(180deg, rgba(0, 0, 0, 0.18) 0%, rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0) 100%);
+          background: linear-gradient(180deg, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0) 25%);
           pointer-events: none;
+          z-index: 2;
         }
 
         .modal-producto-info {
