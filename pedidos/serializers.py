@@ -1,9 +1,14 @@
 from decimal import Decimal
 
-from django.utils import timezone
 from rest_framework import serializers
-from .models import Pedido, DetallePedido
+from .models import Pedido, DetallePedido, Localidad
 from antojo.models import AntojoDelDia
+
+
+class LocalidadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Localidad
+        fields = '__all__'
 
 
 class DetallePedidoSerializer(serializers.ModelSerializer):
@@ -39,14 +44,29 @@ class DetallePedidoSerializer(serializers.ModelSerializer):
 
 class PedidoSerializer(serializers.ModelSerializer):
     items = DetallePedidoSerializer(many=True)
+    localidad_nombre = serializers.CharField(source='localidad.nombre', read_only=True)
+    subtotal = serializers.SerializerMethodField()
     total = serializers.SerializerMethodField()
 
     class Meta:
         model = Pedido
-        fields = ['id', 'cliente', 'telefono', 'tipo_entrega', 'direccion', 'estado', 'creado', 'items', 'total']
+        fields = [
+            'id', 'cliente', 'telefono', 'tipo_entrega', 'direccion', 'estado', 'creado', 'items',
+            'localidad', 'localidad_nombre', 'costo_envio', 'descuento_pct', 'hora_salida', 'subtotal', 'total',
+        ]
+        extra_kwargs = {
+            'localidad': {'required': False, 'allow_null': True},
+        }
+
+    def get_subtotal(self, obj):
+        return sum(item.cantidad * item.precio_unitario for item in obj.items.all())
 
     def get_total(self, obj):
-        return sum(item.cantidad * item.precio_unitario for item in obj.items.all())
+        con_envio = self.get_subtotal(obj) + obj.costo_envio
+        if obj.descuento_pct:
+            descuento = con_envio * Decimal(obj.descuento_pct) / Decimal(100)
+            return (con_envio - descuento).quantize(Decimal('1'))
+        return con_envio
 
     def validate_items(self, value):
         if not value:
@@ -57,7 +77,7 @@ class PedidoSerializer(serializers.ModelSerializer):
         items_data = validated_data.pop('items')
         pedido = Pedido.objects.create(**validated_data)
 
-        antojo_hoy = AntojoDelDia.objects.filter(fecha=timezone.localdate()).first()
+        antojo_activo = AntojoDelDia.objects.filter(activo=True).first()
 
         for item in items_data:
             producto = item.get('producto')
@@ -65,8 +85,8 @@ class PedidoSerializer(serializers.ModelSerializer):
 
             if producto:
                 precio_unitario = producto.precio
-                if antojo_hoy and antojo_hoy.producto_id == producto.id:
-                    descuento = Decimal(antojo_hoy.descuento_pct) / Decimal(100)
+                if antojo_activo and antojo_activo.producto_id == producto.id:
+                    descuento = Decimal(antojo_activo.descuento_pct) / Decimal(100)
                     precio_unitario = (producto.precio * (Decimal(1) - descuento)).quantize(Decimal('1'))
                 DetallePedido.objects.create(
                     pedido=pedido,

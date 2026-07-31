@@ -21,7 +21,7 @@ class CategoriaViewSet(viewsets.ModelViewSet):
 
 
 class ProductoViewSet(viewsets.ModelViewSet):
-    queryset = Producto.objects.all()
+    queryset = Producto.objects.prefetch_related('detalle_insumos__insumo')
     serializer_class = ProductoSerializer
 
     def get_queryset(self):
@@ -36,13 +36,13 @@ class ProductoViewSet(viewsets.ModelViewSet):
             return super().destroy(request, *args, **kwargs)
         except ProtectedError:
             return Response(
-                {'detail': 'No se puede eliminar el producto porque aparece en pedidos existentes.'},
+                {'detail': 'No se puede eliminar el producto porque aparece en pedidos o combos existentes.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
 
 class ComboViewSet(viewsets.ModelViewSet):
-    queryset = Combo.objects.prefetch_related('productos')
+    queryset = Combo.objects.prefetch_related('items__producto')
     serializer_class = ComboSerializer
 
     def destroy(self, request, *args, **kwargs):

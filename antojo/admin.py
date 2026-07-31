@@ -4,4 +4,4 @@ from .models import AntojoDelDia
 
 @admin.register(AntojoDelDia)
 class AntojoDelDiaAdmin(admin.ModelAdmin):
-    list_display = ('fecha', 'producto', 'descuento_pct', 'motivo')
+    list_display = ('producto', 'descuento_pct', 'activo')

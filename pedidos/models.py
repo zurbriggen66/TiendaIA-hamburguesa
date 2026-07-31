@@ -2,6 +2,18 @@ from django.db import models
 from productos.models import Producto, Combo
 
 
+class Localidad(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)
+    costo_envio = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['nombre']
+
+    def __str__(self):
+        return self.nombre
+
+
 class Pedido(models.Model):
     ESTADOS = [
         ('pendiente', 'Pendiente'),
@@ -20,6 +32,10 @@ class Pedido(models.Model):
     telefono = models.CharField(max_length=30, blank=True)
     tipo_entrega = models.CharField(max_length=20, choices=TIPOS_ENTREGA, default='retiro')
     direccion = models.CharField(max_length=200, blank=True)
+    localidad = models.ForeignKey(Localidad, null=True, blank=True, on_delete=models.SET_NULL, related_name='pedidos')
+    costo_envio = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    descuento_pct = models.PositiveIntegerField(default=0)
+    hora_salida = models.TimeField(null=True, blank=True)
     estado = models.CharField(max_length=20, choices=ESTADOS, default='pendiente')
     creado = models.DateTimeField(auto_now_add=True)
 
