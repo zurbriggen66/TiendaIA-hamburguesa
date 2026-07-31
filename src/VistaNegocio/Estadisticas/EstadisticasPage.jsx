@@ -76,15 +76,34 @@ function GraficoVentas({ datos }) {
   );
 }
 
+const hoyISO = () => new Date().toISOString().slice(0, 10);
+const mesActualISO = () => new Date().toISOString().slice(0, 7);
+
+const primerYUltimoDiaDelMes = (mesStr) => {
+  const [anio, mes] = mesStr.split('-').map(Number);
+  const ultimoDia = new Date(anio, mes, 0).getDate();
+  return { primero: `${mesStr}-01`, ultimo: `${mesStr}-${String(ultimoDia).padStart(2, '0')}` };
+};
+
 export default function EstadisticasPage() {
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
+  const [tab, setTab] = useState('general');
+  const [mesSeleccionado, setMesSeleccionado] = useState(mesActualISO());
+  const [diaSeleccionado, setDiaSeleccionado] = useState(hoyISO());
 
   useEffect(() => {
     const cargar = async () => {
       setCargando(true);
       try {
-        const { data } = await api.get('/estadisticas/');
+        let params = {};
+        if (tab === 'mensual') {
+          const { primero, ultimo } = primerYUltimoDiaDelMes(mesSeleccionado);
+          params = { desde: primero, hasta: ultimo };
+        } else if (tab === 'dia') {
+          params = { desde: diaSeleccionado, hasta: diaSeleccionado };
+        }
+        const { data } = await api.get('/estadisticas/', { params });
         setDatos(data);
       } catch (error) {
         console.error('Error al cargar estadísticas:', error);
@@ -93,7 +112,7 @@ export default function EstadisticasPage() {
       }
     };
     cargar();
-  }, []);
+  }, [tab, mesSeleccionado, diaSeleccionado]);
 
   return (
     <div className="estadisticas-page">
@@ -103,6 +122,42 @@ export default function EstadisticasPage() {
       </header>
 
       <div className="scroll-area">
+        <div className="tabs-bar">
+          <button type="button" className={`tab-boton ${tab === 'general' ? 'tab-activo' : ''}`} onClick={() => setTab('general')}>
+            General
+          </button>
+          <button type="button" className={`tab-boton ${tab === 'mensual' ? 'tab-activo' : ''}`} onClick={() => setTab('mensual')}>
+            Mensual
+          </button>
+          <button type="button" className={`tab-boton ${tab === 'dia' ? 'tab-activo' : ''}`} onClick={() => setTab('dia')}>
+            Por día
+          </button>
+        </div>
+
+        {tab === 'mensual' && (
+          <div className="form-group estadisticas-selector-periodo">
+            <label className="form-label">Mes</label>
+            <input
+              type="month"
+              className="input-vibrante"
+              value={mesSeleccionado}
+              onChange={(e) => setMesSeleccionado(e.target.value)}
+            />
+          </div>
+        )}
+
+        {tab === 'dia' && (
+          <div className="form-group estadisticas-selector-periodo">
+            <label className="form-label">Día</label>
+            <input
+              type="date"
+              className="input-vibrante"
+              value={diaSeleccionado}
+              onChange={(e) => setDiaSeleccionado(e.target.value)}
+            />
+          </div>
+        )}
+
         {cargando || !datos ? (
           <p className="estado-vacio">Cargando...</p>
         ) : (
@@ -130,10 +185,14 @@ export default function EstadisticasPage() {
               </div>
             </div>
 
-            <div className="seccion-header">
-              <h3>Ventas de los últimos 14 días</h3>
-            </div>
-            <GraficoVentas datos={datos.ventas_por_dia} />
+            {tab !== 'dia' && (
+              <>
+                <div className="seccion-header">
+                  <h3>{tab === 'mensual' ? 'Ventas del mes' : 'Ventas de los últimos 14 días'}</h3>
+                </div>
+                <GraficoVentas datos={datos.ventas_por_dia} />
+              </>
+            )}
 
             <div className="seccion-header">
               <h3>Productos más vendidos</h3>

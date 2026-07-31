@@ -4,13 +4,27 @@ import api from '../../services/api';
 let contadorFila = 0;
 const nuevaFila = () => ({ key: ++contadorFila, producto: '', cantidad: 1 });
 
-export default function PedidoModal({ productos, onClose, onSaved }) {
+const formatearPrecio = (precio) =>
+  new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
+
+export default function PedidoModal({ productos, localidades, onClose, onSaved }) {
   const [cliente, setCliente] = useState('');
   const [telefono, setTelefono] = useState('');
   const [tipoEntrega, setTipoEntrega] = useState('retiro');
   const [direccion, setDireccion] = useState('');
+  const [localidadId, setLocalidadId] = useState('');
+  const [costoEnvio, setCostoEnvio] = useState('');
+  const [aplicarDescuento, setAplicarDescuento] = useState(false);
+  const [descuentoPct, setDescuentoPct] = useState('');
+  const [horaSalida, setHoraSalida] = useState('');
   const [filas, setFilas] = useState([nuevaFila()]);
   const [guardando, setGuardando] = useState(false);
+
+  const elegirLocalidad = (id) => {
+    setLocalidadId(id);
+    const localidad = (localidades || []).find((l) => String(l.id) === id);
+    if (localidad) setCostoEnvio(localidad.costo_envio);
+  };
 
   const productoPorId = (id) => productos.find((p) => String(p.id) === String(id));
 
@@ -33,9 +47,6 @@ export default function PedidoModal({ productos, onClose, onSaved }) {
     return acc + (producto ? Number(producto.precio) * Number(f.cantidad) : 0);
   }, 0);
 
-  const formatearPrecio = (precio) =>
-    new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
-
   const guardar = async (e) => {
     e.preventDefault();
     if (filasValidas.length === 0) {
@@ -50,6 +61,10 @@ export default function PedidoModal({ productos, onClose, onSaved }) {
         telefono,
         tipo_entrega: tipoEntrega,
         direccion: tipoEntrega === 'delivery' ? direccion : '',
+        localidad: tipoEntrega === 'delivery' ? (localidadId || null) : null,
+        costo_envio: tipoEntrega === 'delivery' ? (costoEnvio || 0) : 0,
+        descuento_pct: aplicarDescuento ? Number(descuentoPct) || 0 : 0,
+        hora_salida: horaSalida || null,
         items: filasValidas.map((f) => ({ producto: f.producto, cantidad: f.cantidad })),
       });
       onSaved();
@@ -107,17 +122,75 @@ export default function PedidoModal({ productos, onClose, onSaved }) {
           </div>
 
           {tipoEntrega === 'delivery' && (
+            <>
+              <div className="form-group">
+                <label className="form-label">Dirección</label>
+                <input
+                  type="text"
+                  className="input-vibrante"
+                  placeholder="Calle, número y referencia"
+                  value={direccion}
+                  onChange={(e) => setDireccion(e.target.value)}
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Localidad (opcional)</label>
+                  <select className="input-vibrante" value={localidadId} onChange={(e) => elegirLocalidad(e.target.value)}>
+                    <option value="">Sin localidad específica</option>
+                    {(localidades || []).map((l) => (
+                      <option key={l.id} value={l.id}>{l.nombre} — {formatearPrecio(l.costo_envio)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Costo de envío</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="input-vibrante"
+                    placeholder="0.00"
+                    value={costoEnvio}
+                    onChange={(e) => setCostoEnvio(e.target.value)}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          <div className="form-group">
+            <label className="checkbox-vibrante">
+              <input type="checkbox" checked={aplicarDescuento} onChange={(e) => setAplicarDescuento(e.target.checked)} />
+              <span>💸 Aplicar descuento</span>
+            </label>
+          </div>
+
+          {aplicarDescuento && (
             <div className="form-group">
-              <label className="form-label">Dirección</label>
+              <label className="form-label">Porcentaje de descuento</label>
               <input
-                type="text"
+                type="number"
+                min="0"
+                max="100"
                 className="input-vibrante"
-                placeholder="Calle, número y referencia"
-                value={direccion}
-                onChange={(e) => setDireccion(e.target.value)}
+                placeholder="Ej: 5"
+                value={descuentoPct}
+                onChange={(e) => setDescuentoPct(e.target.value)}
               />
             </div>
           )}
+
+          <div className="form-group">
+            <label className="form-label">Hora de salida (opcional)</label>
+            <input
+              type="time"
+              className="input-vibrante"
+              value={horaSalida}
+              onChange={(e) => setHoraSalida(e.target.value)}
+            />
+          </div>
 
           <div className="form-group">
             <label className="form-label">Productos</label>

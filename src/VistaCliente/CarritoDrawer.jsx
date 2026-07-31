@@ -14,6 +14,7 @@ function armarMensajeWhatsapp({ nombre, telefono, tipoEntrega, direccion, items,
   ];
   if (tipoEntrega === 'delivery') {
     lineas.push(`Dirección: ${direccion}`);
+    lineas.push('(El envío tiene un costo adicional a coordinar)');
   }
   lineas.push('', 'Productos:');
   items.forEach((linea) => {
@@ -140,10 +141,13 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
             </div>
 
             {tipoEntrega === 'delivery' && (
-              <div className="form-group">
-                <label className="form-label">Dirección</label>
-                <input type="text" className="input-vibrante" value={direccion} onChange={(e) => setDireccion(e.target.value)} placeholder="Calle, número y referencia" />
-              </div>
+              <>
+                <div className="form-group">
+                  <label className="form-label">Dirección</label>
+                  <input type="text" className="input-vibrante" value={direccion} onChange={(e) => setDireccion(e.target.value)} placeholder="Calle, número y referencia" />
+                </div>
+                <p className="aviso-envio">🛵 El envío tiene un costo adicional que coordinamos por WhatsApp.</p>
+              </>
             )}
 
             <button type="submit" className="btn-vibrante btn-whatsapp" disabled={enviando}>

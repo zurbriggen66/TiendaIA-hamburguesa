@@ -152,9 +152,10 @@ export default function Menu({ categorias, productos, onAgregar }) {
   const principales = productos.filter((p) => !p.es_extra);
   const extras = productos.filter((p) => p.es_extra);
 
-  const productosFiltrados = categoriaActiva === 'todas'
+  const productosFiltrados = (categoriaActiva === 'todas'
     ? principales
-    : principales.filter((p) => p.categoria === categoriaActiva);
+    : principales.filter((p) => p.categoria === categoriaActiva)
+  ).slice().sort((a, b) => Number(b.destacado) - Number(a.destacado));
 
   return (
     <section className="menu-seccion" id="menu">

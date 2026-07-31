@@ -57,9 +57,11 @@ function construirBloqueTicket(pedido) {
       ${pedido.telefono ? `<div class="ticket-dato">Tel: ${escapeHtml(pedido.telefono)}</div>` : ''}
       <div class="ticket-dato">${pedido.tipo_entrega === 'delivery' ? 'Delivery' : 'Retiro en local'}</div>
       ${pedido.tipo_entrega === 'delivery' && pedido.direccion ? `<div class="ticket-dato">Dir: ${escapeHtml(pedido.direccion)}</div>` : ''}
+      ${pedido.hora_salida ? `<div class="ticket-dato">Sale: ${String(pedido.hora_salida).slice(0, 5)}</div>` : ''}
       <div class="ticket-linea"></div>
       ${filasItems}
       <div class="ticket-linea"></div>
+      ${construirDesgloseTicket(pedido)}
       <div class="ticket-total">
         <span>TOTAL</span>
         <span>${formatearPrecio(pedido.total)}</span>
@@ -67,6 +69,18 @@ function construirBloqueTicket(pedido) {
       <div class="ticket-linea"></div>
       <div class="ticket-footer">¡Gracias por tu pedido!</div>
     </div>`;
+}
+
+function construirDesgloseTicket(pedido) {
+  const tieneEnvio = Number(pedido.costo_envio) > 0;
+  const tieneDescuento = Number(pedido.descuento_pct) > 0;
+  if (!tieneEnvio && !tieneDescuento) return '';
+
+  return `
+    <div class="ticket-item"><span>Subtotal</span><span>${formatearPrecio(pedido.subtotal)}</span></div>
+    ${tieneEnvio ? `<div class="ticket-item"><span>Envío</span><span>${formatearPrecio(pedido.costo_envio)}</span></div>` : ''}
+    ${tieneDescuento ? `<div class="ticket-item"><span>Descuento</span><span>-${pedido.descuento_pct}%</span></div>` : ''}
+    <div class="ticket-linea"></div>`;
 }
 
 export function construirHtmlTicket(pedido, config) {
@@ -87,17 +101,19 @@ export function construirHtmlTicket(pedido, config) {
     padding: 4mm;
     width: ${anchoMm}mm;
     font-family: 'Courier New', monospace;
-    font-size: 11px;
+    font-size: 15px;
+    font-weight: 700;
     color: #000;
   }
-  .ticket-header { text-align: center; display: flex; flex-direction: column; margin-bottom: 4px; }
-  .ticket-header strong { font-size: 15px; letter-spacing: 1px; }
-  .ticket-linea { border-top: 1px dashed #000; margin: 4px 0; }
-  .ticket-dato { margin: 1px 0; }
-  .ticket-item { display: flex; justify-content: space-between; gap: 6px; margin: 2px 0; }
-  .ticket-total { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; margin: 2px 0; }
-  .ticket-footer { text-align: center; margin-top: 6px; }
-  .ticket-corte { border-top: 1px dashed #000; margin: 10px 0; page-break-before: always; }
+  .ticket-header { text-align: center; display: flex; flex-direction: column; margin-bottom: 6px; }
+  .ticket-header strong { font-size: 22px; letter-spacing: 1px; }
+  .ticket-header span { font-size: 14px; }
+  .ticket-linea { border-top: 2px dashed #000; margin: 6px 0; }
+  .ticket-dato { margin: 2px 0; }
+  .ticket-item { display: flex; justify-content: space-between; gap: 6px; margin: 3px 0; }
+  .ticket-total { display: flex; justify-content: space-between; font-weight: 800; font-size: 19px; margin: 4px 0; }
+  .ticket-footer { text-align: center; margin-top: 8px; }
+  .ticket-corte { border-top: 2px dashed #000; margin: 12px 0; page-break-before: always; }
 </style>
 </head>
 <body>${bloques}</body>
