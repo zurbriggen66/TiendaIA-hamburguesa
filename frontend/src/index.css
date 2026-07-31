@@ -1083,6 +1083,22 @@ body {
   color: #fb923c;
 }
 
+.pedido-envio-boton {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: #4ade80;
+  border-radius: 8px;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.pedido-envio-boton:hover {
+  background: var(--border);
+}
+
 .badge-estado {
   flex-shrink: 0;
   font-size: 0.7rem;
@@ -1145,6 +1161,27 @@ body {
   font-weight: 800;
   font-size: 1.2rem;
   color: #16a34a;
+}
+
+.pedido-desglose {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.pedido-desglose div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pedido-envio-contexto {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-bottom: 16px;
 }
 
 .pedido-acciones-estado {
@@ -1334,6 +1371,10 @@ body {
   border-bottom: 1px solid var(--border);
 }
 
+.estadisticas-selector-periodo {
+  max-width: 220px;
+}
+
 .tab-boton {
   border: none;
   background: none;
@@ -1493,6 +1534,16 @@ body {
   border-radius: 10px;
   padding: 12px 16px;
   margin-bottom: 8px;
+}
+
+.aviso-envio {
+  font-size: 0.82rem;
+  color: #fdba74;
+  background: var(--surface-2);
+  border: 1px dashed #7c4a2d;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
 }
 
 /* Info de entrega en tarjeta de pedido (admin) + selector compartido con el checkout público */

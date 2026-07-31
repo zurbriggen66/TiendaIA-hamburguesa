@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 
+let contadorFilaInsumo = 0;
+const nuevaFilaInsumo = (insumo = '', cantidad = 1) => ({ key: ++contadorFilaInsumo, insumo: String(insumo), cantidad });
+
 export default function ProductoModal({ producto, categorias, categoriaPreseleccionada, onClose, onSaved }) {
   const [nombre, setNombre] = useState(producto ? producto.nombre : '');
   const [descripcion, setDescripcion] = useState(producto ? producto.descripcion : '');
@@ -12,17 +15,27 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
   const [esExtra, setEsExtra] = useState(producto ? producto.es_extra : false);
   const [imagen, setImagen] = useState(null);
   const [guardando, setGuardando] = useState(false);
-  const [insumos, setInsumos] = useState([]);
-  const [insumosSeleccionados, setInsumosSeleccionados] = useState(producto ? producto.insumos : []);
+  const [insumosDisponibles, setInsumosDisponibles] = useState([]);
+  const [filasInsumos, setFilasInsumos] = useState(
+    producto && producto.insumos_detalle && producto.insumos_detalle.length > 0
+      ? producto.insumos_detalle.map((d) => nuevaFilaInsumo(d.insumo, d.cantidad))
+      : [nuevaFilaInsumo()]
+  );
 
   useEffect(() => {
-    api.get('/insumos/').then((res) => setInsumos(res.data)).catch((err) => console.error('Error al cargar insumos:', err));
+    api.get('/insumos/').then((res) => setInsumosDisponibles(res.data)).catch((err) => console.error('Error al cargar insumos:', err));
   }, []);
 
-  const toggleInsumo = (id) => {
-    setInsumosSeleccionados((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-    );
+  const actualizarFilaInsumo = (key, cambios) => {
+    setFilasInsumos((prev) => prev.map((f) => (f.key === key ? { ...f, ...cambios } : f)));
+  };
+
+  const quitarFilaInsumo = (key) => {
+    setFilasInsumos((prev) => prev.filter((f) => f.key !== key));
+  };
+
+  const agregarFilaInsumo = () => {
+    setFilasInsumos((prev) => [...prev, nuevaFilaInsumo()]);
   };
 
   const previewImagen = imagen ? URL.createObjectURL(imagen) : (producto ? producto.imagen : null);
@@ -52,14 +65,15 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
     formData.append('destacado', destacado);
     formData.append('es_extra', esExtra);
     if (imagen) formData.append('imagen', imagen);
-    // Mandamos siempre al menos una entrada (aunque sea vacía) para que el backend
-    // sepa que "insumos" se envió a propósito y pueda vaciar la relación si corresponde;
-    // omitir la clave del todo hace que Django REST Framework la ignore en un PATCH parcial.
-    if (insumosSeleccionados.length === 0) {
-      formData.append('insumos', '');
-    } else {
-      insumosSeleccionados.forEach((id) => formData.append('insumos', id));
-    }
+
+    const filasValidas = filasInsumos.filter((f) => f.insumo && Number(f.cantidad) > 0);
+    const cantidadPorInsumo = new Map();
+    filasValidas.forEach((f) => {
+      const id = Number(f.insumo);
+      cantidadPorInsumo.set(id, (cantidadPorInsumo.get(id) || 0) + Number(f.cantidad));
+    });
+    const insumosParaGuardar = Array.from(cantidadPorInsumo, ([insumo, cantidad]) => ({ insumo, cantidad }));
+    formData.append('insumos_json', JSON.stringify(insumosParaGuardar));
 
     setGuardando(true);
     try {
@@ -163,21 +177,49 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
             </label>
           </div>
 
-          {insumos.length > 0 && (
+          {insumosDisponibles.length > 0 && (
             <div className="form-group">
-              <label className="form-label">Insumos que usa (opcional, para "Antojo del día")</label>
-              <div className="insumos-checkbox-lista">
-                {insumos.map((insumo) => (
-                  <label key={insumo.id} className="checkbox-vibrante checkbox-insumo">
-                    <input
-                      type="checkbox"
-                      checked={insumosSeleccionados.includes(insumo.id)}
-                      onChange={() => toggleInsumo(insumo.id)}
-                    />
-                    <span>{insumo.nombre}</span>
-                  </label>
-                ))}
+              <label className="form-label">Insumos que usa (opcional, ej: 2 huevos)</label>
+              <div className="pedido-filas">
+                {filasInsumos.map((fila) => {
+                  const insumoElegido = insumosDisponibles.find((i) => String(i.id) === fila.insumo);
+                  return (
+                    <div key={fila.key} className="pedido-fila">
+                      <select
+                        className="input-vibrante"
+                        value={fila.insumo}
+                        onChange={(e) => actualizarFilaInsumo(fila.key, { insumo: e.target.value })}
+                      >
+                        <option value="">Elegir insumo...</option>
+                        {insumosDisponibles.map((i) => (
+                          <option key={i.id} value={i.id}>{i.nombre} ({i.unidad})</option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className="input-vibrante pedido-fila-cantidad"
+                        value={fila.cantidad}
+                        onChange={(e) => actualizarFilaInsumo(fila.key, { cantidad: e.target.value })}
+                        title={insumoElegido ? `Cantidad en ${insumoElegido.unidad}` : 'Cantidad'}
+                      />
+                      <button
+                        type="button"
+                        className="pedido-fila-quitar"
+                        onClick={() => quitarFilaInsumo(fila.key)}
+                        disabled={filasInsumos.length === 1}
+                        title="Quitar insumo"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
+              <button type="button" className="btn-agregar-fila" onClick={agregarFilaInsumo}>
+                + Agregar insumo
+              </button>
             </div>
           )}
 

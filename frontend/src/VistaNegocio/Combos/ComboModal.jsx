@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 
+let contadorFilaProducto = 0;
+const nuevaFilaProducto = (producto = '', cantidad = 1) => ({ key: ++contadorFilaProducto, producto: String(producto), cantidad });
+
 export default function ComboModal({ combo, onClose, onSaved }) {
   const [nombre, setNombre] = useState(combo ? combo.nombre : '');
   const [descripcion, setDescripcion] = useState(combo ? combo.descripcion : '');
@@ -8,19 +11,27 @@ export default function ComboModal({ combo, onClose, onSaved }) {
   const [activo, setActivo] = useState(combo ? combo.activo : false);
   const [imagen, setImagen] = useState(null);
   const [guardando, setGuardando] = useState(false);
-  const [productos, setProductos] = useState([]);
-  const [productosSeleccionados, setProductosSeleccionados] = useState(
-    combo ? combo.productos : []
+  const [productosDisponibles, setProductosDisponibles] = useState([]);
+  const [filasProductos, setFilasProductos] = useState(
+    combo && combo.productos_detalle && combo.productos_detalle.length > 0
+      ? combo.productos_detalle.map((d) => nuevaFilaProducto(d.id, d.cantidad))
+      : [nuevaFilaProducto()]
   );
 
   useEffect(() => {
-    api.get('/productos/').then((res) => setProductos(res.data)).catch((err) => console.error('Error al cargar productos:', err));
+    api.get('/productos/').then((res) => setProductosDisponibles(res.data)).catch((err) => console.error('Error al cargar productos:', err));
   }, []);
 
-  const toggleProducto = (id) => {
-    setProductosSeleccionados((prev) =>
-      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
-    );
+  const actualizarFilaProducto = (key, cambios) => {
+    setFilasProductos((prev) => prev.map((f) => (f.key === key ? { ...f, ...cambios } : f)));
+  };
+
+  const quitarFilaProducto = (key) => {
+    setFilasProductos((prev) => prev.filter((f) => f.key !== key));
+  };
+
+  const agregarFilaProducto = () => {
+    setFilasProductos((prev) => [...prev, nuevaFilaProducto()]);
   };
 
   const previewImagen = imagen ? URL.createObjectURL(imagen) : (combo ? combo.imagen : null);
@@ -41,10 +52,19 @@ export default function ComboModal({ combo, onClose, onSaved }) {
       alert('Completá al menos el nombre y el precio del combo.');
       return;
     }
-    if (productosSeleccionados.length === 0) {
+
+    const filasValidas = filasProductos.filter((f) => f.producto && Number(f.cantidad) > 0);
+    if (filasValidas.length === 0) {
       alert('Elegí al menos un producto para el combo.');
       return;
     }
+
+    const cantidadPorProducto = new Map();
+    filasValidas.forEach((f) => {
+      const id = Number(f.producto);
+      cantidadPorProducto.set(id, (cantidadPorProducto.get(id) || 0) + Number(f.cantidad));
+    });
+    const productosParaGuardar = Array.from(cantidadPorProducto, ([producto, cantidad]) => ({ producto, cantidad }));
 
     const formData = new FormData();
     formData.append('nombre', nombre.trim());
@@ -52,7 +72,7 @@ export default function ComboModal({ combo, onClose, onSaved }) {
     formData.append('precio', precio);
     formData.append('activo', activo);
     if (imagen) formData.append('imagen', imagen);
-    productosSeleccionados.forEach((id) => formData.append('productos', id));
+    formData.append('productos_json', JSON.stringify(productosParaGuardar));
 
     setGuardando(true);
     try {
@@ -120,22 +140,47 @@ export default function ComboModal({ combo, onClose, onSaved }) {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Productos que incluye</label>
-            {productos.length === 0 ? (
+            <label className="form-label">Productos que incluye (podés repetir uno con cantidad &gt; 1, ej: 2x Americana)</label>
+            {productosDisponibles.length === 0 ? (
               <p className="aviso-sin-insumos">Todavía no cargaste productos en el menú.</p>
             ) : (
-              <div className="insumos-checkbox-lista">
-                {productos.map((p) => (
-                  <label key={p.id} className="checkbox-vibrante checkbox-insumo">
-                    <input
-                      type="checkbox"
-                      checked={productosSeleccionados.includes(p.id)}
-                      onChange={() => toggleProducto(p.id)}
-                    />
-                    <span>{p.nombre}</span>
-                  </label>
-                ))}
-              </div>
+              <>
+                <div className="pedido-filas">
+                  {filasProductos.map((fila) => (
+                    <div key={fila.key} className="pedido-fila">
+                      <select
+                        className="input-vibrante"
+                        value={fila.producto}
+                        onChange={(e) => actualizarFilaProducto(fila.key, { producto: e.target.value })}
+                      >
+                        <option value="">Elegir producto...</option>
+                        {productosDisponibles.map((p) => (
+                          <option key={p.id} value={p.id}>{p.nombre}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        min="1"
+                        className="input-vibrante pedido-fila-cantidad"
+                        value={fila.cantidad}
+                        onChange={(e) => actualizarFilaProducto(fila.key, { cantidad: e.target.value })}
+                      />
+                      <button
+                        type="button"
+                        className="pedido-fila-quitar"
+                        onClick={() => quitarFilaProducto(fila.key)}
+                        disabled={filasProductos.length === 1}
+                        title="Quitar producto"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button type="button" className="btn-agregar-fila" onClick={agregarFilaProducto}>
+                  + Agregar producto
+                </button>
+              </>
             )}
           </div>
 

@@ -83,7 +83,7 @@ export default function CombosPage() {
                   <h4>{combo.nombre}</h4>
                   {combo.descripcion && <p className="combo-card-descripcion">{combo.descripcion}</p>}
                   <p className="combo-card-incluye">
-                    Incluye: {combo.productos_detalle.map((p) => p.nombre).join(' + ')}
+                    Incluye: {combo.productos_detalle.map((p) => `${p.cantidad > 1 ? `${p.cantidad}x ` : ''}${p.nombre}`).join(' + ')}
                   </p>
                   <div className="combo-card-footer">
                     <span className="combo-card-precio">{formatearPrecio(combo.precio)}</span>

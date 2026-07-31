@@ -23,7 +23,7 @@ export default function Combos({ combos, onAgregar }) {
               <h3>{combo.nombre}</h3>
               {combo.descripcion && <p className="combo-publico-descripcion">{combo.descripcion}</p>}
               <p className="combo-publico-incluye">
-                Incluye: {combo.productos_detalle.map((p) => p.nombre).join(' + ')}
+                Incluye: {combo.productos_detalle.map((p) => `${p.cantidad > 1 ? `${p.cantidad}x ` : ''}${p.nombre}`).join(' + ')}
               </p>
               <div className="combo-publico-footer">
                 <span className="combo-publico-precio">{formatearPrecio(combo.precio)}</span>

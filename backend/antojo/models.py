@@ -3,10 +3,10 @@ from productos.models import Producto
 
 
 class AntojoDelDia(models.Model):
-    fecha = models.DateField(unique=True)
-    producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    producto = models.ForeignKey(Producto, null=True, blank=True, on_delete=models.SET_NULL)
     descuento_pct = models.PositiveIntegerField(default=15)
-    motivo = models.CharField(max_length=200, blank=True)
+    activo = models.BooleanField(default=False)
 
     def __str__(self):
-        return f'{self.fecha} - {self.producto.nombre}'
+        nombre = self.producto.nombre if self.producto else '(sin producto)'
+        return f'{nombre} - {"activo" if self.activo else "inactivo"}'
