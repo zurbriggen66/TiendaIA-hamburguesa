@@ -130,6 +130,7 @@ export default function DashboardLayout() {
             </NavLink>
             <NavLink to="/admin/combos" className={linkClass}>Combos</NavLink>
             <NavLink to="/admin/antojo" className={linkClass}>🔥 Antojo del día</NavLink>
+            <NavLink to="/admin/cobranzas" className={linkClass}>💰 Cobranzas</NavLink>
             <NavLink to="/admin/gastos" className={linkClass}>Gastos</NavLink>
             <NavLink to="/admin/impresion" className={linkClass}>🖨️ Impresión</NavLink>
           </nav>

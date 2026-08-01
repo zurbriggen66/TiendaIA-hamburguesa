@@ -36,11 +36,15 @@ function construirBloqueTicket(pedido) {
     .map((item) => {
       const nombre = item.producto_nombre || item.combo_nombre || 'Producto';
       const subtotal = item.subtotal ?? item.precio_unitario * item.cantidad;
+      const extrasTexto = item.extras_detalle && item.extras_detalle.length > 0
+        ? `<div class="ticket-extra">  + ${item.extras_detalle.map((e) => escapeHtml(e.nombre)).join(', ')}</div>`
+        : '';
       return `
         <div class="ticket-item">
           <span>${item.cantidad} x ${escapeHtml(nombre)}</span>
           <span>${formatearPrecio(subtotal)}</span>
-        </div>`;
+        </div>
+        ${extrasTexto}`;
     })
     .join('');
 
@@ -66,6 +70,7 @@ function construirBloqueTicket(pedido) {
         <span>TOTAL</span>
         <span>${formatearPrecio(pedido.total)}</span>
       </div>
+      ${pedido.nota ? `<div class="ticket-linea"></div><div class="ticket-nota">NOTA: ${escapeHtml(pedido.nota)}</div>` : ''}
       <div class="ticket-linea"></div>
       <div class="ticket-footer">¡Gracias por tu pedido!</div>
     </div>`;
@@ -101,19 +106,22 @@ export function construirHtmlTicket(pedido, config) {
     padding: 4mm;
     width: ${anchoMm}mm;
     font-family: 'Courier New', monospace;
-    font-size: 15px;
+    font-size: 19px;
     font-weight: 700;
+    line-height: 1.3;
     color: #000;
   }
-  .ticket-header { text-align: center; display: flex; flex-direction: column; margin-bottom: 6px; }
-  .ticket-header strong { font-size: 22px; letter-spacing: 1px; }
-  .ticket-header span { font-size: 14px; }
-  .ticket-linea { border-top: 2px dashed #000; margin: 6px 0; }
-  .ticket-dato { margin: 2px 0; }
-  .ticket-item { display: flex; justify-content: space-between; gap: 6px; margin: 3px 0; }
-  .ticket-total { display: flex; justify-content: space-between; font-weight: 800; font-size: 19px; margin: 4px 0; }
-  .ticket-footer { text-align: center; margin-top: 8px; }
-  .ticket-corte { border-top: 2px dashed #000; margin: 12px 0; page-break-before: always; }
+  .ticket-header { text-align: center; display: flex; flex-direction: column; margin-bottom: 8px; }
+  .ticket-header strong { font-size: 28px; letter-spacing: 1px; }
+  .ticket-header span { font-size: 18px; }
+  .ticket-linea { border-top: 3px dashed #000; margin: 8px 0; }
+  .ticket-dato { margin: 3px 0; }
+  .ticket-item { display: flex; justify-content: space-between; gap: 8px; margin: 4px 0; }
+  .ticket-extra { font-size: 16px; margin: 0 0 4px 8px; }
+  .ticket-total { display: flex; justify-content: space-between; font-weight: 800; font-size: 24px; margin: 6px 0; }
+  .ticket-nota { font-size: 18px; margin: 6px 0; }
+  .ticket-footer { text-align: center; margin-top: 10px; }
+  .ticket-corte { border-top: 3px dashed #000; margin: 14px 0; page-break-before: always; }
 </style>
 </head>
 <body>${bloques}</body>
@@ -161,6 +169,7 @@ export function imprimirPrueba() {
     direccion: '',
     creado: new Date().toISOString(),
     total: 12000,
+    nota: 'Sin cebolla, gracias',
     items: [{ cantidad: 2, producto_nombre: 'Hamburguesa Clásica', subtotal: 12000 }],
   };
   imprimirHtml(construirHtmlTicket(pedidoDePrueba, config));

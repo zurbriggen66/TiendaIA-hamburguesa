@@ -3,6 +3,7 @@ import api from '../../services/api';
 import PedidoModal from './PedidoModal';
 import LocalidadModal from './LocalidadModal';
 import PedidoEnvioDescuentoModal from './PedidoEnvioDescuentoModal';
+import PedidoPagoModal from './PedidoPagoModal';
 import { imprimirPedido } from '../../utils/impresion';
 
 const ORDEN_ESTADOS = ['pendiente', 'en_preparacion', 'listo', 'entregado'];
@@ -13,6 +14,12 @@ const ETIQUETA_ESTADO = {
   listo: 'Listo',
   entregado: 'Entregado',
   cancelado: 'Cancelado',
+};
+
+const ETIQUETA_COBRO = {
+  pagado: '✅ Pagado',
+  parcial: '🟡 Parcial',
+  pendiente: '🔴 Pendiente',
 };
 
 const ETIQUETA_SIGUIENTE = {
@@ -30,6 +37,7 @@ export default function PedidosPage() {
   const [mostrarModal, setMostrarModal] = useState(false);
   const [modalLocalidad, setModalLocalidad] = useState(null);
   const [modalEnvio, setModalEnvio] = useState(null);
+  const [modalPago, setModalPago] = useState(null);
 
   const cargarDatos = useCallback(async () => {
     setCargando(true);
@@ -99,6 +107,9 @@ export default function PedidosPage() {
   const formatearPrecio = (precio) =>
     new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
 
+  const formatearFechaHora = (iso) =>
+    new Date(iso).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+
   return (
     <div className="pedidos-page">
       <header className="main-header">
@@ -131,10 +142,15 @@ export default function PedidosPage() {
               {pedidos.map((pedido) => (
                 <div key={pedido.id} className="pedido-card">
                   <div className="pedido-card-header">
-                    <h4>{pedido.cliente || `Pedido #${pedido.id}`}</h4>
+                    <div>
+                      <h4>{pedido.cliente || `Pedido #${pedido.id}`}</h4>
+                      <span className="pedido-fecha-creacion">🕐 {formatearFechaHora(pedido.creado)}</span>
+                    </div>
                     <div className="pedido-card-header-derecha">
                       <span className={`badge-estado estado-${pedido.estado}`}>{ETIQUETA_ESTADO[pedido.estado]}</span>
-                      <button type="button" className="pedido-envio-boton" title="Envío, descuento y hora de salida" onClick={() => setModalEnvio(pedido)}>💲</button>
+                      <span className={`badge-cobro cobro-${pedido.estado_cobro}`}>{ETIQUETA_COBRO[pedido.estado_cobro]}</span>
+                      <button type="button" className="pedido-pago-boton" title="Cobrar pedido" onClick={() => setModalPago(pedido.id)}>💰</button>
+                      <button type="button" className="pedido-envio-boton" title="Detalles del pedido" onClick={() => setModalEnvio(pedido)}>💲</button>
                       <button type="button" className="pedido-imprimir" title="Imprimir ticket" onClick={() => imprimirPedido(pedido)}>🖨️</button>
                       <button type="button" className="pedido-eliminar" title="Eliminar pedido" onClick={() => eliminarPedido(pedido)}>🗑</button>
                     </div>
@@ -156,10 +172,19 @@ export default function PedidosPage() {
                     )}
                   </div>
 
+                  {pedido.nota && (
+                    <p className="pedido-nota">📝 {pedido.nota}</p>
+                  )}
+
                   <ul className="pedido-items-lista">
                     {pedido.items.map((item) => (
                       <li key={item.id}>
-                        <span>{item.cantidad} × {item.producto_nombre || item.combo_nombre}</span>
+                        <div className="pedido-item-info">
+                          <span>{item.cantidad} × {item.producto_nombre || item.combo_nombre}</span>
+                          {item.extras_detalle && item.extras_detalle.length > 0 && (
+                            <span className="pedido-item-extras">+ {item.extras_detalle.map((e) => e.nombre).join(', ')}</span>
+                          )}
+                        </div>
                         <span>{formatearPrecio(item.subtotal)}</span>
                       </li>
                     ))}
@@ -264,6 +289,14 @@ export default function PedidosPage() {
           localidades={localidades}
           onClose={() => setModalEnvio(null)}
           onSaved={() => { setModalEnvio(null); cargarDatos(); }}
+        />
+      )}
+
+      {modalPago && (
+        <PedidoPagoModal
+          pedidoId={modalPago}
+          onClose={() => setModalPago(null)}
+          onSaved={cargarDatos}
         />
       )}
     </div>
