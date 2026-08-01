@@ -6,6 +6,7 @@ import AntojoDelDia from './AntojoDelDia';
 import Combos from './Combos';
 import Menu from './Menu';
 import CarritoDrawer from './CarritoDrawer';
+import Footer from './Footer'; // <-- IMPORTAMOS EL NUEVO FOOTER
 
 export default function Inicio() {
   const [configuracion, setConfiguracion] = useState({
@@ -126,13 +127,9 @@ export default function Inicio() {
         />
       )}
 
-      <footer className="cliente-footer">
-        <div className="cliente-footer-links">
-          <a href={configuracion.instagram} target="_blank" rel="noopener noreferrer">Instagram</a>
-          <a href={`https://wa.me/${configuracion.whatsapp}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>
-        </div>
-        <span>© 2026 ANTOJO Burger - Todos los derechos reservados</span>
-      </footer>
+      {/* <-- AQUÍ RENDERIZAMOS EL NUEVO FOOTER --> */}
+      <Footer configuracion={configuracion} />
+      
     </div>
   );
 }
