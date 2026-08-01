@@ -4,4 +4,11 @@ from .models import ConfiguracionSitio
 class ConfiguracionSitioSerializer(serializers.ModelSerializer):
     class Meta:
         model = ConfiguracionSitio
-        fields = '__all__'
+        fields = [
+            'id',
+            'logo',
+            'imagen_principal',
+            'video_principal',
+            'whatsapp',
+            'instagram',
+        ]

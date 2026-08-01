@@ -6,6 +6,12 @@ class ConfiguracionSitio(models.Model):
     imagen_principal = models.ImageField(upload_to='sitio/portadas/', null=True, blank=True)
     whatsapp = models.CharField(max_length=20, blank=True, default='5493544400993')
     instagram = models.URLField(blank=True, default='https://www.instagram.com/antojoburger_/')
+    video_principal = models.FileField(
+        upload_to='videos/', 
+        null=True, 
+        blank=True, 
+        help_text="Video de fondo para el inicio (Formato 9:16 recomendado)"
+    )
 
     def __str__(self):
         return "Configuración General del Sitio"
