@@ -12,6 +12,7 @@ export default function Inicio() {
   const [configuracion, setConfiguracion] = useState({
     logo: "https://cdn-icons-png.flaticon.com/512/3075/3075977.png",
     imagen_principal: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=1200&q=80",
+    video_principal: null,
     whatsapp: '5493544400993',
     instagram: 'https://www.instagram.com/antojoburger_/',
   });
@@ -30,6 +31,7 @@ export default function Inicio() {
           setConfiguracion((prev) => ({
             logo: ultimaConfig.logo || prev.logo,
             imagen_principal: ultimaConfig.imagen_principal || prev.imagen_principal,
+            video_principal: ultimaConfig.video_principal || prev.video_principal,
             whatsapp: ultimaConfig.whatsapp || prev.whatsapp,
             instagram: ultimaConfig.instagram || prev.instagram,
           }));

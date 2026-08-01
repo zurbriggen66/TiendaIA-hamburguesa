@@ -139,6 +139,15 @@ export default function PedidosPage() {
             </div>
           ) : (
             <div className="pedidos-grid">
+              <button
+                type="button"
+                className="pedido-card pedido-card-nuevo"
+                onClick={() => setMostrarModal(true)}
+              >
+                <span className="producto-card-nueva-icono">+</span>
+                <span>Nuevo pedido</span>
+              </button>
+
               {pedidos.map((pedido) => (
                 <div key={pedido.id} className="pedido-card">
                   <div className="pedido-card-header">
@@ -218,15 +227,6 @@ export default function PedidosPage() {
                   </div>
                 </div>
               ))}
-
-              <button
-                type="button"
-                className="pedido-card pedido-card-nuevo"
-                onClick={() => setMostrarModal(true)}
-              >
-                <span className="producto-card-nueva-icono">+</span>
-                <span>Nuevo pedido</span>
-              </button>
             </div>
           )
         )}
