@@ -10,6 +10,7 @@ export default function PedidoEnvioDescuentoModal({ pedido, localidades, onClose
   const [aplicarDescuento, setAplicarDescuento] = useState(Number(pedido.descuento_pct) > 0);
   const [descuentoPct, setDescuentoPct] = useState(pedido.descuento_pct || '');
   const [horaSalida, setHoraSalida] = useState(pedido.hora_salida ? pedido.hora_salida.slice(0, 5) : '');
+  const [nota, setNota] = useState(pedido.nota || '');
   const [guardando, setGuardando] = useState(false);
 
   const esDelivery = pedido.tipo_entrega === 'delivery';
@@ -29,6 +30,7 @@ export default function PedidoEnvioDescuentoModal({ pedido, localidades, onClose
         costo_envio: esDelivery ? (costoEnvio || 0) : 0,
         descuento_pct: aplicarDescuento ? Number(descuentoPct) || 0 : 0,
         hora_salida: horaSalida || null,
+        nota,
       });
       onSaved();
     } catch (error) {
@@ -43,7 +45,7 @@ export default function PedidoEnvioDescuentoModal({ pedido, localidades, onClose
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>Envío, descuento y hora de salida</h3>
+          <h3>Detalles del pedido</h3>
           <button type="button" className="modal-close" onClick={onClose}>✕</button>
         </div>
 
@@ -109,6 +111,17 @@ export default function PedidoEnvioDescuentoModal({ pedido, localidades, onClose
               className="input-vibrante"
               value={horaSalida}
               onChange={(e) => setHoraSalida(e.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Nota para cocina (opcional)</label>
+            <textarea
+              className="input-vibrante"
+              rows={2}
+              placeholder="Ej: Sin cebolla, punto de cocción bien cocido..."
+              value={nota}
+              onChange={(e) => setNota(e.target.value)}
             />
           </div>
 

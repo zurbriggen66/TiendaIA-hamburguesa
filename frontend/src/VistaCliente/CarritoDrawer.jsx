@@ -4,6 +4,9 @@ import api from '../services/api';
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
 
+const precioUnitarioLinea = (linea) =>
+  Number(linea.item.precio) + (linea.extras || []).reduce((acc, e) => acc + Number(e.precio), 0);
+
 function armarMensajeWhatsapp({ nombre, telefono, tipoEntrega, direccion, items, total }) {
   const lineas = [
     '🍔 *Nuevo pedido - ANTOJO Burger*',
@@ -18,7 +21,10 @@ function armarMensajeWhatsapp({ nombre, telefono, tipoEntrega, direccion, items,
   }
   lineas.push('', 'Productos:');
   items.forEach((linea) => {
-    lineas.push(`${linea.cantidad}x ${linea.item.nombre} - ${formatearPrecio(linea.item.precio * linea.cantidad)}`);
+    const extrasTexto = linea.extras && linea.extras.length > 0
+      ? ` (+ ${linea.extras.map((e) => e.nombre).join(', ')})`
+      : '';
+    lineas.push(`${linea.cantidad}x ${linea.item.nombre}${extrasTexto} - ${formatearPrecio(precioUnitarioLinea(linea) * linea.cantidad)}`);
   });
   lineas.push('', `*Total: ${formatearPrecio(total)}*`);
   return lineas.join('\n');
@@ -32,7 +38,7 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
   const [enviando, setEnviando] = useState(false);
   const [exito, setExito] = useState(false);
 
-  const total = items.reduce((acc, linea) => acc + Number(linea.item.precio) * linea.cantidad, 0);
+  const total = items.reduce((acc, linea) => acc + precioUnitarioLinea(linea) * linea.cantidad, 0);
 
   const enviarPedido = async (e) => {
     e.preventDefault();
@@ -59,7 +65,11 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
         items: items.map((linea) =>
           linea.tipo === 'combo'
             ? { combo: linea.item.id, cantidad: linea.cantidad }
-            : { producto: linea.item.id, cantidad: linea.cantidad }
+            : {
+                producto: linea.item.id,
+                cantidad: linea.cantidad,
+                extras: (linea.extras || []).map((e) => ({ producto: e.id })),
+              }
         ),
       });
     } catch (error) {
@@ -95,20 +105,23 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
           <form onSubmit={enviarPedido} className="carrito-form">
             <div className="carrito-items">
               {items.map((linea) => (
-                <div key={`${linea.tipo}-${linea.item.id}`} className="carrito-item">
+                <div key={linea.lineaId} className="carrito-item">
                   <div className="carrito-item-info">
                     <strong>
                       {linea.item.nombre}
                       {linea.tipo === 'combo' && <span className="carrito-item-badge-combo">Combo</span>}
                     </strong>
-                    <span>{formatearPrecio(linea.item.precio)} c/u</span>
+                    {linea.extras && linea.extras.length > 0 && (
+                      <span className="carrito-item-extras">+ {linea.extras.map((e) => e.nombre).join(', ')}</span>
+                    )}
+                    <span>{formatearPrecio(precioUnitarioLinea(linea))} c/u</span>
                   </div>
                   <div className="carrito-item-cantidad">
-                    <button type="button" onClick={() => onCambiarCantidad(linea.tipo, linea.item.id, linea.cantidad - 1)}>−</button>
+                    <button type="button" onClick={() => onCambiarCantidad(linea.lineaId, linea.cantidad - 1)}>−</button>
                     <span>{linea.cantidad}</span>
-                    <button type="button" onClick={() => onCambiarCantidad(linea.tipo, linea.item.id, linea.cantidad + 1)}>+</button>
+                    <button type="button" onClick={() => onCambiarCantidad(linea.lineaId, linea.cantidad + 1)}>+</button>
                   </div>
-                  <button type="button" className="carrito-item-quitar" onClick={() => onQuitar(linea.tipo, linea.item.id)}>🗑</button>
+                  <button type="button" className="carrito-item-quitar" onClick={() => onQuitar(linea.lineaId)}>🗑</button>
                 </div>
               ))}
             </div>

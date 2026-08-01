@@ -5,12 +5,41 @@ const COLORES_CHIP = ['chip-mostaza', 'chip-naranja', 'chip-tomate'];
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
 
-function TarjetaProducto({ producto, onAgregar, onVerDetalle }) {
+function SelectorExtras({ extrasDisponibles, extrasSeleccionados, onToggle }) {
+  if (extrasDisponibles.length === 0) return null;
+
+  return (
+    <div className="menu-tarjeta-extras">
+      {extrasDisponibles.map((extra) => {
+        const activo = extrasSeleccionados.includes(extra.id);
+        return (
+          <button
+            key={extra.id}
+            type="button"
+            className={`chip-extra ${activo ? 'chip-extra-activo' : ''}`}
+            onClick={() => onToggle(extra.id)}
+          >
+            {activo ? '✓ ' : '+ '}{extra.nombre} (+{formatearPrecio(extra.precio)})
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function TarjetaProducto({ producto, extrasDisponibles, onAgregar, onVerDetalle }) {
   const [cantidad, setCantidad] = useState(1);
+  const [extrasSeleccionados, setExtrasSeleccionados] = useState([]);
+
+  const toggleExtra = (id) => {
+    setExtrasSeleccionados((prev) => (prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id]));
+  };
 
   const agregar = () => {
-    onAgregar(producto, cantidad);
+    const extras = extrasDisponibles.filter((e) => extrasSeleccionados.includes(e.id));
+    onAgregar(producto, cantidad, extras);
     setCantidad(1);
+    setExtrasSeleccionados([]);
   };
 
   return (
@@ -34,6 +63,9 @@ function TarjetaProducto({ producto, onAgregar, onVerDetalle }) {
         <span className="producto-categoria-tag">{producto.categoria_nombre}</span>
         <h3 className="menu-tarjeta-titulo-clickeable" onClick={() => onVerDetalle(producto)}>{producto.nombre}</h3>
         {producto.descripcion && <p className="menu-tarjeta-descripcion">{producto.descripcion}</p>}
+
+        <SelectorExtras extrasDisponibles={extrasDisponibles} extrasSeleccionados={extrasSeleccionados} onToggle={toggleExtra} />
+
         <div className="menu-tarjeta-footer">
           <span className="menu-tarjeta-precio">{formatearPrecio(producto.precio)}</span>
           <div className="menu-tarjeta-cantidad">
@@ -50,33 +82,13 @@ function TarjetaProducto({ producto, onAgregar, onVerDetalle }) {
   );
 }
 
-function FilaExtra({ extra, onAgregar }) {
-  return (
-    <div className="extra-fila">
-      <div className="extra-fila-imagen">
-        {extra.imagen ? (
-          <img src={extra.imagen} alt={extra.nombre} />
-        ) : (
-          <span>🍽️</span>
-        )}
-      </div>
-      <div className="extra-fila-info">
-        <h4>{extra.nombre}</h4>
-        {extra.descripcion && <p>{extra.descripcion}</p>}
-      </div>
-      <span className="extra-fila-precio">{formatearPrecio(extra.precio)}</span>
-      <button type="button" className="btn-vibrante extra-fila-agregar" onClick={() => onAgregar(extra, 1)}>
-        + Agregar
-      </button>
-    </div>
-  );
-}
-
-function ModalProducto({ producto, onCerrar, onAgregar }) {
+function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
   const [cantidad, setCantidad] = useState(1);
+  const [extrasSeleccionados, setExtrasSeleccionados] = useState([]);
 
   useEffect(() => {
     setCantidad(1);
+    setExtrasSeleccionados([]);
   }, [producto]);
 
   useEffect(() => {
@@ -94,8 +106,13 @@ function ModalProducto({ producto, onCerrar, onAgregar }) {
 
   if (!producto) return null;
 
+  const toggleExtra = (id) => {
+    setExtrasSeleccionados((prev) => (prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id]));
+  };
+
   const agregar = () => {
-    onAgregar(producto, cantidad);
+    const extras = extrasDisponibles.filter((e) => extrasSeleccionados.includes(e.id));
+    onAgregar(producto, cantidad, extras);
     onCerrar();
   };
 
@@ -127,6 +144,8 @@ function ModalProducto({ producto, onCerrar, onAgregar }) {
           <h3>{producto.nombre}</h3>
           {producto.descripcion && <p className="modal-producto-descripcion">{producto.descripcion}</p>}
 
+          <SelectorExtras extrasDisponibles={extrasDisponibles} extrasSeleccionados={extrasSeleccionados} onToggle={toggleExtra} />
+
           <div className="menu-tarjeta-footer">
             <span className="menu-tarjeta-precio">{formatearPrecio(producto.precio)}</span>
             <div className="menu-tarjeta-cantidad">
@@ -150,7 +169,7 @@ export default function Menu({ categorias, productos, onAgregar }) {
   const [productoDetalle, setProductoDetalle] = useState(null);
 
   const principales = productos.filter((p) => !p.es_extra);
-  const extras = productos.filter((p) => p.es_extra);
+  const extrasDisponibles = productos.filter((p) => p.es_extra);
 
   const productosFiltrados = (categoriaActiva === 'todas'
     ? principales
@@ -191,6 +210,7 @@ export default function Menu({ categorias, productos, onAgregar }) {
             <TarjetaProducto
               key={producto.id}
               producto={producto}
+              extrasDisponibles={extrasDisponibles}
               onAgregar={onAgregar}
               onVerDetalle={setProductoDetalle}
             />
@@ -198,19 +218,9 @@ export default function Menu({ categorias, productos, onAgregar }) {
         </div>
       )}
 
-      {extras.length > 0 && (
-        <div className="extras-seccion">
-          <h2 className="extras-titulo fuente-impacto">Extras</h2>
-          <div className="extras-lista">
-            {extras.map((extra) => (
-              <FilaExtra key={extra.id} extra={extra} onAgregar={onAgregar} />
-            ))}
-          </div>
-        </div>
-      )}
-
       <ModalProducto
         producto={productoDetalle}
+        extrasDisponibles={extrasDisponibles}
         onCerrar={() => setProductoDetalle(null)}
         onAgregar={onAgregar}
       />
@@ -406,6 +416,10 @@ export default function Menu({ categorias, productos, onAgregar }) {
           margin-top: 20px;
           width: 100%;
           font-size: 16px;
+        }
+
+        .modal-producto-info .menu-tarjeta-extras {
+          margin-bottom: 8px;
         }
 
         @media (prefers-reduced-motion: reduce) {

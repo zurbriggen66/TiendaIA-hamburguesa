@@ -57,31 +57,33 @@ export default function Inicio() {
     obtenerMenu();
   }, []);
 
-  const agregarAlCarritoGenerico = (tipo, item, cantidad) => {
+  const armarLineaId = (tipo, id, extras) =>
+    `${tipo}-${id}-${(extras || []).map((e) => e.id).sort((a, b) => a - b).join('_')}`;
+
+  const agregarAlCarritoGenerico = (tipo, item, cantidad, extras = []) => {
+    const lineaId = armarLineaId(tipo, item.id, extras);
     setItems((prev) => {
-      const existente = prev.find((i) => i.tipo === tipo && i.item.id === item.id);
+      const existente = prev.find((i) => i.lineaId === lineaId);
       if (existente) {
-        return prev.map((i) =>
-          i.tipo === tipo && i.item.id === item.id ? { ...i, cantidad: i.cantidad + cantidad } : i
-        );
+        return prev.map((i) => (i.lineaId === lineaId ? { ...i, cantidad: i.cantidad + cantidad } : i));
       }
-      return [...prev, { tipo, item, cantidad }];
+      return [...prev, { lineaId, tipo, item, cantidad, extras }];
     });
   };
 
-  const agregarAlCarrito = (producto, cantidad) => agregarAlCarritoGenerico('producto', producto, cantidad);
+  const agregarAlCarrito = (producto, cantidad, extras) => agregarAlCarritoGenerico('producto', producto, cantidad, extras);
   const agregarComboAlCarrito = (combo, cantidad) => agregarAlCarritoGenerico('combo', combo, cantidad);
 
-  const cambiarCantidad = (tipo, id, cantidad) => {
+  const cambiarCantidad = (lineaId, cantidad) => {
     if (cantidad <= 0) {
-      quitarDelCarrito(tipo, id);
+      quitarDelCarrito(lineaId);
       return;
     }
-    setItems((prev) => prev.map((i) => (i.tipo === tipo && i.item.id === id ? { ...i, cantidad } : i)));
+    setItems((prev) => prev.map((i) => (i.lineaId === lineaId ? { ...i, cantidad } : i)));
   };
 
-  const quitarDelCarrito = (tipo, id) => {
-    setItems((prev) => prev.filter((i) => !(i.tipo === tipo && i.item.id === id)));
+  const quitarDelCarrito = (lineaId) => {
+    setItems((prev) => prev.filter((i) => i.lineaId !== lineaId));
   };
 
   const totalItems = items.reduce((acc, item) => acc + item.cantidad, 0);

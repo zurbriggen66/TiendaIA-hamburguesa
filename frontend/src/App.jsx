@@ -10,6 +10,7 @@ import EstadisticasPage from './VistaNegocio/Estadisticas/EstadisticasPage';
 import CombosPage from './VistaNegocio/Combos/CombosPage';
 import ImpresionPage from './VistaNegocio/Impresion/ImpresionPage';
 import AntojoConfigPage from './VistaNegocio/Antojo/AntojoConfigPage';
+import CobranzasPage from './VistaNegocio/Cobranzas/CobranzasPage';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
           <Route path="combos" element={<CombosPage />} />
           <Route path="impresion" element={<ImpresionPage />} />
           <Route path="antojo" element={<AntojoConfigPage />} />
+          <Route path="cobranzas" element={<CobranzasPage />} />
         </Route>
       </Routes>
     </Router>

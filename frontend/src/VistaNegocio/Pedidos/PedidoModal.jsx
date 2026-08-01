@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import api from '../../services/api';
 
 let contadorFila = 0;
-const nuevaFila = () => ({ key: ++contadorFila, producto: '', cantidad: 1 });
+const nuevaFila = () => ({ key: ++contadorFila, producto: '', cantidad: 1, extras: [] });
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
@@ -17,8 +17,12 @@ export default function PedidoModal({ productos, localidades, onClose, onSaved }
   const [aplicarDescuento, setAplicarDescuento] = useState(false);
   const [descuentoPct, setDescuentoPct] = useState('');
   const [horaSalida, setHoraSalida] = useState('');
+  const [nota, setNota] = useState('');
   const [filas, setFilas] = useState([nuevaFila()]);
   const [guardando, setGuardando] = useState(false);
+
+  const productosPrincipales = productos.filter((p) => !p.es_extra);
+  const extrasDisponibles = productos.filter((p) => p.es_extra);
 
   const elegirLocalidad = (id) => {
     setLocalidadId(id);
@@ -40,11 +44,26 @@ export default function PedidoModal({ productos, localidades, onClose, onSaved }
     setFilas((prev) => [...prev, nuevaFila()]);
   };
 
+  const toggleExtraFila = (key, extraId) => {
+    setFilas((prev) => prev.map((f) => {
+      if (f.key !== key) return f;
+      const extras = f.extras.includes(extraId) ? f.extras.filter((id) => id !== extraId) : [...f.extras, extraId];
+      return { ...f, extras };
+    }));
+  };
+
+  const costoExtrasFila = (fila) =>
+    fila.extras.reduce((acc, extraId) => {
+      const extra = productoPorId(extraId);
+      return acc + (extra ? Number(extra.precio) : 0);
+    }, 0);
+
   const filasValidas = filas.filter((f) => f.producto && Number(f.cantidad) > 0);
 
   const totalEstimado = filasValidas.reduce((acc, f) => {
     const producto = productoPorId(f.producto);
-    return acc + (producto ? Number(producto.precio) * Number(f.cantidad) : 0);
+    const precioUnidad = (producto ? Number(producto.precio) : 0) + costoExtrasFila(f);
+    return acc + precioUnidad * Number(f.cantidad);
   }, 0);
 
   const guardar = async (e) => {
@@ -65,7 +84,12 @@ export default function PedidoModal({ productos, localidades, onClose, onSaved }
         costo_envio: tipoEntrega === 'delivery' ? (costoEnvio || 0) : 0,
         descuento_pct: aplicarDescuento ? Number(descuentoPct) || 0 : 0,
         hora_salida: horaSalida || null,
-        items: filasValidas.map((f) => ({ producto: f.producto, cantidad: f.cantidad })),
+        nota,
+        items: filasValidas.map((f) => ({
+          producto: f.producto,
+          cantidad: f.cantidad,
+          extras: f.extras.map((id) => ({ producto: id })),
+        })),
       });
       onSaved();
     } catch (error) {
@@ -193,36 +217,64 @@ export default function PedidoModal({ productos, localidades, onClose, onSaved }
           </div>
 
           <div className="form-group">
+            <label className="form-label">Nota para cocina (opcional)</label>
+            <textarea
+              className="input-vibrante"
+              rows={2}
+              placeholder="Ej: Sin cebolla, punto de cocción bien cocido..."
+              value={nota}
+              onChange={(e) => setNota(e.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
             <label className="form-label">Productos</label>
             <div className="pedido-filas">
               {filas.map((fila) => (
-                <div key={fila.key} className="pedido-fila">
-                  <select
-                    className="input-vibrante"
-                    value={fila.producto}
-                    onChange={(e) => actualizarFila(fila.key, { producto: e.target.value })}
-                  >
-                    <option value="">Elegir producto...</option>
-                    {productos.map((p) => (
-                      <option key={p.id} value={p.id}>{p.nombre} — {formatearPrecio(p.precio)}</option>
-                    ))}
-                  </select>
-                  <input
-                    type="number"
-                    min="1"
-                    className="input-vibrante pedido-fila-cantidad"
-                    value={fila.cantidad}
-                    onChange={(e) => actualizarFila(fila.key, { cantidad: e.target.value })}
-                  />
-                  <button
-                    type="button"
-                    className="pedido-fila-quitar"
-                    onClick={() => quitarFila(fila.key)}
-                    disabled={filas.length === 1}
-                    title="Quitar producto"
-                  >
-                    ✕
-                  </button>
+                <div key={fila.key} className="pedido-fila-grupo">
+                  <div className="pedido-fila">
+                    <select
+                      className="input-vibrante"
+                      value={fila.producto}
+                      onChange={(e) => actualizarFila(fila.key, { producto: e.target.value })}
+                    >
+                      <option value="">Elegir producto...</option>
+                      {productosPrincipales.map((p) => (
+                        <option key={p.id} value={p.id}>{p.nombre} — {formatearPrecio(p.precio)}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      min="1"
+                      className="input-vibrante pedido-fila-cantidad"
+                      value={fila.cantidad}
+                      onChange={(e) => actualizarFila(fila.key, { cantidad: e.target.value })}
+                    />
+                    <button
+                      type="button"
+                      className="pedido-fila-quitar"
+                      onClick={() => quitarFila(fila.key)}
+                      disabled={filas.length === 1}
+                      title="Quitar producto"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {fila.producto && extrasDisponibles.length > 0 && (
+                    <div className="pedido-fila-extras">
+                      {extrasDisponibles.map((extra) => (
+                        <label key={extra.id} className="checkbox-vibrante checkbox-insumo">
+                          <input
+                            type="checkbox"
+                            checked={fila.extras.includes(extra.id)}
+                            onChange={() => toggleExtraFila(fila.key, extra.id)}
+                          />
+                          <span>{extra.nombre} (+{formatearPrecio(extra.precio)})</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
