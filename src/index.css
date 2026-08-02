@@ -1032,7 +1032,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 8px 12px;
 }
 
 .pedido-card-header h4 {
@@ -1063,7 +1064,8 @@ body {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .pedido-eliminar {
@@ -1323,12 +1325,8 @@ body {
 
 .pedido-fila-extras {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px 16px;
-  background: var(--surface-2);
-  border: 1.5px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 14px;
+  flex-direction: column;
+  gap: 6px;
   margin-left: 8px;
 }
 
@@ -1359,6 +1357,102 @@ body {
 .pedido-fila-quitar:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* Selector de productos por tarjetas clickeables (PedidoModal.jsx) */
+.pedido-picker-categorias {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+}
+
+.pedido-producto-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+  padding: 2px;
+}
+
+.pedido-producto-picker-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, transform 0.1s ease;
+}
+
+.pedido-producto-picker-item:hover {
+  border-color: #fb923c;
+  transform: translateY(-1px);
+}
+
+.pedido-producto-picker-item span {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.25;
+}
+
+.pedido-producto-picker-item strong {
+  font-size: 0.78rem;
+  color: #4ade80;
+}
+
+.pedido-fila-nombre {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pedido-fila-nombre strong {
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.pedido-fila-nombre span {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.pedido-fila-cantidad-stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pedido-fila-cantidad-stepper button {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pedido-fila-cantidad-stepper button:hover {
+  background: linear-gradient(135deg, #fb923c, #ef4444);
+  color: #ffffff;
+}
+
+.pedido-fila-cantidad-stepper span {
+  min-width: 16px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--text);
 }
 
 .btn-agregar-fila {
@@ -2016,35 +2110,79 @@ body {
   font-size: 0.9rem;
 }
 
-/* Extras enganchados a un producto (Menu.jsx: SelectorExtras) */
+/* Extras enganchados a un producto, con cantidad propia (Menu.jsx: SelectorExtras,
+   VistaNegocio/Pedidos/PedidoModal.jsx: filas de extras) */
 .menu-tarjeta-extras {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 6px;
   margin-bottom: 12px;
 }
 
-.chip-extra {
+.extra-selector-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   border: 1.5px solid var(--border);
   background: var(--surface-2);
-  color: var(--text-muted);
-  border-radius: 999px;
-  padding: 5px 12px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+  border-radius: 10px;
+  padding: 6px 6px 6px 12px;
+  transition: border-color 0.15s ease;
 }
 
-.chip-extra:hover {
+.extra-selector-fila-activa {
   border-color: #fb923c;
-  color: var(--text);
 }
 
-.chip-extra-activo {
+.extra-selector-nombre {
+  font-size: 0.85rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.extra-selector-nombre small {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.extra-selector-stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.extra-selector-stepper button {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.extra-selector-stepper button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.extra-selector-stepper button:not(:disabled):hover {
   background: linear-gradient(135deg, #fb923c, #ef4444);
-  border-color: transparent;
   color: #ffffff;
+}
+
+.extra-selector-stepper span {
+  min-width: 16px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--text);
 }
 
 .carrito-flotante {

@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import api from '../../services/api';
 
+const COLORES_CHIP = ['chip-mostaza', 'chip-naranja', 'chip-tomate'];
+
 let contadorFila = 0;
-const nuevaFila = () => ({ key: ++contadorFila, producto: '', cantidad: 1, extras: [] });
+const nuevaFila = (productoId) => ({ key: ++contadorFila, producto: productoId, cantidad: 1, extras: [] });
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
 
-export default function PedidoModal({ productos, localidades, onClose, onSaved }) {
+export default function PedidoModal({ productos, categorias, localidades, onClose, onSaved }) {
   const [cliente, setCliente] = useState('');
   const [telefono, setTelefono] = useState('');
   const [tipoEntrega, setTipoEntrega] = useState('retiro');
@@ -18,11 +20,16 @@ export default function PedidoModal({ productos, localidades, onClose, onSaved }
   const [descuentoPct, setDescuentoPct] = useState('');
   const [horaSalida, setHoraSalida] = useState('');
   const [nota, setNota] = useState('');
-  const [filas, setFilas] = useState([nuevaFila()]);
+  const [categoriaActiva, setCategoriaActiva] = useState('todas');
+  const [filas, setFilas] = useState([]);
   const [guardando, setGuardando] = useState(false);
 
   const productosPrincipales = productos.filter((p) => !p.es_extra);
   const extrasDisponibles = productos.filter((p) => p.es_extra);
+
+  const productosFiltrados = categoriaActiva === 'todas'
+    ? productosPrincipales
+    : productosPrincipales.filter((p) => p.categoria === categoriaActiva);
 
   const elegirLocalidad = (id) => {
     setLocalidadId(id);
@@ -40,22 +47,29 @@ export default function PedidoModal({ productos, localidades, onClose, onSaved }
     setFilas((prev) => prev.filter((f) => f.key !== key));
   };
 
-  const agregarFila = () => {
-    setFilas((prev) => [...prev, nuevaFila()]);
+  const agregarProductoClick = (producto) => {
+    setFilas((prev) => {
+      const idx = prev.findIndex((f) => f.producto === String(producto.id) && f.extras.length === 0);
+      if (idx !== -1) {
+        return prev.map((f, i) => (i === idx ? { ...f, cantidad: Number(f.cantidad) + 1 } : f));
+      }
+      return [...prev, nuevaFila(String(producto.id))];
+    });
   };
 
-  const toggleExtraFila = (key, extraId) => {
+  const cambiarCantidadExtraFila = (key, extraId, cantidad) => {
     setFilas((prev) => prev.map((f) => {
       if (f.key !== key) return f;
-      const extras = f.extras.includes(extraId) ? f.extras.filter((id) => id !== extraId) : [...f.extras, extraId];
+      const extras = f.extras.filter((e) => e.id !== extraId);
+      if (cantidad > 0) extras.push({ id: extraId, cantidad });
       return { ...f, extras };
     }));
   };
 
   const costoExtrasFila = (fila) =>
-    fila.extras.reduce((acc, extraId) => {
-      const extra = productoPorId(extraId);
-      return acc + (extra ? Number(extra.precio) : 0);
+    fila.extras.reduce((acc, ex) => {
+      const extra = productoPorId(ex.id);
+      return acc + (extra ? Number(extra.precio) * ex.cantidad : 0);
     }, 0);
 
   const filasValidas = filas.filter((f) => f.producto && Number(f.cantidad) > 0);
@@ -88,7 +102,7 @@ export default function PedidoModal({ productos, localidades, onClose, onSaved }
         items: filasValidas.map((f) => ({
           producto: f.producto,
           cantidad: f.cantidad,
-          extras: f.extras.map((id) => ({ producto: id })),
+          extras: f.extras.map((ex) => ({ producto: ex.id, cantidad: ex.cantidad })),
         })),
       });
       onSaved();
@@ -229,58 +243,100 @@ export default function PedidoModal({ productos, localidades, onClose, onSaved }
 
           <div className="form-group">
             <label className="form-label">Productos</label>
-            <div className="pedido-filas">
-              {filas.map((fila) => (
-                <div key={fila.key} className="pedido-fila-grupo">
-                  <div className="pedido-fila">
-                    <select
-                      className="input-vibrante"
-                      value={fila.producto}
-                      onChange={(e) => actualizarFila(fila.key, { producto: e.target.value })}
-                    >
-                      <option value="">Elegir producto...</option>
-                      {productosPrincipales.map((p) => (
-                        <option key={p.id} value={p.id}>{p.nombre} — {formatearPrecio(p.precio)}</option>
-                      ))}
-                    </select>
-                    <input
-                      type="number"
-                      min="1"
-                      className="input-vibrante pedido-fila-cantidad"
-                      value={fila.cantidad}
-                      onChange={(e) => actualizarFila(fila.key, { cantidad: e.target.value })}
-                    />
-                    <button
-                      type="button"
-                      className="pedido-fila-quitar"
-                      onClick={() => quitarFila(fila.key)}
-                      disabled={filas.length === 1}
-                      title="Quitar producto"
-                    >
-                      ✕
-                    </button>
-                  </div>
 
-                  {fila.producto && extrasDisponibles.length > 0 && (
-                    <div className="pedido-fila-extras">
-                      {extrasDisponibles.map((extra) => (
-                        <label key={extra.id} className="checkbox-vibrante checkbox-insumo">
-                          <input
-                            type="checkbox"
-                            checked={fila.extras.includes(extra.id)}
-                            onChange={() => toggleExtraFila(fila.key, extra.id)}
-                          />
-                          <span>{extra.nombre} (+{formatearPrecio(extra.precio)})</span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
+            {categorias && categorias.length > 0 && (
+              <div className="categorias-bar pedido-picker-categorias">
+                <button
+                  type="button"
+                  className={`chip-categoria chip-todas ${categoriaActiva === 'todas' ? 'chip-activo' : ''}`}
+                  onClick={() => setCategoriaActiva('todas')}
+                >
+                  Todas
+                </button>
+                {categorias.map((cat, i) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    className={`chip-categoria ${COLORES_CHIP[i % COLORES_CHIP.length]} ${categoriaActiva === cat.id ? 'chip-activo' : ''}`}
+                    onClick={() => setCategoriaActiva(cat.id)}
+                  >
+                    {cat.nombre}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="pedido-producto-picker-grid">
+              {productosFiltrados.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className="pedido-producto-picker-item"
+                  onClick={() => agregarProductoClick(p)}
+                >
+                  <span>{p.nombre}</span>
+                  <strong>{formatearPrecio(p.precio)}</strong>
+                </button>
               ))}
             </div>
-            <button type="button" className="btn-agregar-fila" onClick={agregarFila}>
-              + Agregar producto
-            </button>
+
+            {filas.length === 0 ? (
+              <p className="aviso-sin-insumos">Tocá un producto de arriba para agregarlo al pedido.</p>
+            ) : (
+              <div className="pedido-filas">
+                {filas.map((fila) => {
+                  const producto = productoPorId(fila.producto);
+                  return (
+                    <div key={fila.key} className="pedido-fila-grupo">
+                      <div className="pedido-fila">
+                        <div className="pedido-fila-nombre">
+                          <strong>{producto ? producto.nombre : 'Producto'}</strong>
+                          <span>{producto ? formatearPrecio(producto.precio) : ''}</span>
+                        </div>
+                        <div className="pedido-fila-cantidad-stepper">
+                          <button type="button" onClick={() => actualizarFila(fila.key, { cantidad: Math.max(1, Number(fila.cantidad) - 1) })}>−</button>
+                          <span>{fila.cantidad}</span>
+                          <button type="button" onClick={() => actualizarFila(fila.key, { cantidad: Number(fila.cantidad) + 1 })}>+</button>
+                        </div>
+                        <button
+                          type="button"
+                          className="pedido-fila-quitar"
+                          onClick={() => quitarFila(fila.key)}
+                          title="Quitar producto"
+                        >
+                          ✕
+                        </button>
+                      </div>
+
+                      {extrasDisponibles.length > 0 && (
+                        <div className="pedido-fila-extras">
+                          {extrasDisponibles.map((extra) => {
+                            const seleccionado = fila.extras.find((e) => e.id === extra.id);
+                            const cantidadExtra = seleccionado ? seleccionado.cantidad : 0;
+                            return (
+                              <div key={extra.id} className={`extra-selector-fila ${cantidadExtra > 0 ? 'extra-selector-fila-activa' : ''}`}>
+                                <span className="extra-selector-nombre">{extra.nombre} <small>(+{formatearPrecio(extra.precio)})</small></span>
+                                <div className="extra-selector-stepper">
+                                  <button
+                                    type="button"
+                                    onClick={() => cambiarCantidadExtraFila(fila.key, extra.id, Math.max(0, cantidadExtra - 1))}
+                                    disabled={cantidadExtra === 0}
+                                  >
+                                    −
+                                  </button>
+                                  <span>{cantidadExtra}</span>
+                                  <button type="button" onClick={() => cambiarCantidadExtraFila(fila.key, extra.id, cantidadExtra + 1)}>+</button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="pedido-total-estimado">
