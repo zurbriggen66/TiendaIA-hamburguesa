@@ -1057,7 +1057,6 @@ body {
   font-size: 0.85rem;
   line-height: 1.4;
 }
-
 .pedido-card-header-derecha {
   display: flex;
   align-items: center;
@@ -1066,6 +1065,7 @@ body {
   gap: 8px;
   flex-shrink: 1;
   min-width: 0;
+  max-width: 100%;
 }
 
 .pedido-eliminar {
