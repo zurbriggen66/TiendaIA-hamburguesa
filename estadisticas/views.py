@@ -85,6 +85,33 @@ class EstadisticasView(APIView):
         })
 
 
+class HoyView(APIView):
+    def get(self, request):
+        hoy = timezone.localtime().date()
+        pedidos_totales_hoy = Pedido.objects.exclude(estado='cancelado').filter(creado__date=hoy)
+        pedidos_salidos_hoy = pedidos_totales_hoy.filter(estado__in=['listo', 'entregado']).select_related('localidad')
+
+        pedidos_data = [
+            {
+                'id': pedido.id,
+                'cliente': pedido.cliente,
+                'tipo_entrega': pedido.tipo_entrega,
+                'hora_salida': pedido.hora_salida.isoformat() if pedido.hora_salida else None,
+                'creado': pedido.creado.isoformat(),
+                'estado': pedido.estado,
+                'total': float(pedido.calcular_total()),
+            }
+            for pedido in pedidos_salidos_hoy
+        ]
+
+        ventas_totales_hoy = sum((pedido.calcular_total() for pedido in pedidos_totales_hoy), Decimal('0'))
+
+        return Response({
+            'ventas_totales': float(ventas_totales_hoy),
+            'pedidos': pedidos_data,
+        })
+
+
 class CobranzasView(APIView):
     def get(self, request):
         desde_periodo = parse_date(request.query_params.get('desde') or '')
