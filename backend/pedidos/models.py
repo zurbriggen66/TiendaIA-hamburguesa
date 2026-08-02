@@ -104,14 +104,15 @@ class DetallePedido(models.Model):
         return f'{self.cantidad} x {nombre}'
 
     def calcular_subtotal(self):
-        precio_por_unidad = self.precio_unitario + sum(e.precio_unitario for e in self.extras.all())
+        precio_por_unidad = self.precio_unitario + sum(e.precio_unitario * e.cantidad for e in self.extras.all())
         return self.cantidad * precio_por_unidad
 
 
 class DetalleExtra(models.Model):
     detalle_pedido = models.ForeignKey(DetallePedido, related_name='extras', on_delete=models.CASCADE)
     extra = models.ForeignKey(Producto, on_delete=models.PROTECT, related_name='usado_como_extra')
+    cantidad = models.PositiveIntegerField(default=1)
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
-        return f'+ {self.extra.nombre} en {self.detalle_pedido}'
+        return f'+ {self.cantidad}x {self.extra.nombre} en {self.detalle_pedido}'

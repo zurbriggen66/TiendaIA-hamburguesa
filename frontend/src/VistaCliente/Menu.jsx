@@ -5,22 +5,22 @@ const COLORES_CHIP = ['chip-mostaza', 'chip-naranja', 'chip-tomate'];
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
 
-function SelectorExtras({ extrasDisponibles, extrasSeleccionados, onToggle }) {
+function SelectorExtras({ extrasDisponibles, cantidadesExtras, onCambiarCantidad }) {
   if (extrasDisponibles.length === 0) return null;
 
   return (
     <div className="menu-tarjeta-extras">
       {extrasDisponibles.map((extra) => {
-        const activo = extrasSeleccionados.includes(extra.id);
+        const cantidad = cantidadesExtras[extra.id] || 0;
         return (
-          <button
-            key={extra.id}
-            type="button"
-            className={`chip-extra ${activo ? 'chip-extra-activo' : ''}`}
-            onClick={() => onToggle(extra.id)}
-          >
-            {activo ? '✓ ' : '+ '}{extra.nombre} (+{formatearPrecio(extra.precio)})
-          </button>
+          <div key={extra.id} className={`extra-selector-fila ${cantidad > 0 ? 'extra-selector-fila-activa' : ''}`}>
+            <span className="extra-selector-nombre">{extra.nombre} <small>(+{formatearPrecio(extra.precio)})</small></span>
+            <div className="extra-selector-stepper">
+              <button type="button" onClick={() => onCambiarCantidad(extra.id, Math.max(0, cantidad - 1))} disabled={cantidad === 0}>−</button>
+              <span>{cantidad}</span>
+              <button type="button" onClick={() => onCambiarCantidad(extra.id, cantidad + 1)}>+</button>
+            </div>
+          </div>
         );
       })}
     </div>
@@ -29,17 +29,19 @@ function SelectorExtras({ extrasDisponibles, extrasSeleccionados, onToggle }) {
 
 function TarjetaProducto({ producto, extrasDisponibles, onAgregar, onVerDetalle }) {
   const [cantidad, setCantidad] = useState(1);
-  const [extrasSeleccionados, setExtrasSeleccionados] = useState([]);
+  const [cantidadesExtras, setCantidadesExtras] = useState({});
 
-  const toggleExtra = (id) => {
-    setExtrasSeleccionados((prev) => (prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id]));
+  const cambiarCantidadExtra = (id, nuevaCantidad) => {
+    setCantidadesExtras((prev) => ({ ...prev, [id]: nuevaCantidad }));
   };
 
   const agregar = () => {
-    const extras = extrasDisponibles.filter((e) => extrasSeleccionados.includes(e.id));
+    const extras = extrasDisponibles
+      .filter((e) => (cantidadesExtras[e.id] || 0) > 0)
+      .map((e) => ({ ...e, cantidad: cantidadesExtras[e.id] }));
     onAgregar(producto, cantidad, extras);
     setCantidad(1);
-    setExtrasSeleccionados([]);
+    setCantidadesExtras({});
   };
 
   return (
@@ -64,7 +66,7 @@ function TarjetaProducto({ producto, extrasDisponibles, onAgregar, onVerDetalle 
         <h3 className="menu-tarjeta-titulo-clickeable" onClick={() => onVerDetalle(producto)}>{producto.nombre}</h3>
         {producto.descripcion && <p className="menu-tarjeta-descripcion">{producto.descripcion}</p>}
 
-        <SelectorExtras extrasDisponibles={extrasDisponibles} extrasSeleccionados={extrasSeleccionados} onToggle={toggleExtra} />
+        <SelectorExtras extrasDisponibles={extrasDisponibles} cantidadesExtras={cantidadesExtras} onCambiarCantidad={cambiarCantidadExtra} />
 
         <div className="menu-tarjeta-footer">
           <span className="menu-tarjeta-precio">{formatearPrecio(producto.precio)}</span>
@@ -84,11 +86,11 @@ function TarjetaProducto({ producto, extrasDisponibles, onAgregar, onVerDetalle 
 
 function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
   const [cantidad, setCantidad] = useState(1);
-  const [extrasSeleccionados, setExtrasSeleccionados] = useState([]);
+  const [cantidadesExtras, setCantidadesExtras] = useState({});
 
   useEffect(() => {
     setCantidad(1);
-    setExtrasSeleccionados([]);
+    setCantidadesExtras({});
   }, [producto]);
 
   useEffect(() => {
@@ -106,12 +108,14 @@ function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
 
   if (!producto) return null;
 
-  const toggleExtra = (id) => {
-    setExtrasSeleccionados((prev) => (prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id]));
+  const cambiarCantidadExtra = (id, nuevaCantidad) => {
+    setCantidadesExtras((prev) => ({ ...prev, [id]: nuevaCantidad }));
   };
 
   const agregar = () => {
-    const extras = extrasDisponibles.filter((e) => extrasSeleccionados.includes(e.id));
+    const extras = extrasDisponibles
+      .filter((e) => (cantidadesExtras[e.id] || 0) > 0)
+      .map((e) => ({ ...e, cantidad: cantidadesExtras[e.id] }));
     onAgregar(producto, cantidad, extras);
     onCerrar();
   };
@@ -144,7 +148,7 @@ function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
           <h3>{producto.nombre}</h3>
           {producto.descripcion && <p className="modal-producto-descripcion">{producto.descripcion}</p>}
 
-          <SelectorExtras extrasDisponibles={extrasDisponibles} extrasSeleccionados={extrasSeleccionados} onToggle={toggleExtra} />
+          <SelectorExtras extrasDisponibles={extrasDisponibles} cantidadesExtras={cantidadesExtras} onCambiarCantidad={cambiarCantidadExtra} />
 
           <div className="menu-tarjeta-footer">
             <span className="menu-tarjeta-precio">{formatearPrecio(producto.precio)}</span>
@@ -409,6 +413,31 @@ export default function Menu({ categorias, productos, onAgregar }) {
           min-width: 16px;
           text-align: center;
           font-weight: 700;
+          color: #241a13;
+        }
+
+        .modal-producto-info .extra-selector-fila {
+          border-color: #ece1d6;
+          background: #f5efe8;
+        }
+        .modal-producto-info .extra-selector-fila-activa {
+          border-color: #f97316;
+        }
+        .modal-producto-info .extra-selector-nombre {
+          color: #241a13;
+        }
+        .modal-producto-info .extra-selector-nombre small {
+          color: #8a7c70;
+        }
+        .modal-producto-info .extra-selector-stepper button {
+          background: #ffffff;
+          color: #241a13;
+        }
+        .modal-producto-info .extra-selector-stepper button:not(:disabled):hover {
+          background: linear-gradient(135deg, #fb923c, #ef4444);
+          color: #ffffff;
+        }
+        .modal-producto-info .extra-selector-stepper span {
           color: #241a13;
         }
 

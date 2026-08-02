@@ -59,7 +59,7 @@ export default function Inicio() {
   }, []);
 
   const armarLineaId = (tipo, id, extras) =>
-    `${tipo}-${id}-${(extras || []).map((e) => e.id).sort((a, b) => a - b).join('_')}`;
+    `${tipo}-${id}-${(extras || []).map((e) => `${e.id}x${e.cantidad}`).sort().join('_')}`;
 
   const agregarAlCarritoGenerico = (tipo, item, cantidad, extras = []) => {
     const lineaId = armarLineaId(tipo, item.id, extras);

@@ -31,6 +31,7 @@ const ETIQUETA_SIGUIENTE = {
 export default function PedidosPage() {
   const [pedidos, setPedidos] = useState([]);
   const [productos, setProductos] = useState([]);
+  const [categorias, setCategorias] = useState([]);
   const [localidades, setLocalidades] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [tab, setTab] = useState('pedidos');
@@ -42,13 +43,15 @@ export default function PedidosPage() {
   const cargarDatos = useCallback(async () => {
     setCargando(true);
     try {
-      const [resPedidos, resProductos, resLocalidades] = await Promise.all([
+      const [resPedidos, resProductos, resCategorias, resLocalidades] = await Promise.all([
         api.get('/pedidos/'),
         api.get('/productos/'),
+        api.get('/categorias/'),
         api.get('/localidades/'),
       ]);
       setPedidos(resPedidos.data);
       setProductos(resProductos.data);
+      setCategorias(resCategorias.data);
       setLocalidades(resLocalidades.data);
     } catch (error) {
       console.error('Error al cargar pedidos/productos/localidades:', error);
@@ -182,7 +185,9 @@ export default function PedidosPage() {
                         <div className="pedido-item-info">
                           <span>{item.cantidad} × {item.producto_nombre || item.combo_nombre}</span>
                           {item.extras_detalle && item.extras_detalle.length > 0 && (
-                            <span className="pedido-item-extras">+ {item.extras_detalle.map((e) => e.nombre).join(', ')}</span>
+                            <span className="pedido-item-extras">
+                              + {item.extras_detalle.map((e) => `${e.cantidad > 1 ? `${e.cantidad}x ` : ''}${e.nombre}`).join(', ')}
+                            </span>
                           )}
                         </div>
                         <span>{formatearPrecio(item.subtotal)}</span>
@@ -269,6 +274,7 @@ export default function PedidosPage() {
       {mostrarModal && (
         <PedidoModal
           productos={productos}
+          categorias={categorias}
           localidades={localidades}
           onClose={() => setMostrarModal(false)}
           onSaved={() => { setMostrarModal(false); cargarDatos(); }}

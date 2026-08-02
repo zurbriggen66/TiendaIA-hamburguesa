@@ -5,7 +5,10 @@ const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
 
 const precioUnitarioLinea = (linea) =>
-  Number(linea.item.precio) + (linea.extras || []).reduce((acc, e) => acc + Number(e.precio), 0);
+  Number(linea.item.precio) + (linea.extras || []).reduce((acc, e) => acc + Number(e.precio) * e.cantidad, 0);
+
+const textoExtras = (extras) =>
+  (extras || []).map((e) => `${e.cantidad > 1 ? `${e.cantidad}x ` : ''}${e.nombre}`).join(', ');
 
 function armarMensajeWhatsapp({ nombre, telefono, tipoEntrega, direccion, items, total }) {
   const lineas = [
@@ -22,7 +25,7 @@ function armarMensajeWhatsapp({ nombre, telefono, tipoEntrega, direccion, items,
   lineas.push('', 'Productos:');
   items.forEach((linea) => {
     const extrasTexto = linea.extras && linea.extras.length > 0
-      ? ` (+ ${linea.extras.map((e) => e.nombre).join(', ')})`
+      ? ` (+ ${textoExtras(linea.extras)})`
       : '';
     lineas.push(`${linea.cantidad}x ${linea.item.nombre}${extrasTexto} - ${formatearPrecio(precioUnitarioLinea(linea) * linea.cantidad)}`);
   });
@@ -68,7 +71,7 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
             : {
                 producto: linea.item.id,
                 cantidad: linea.cantidad,
-                extras: (linea.extras || []).map((e) => ({ producto: e.id })),
+                extras: (linea.extras || []).map((e) => ({ producto: e.id, cantidad: e.cantidad })),
               }
         ),
       });
@@ -112,7 +115,7 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
                       {linea.tipo === 'combo' && <span className="carrito-item-badge-combo">Combo</span>}
                     </strong>
                     {linea.extras && linea.extras.length > 0 && (
-                      <span className="carrito-item-extras">+ {linea.extras.map((e) => e.nombre).join(', ')}</span>
+                      <span className="carrito-item-extras">+ {textoExtras(linea.extras)}</span>
                     )}
                     <span>{formatearPrecio(precioUnitarioLinea(linea))} c/u</span>
                   </div>

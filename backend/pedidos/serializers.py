@@ -22,6 +22,7 @@ class PagoSerializer(serializers.ModelSerializer):
 
 class ExtraSeleccionadoSerializer(serializers.Serializer):
     producto = serializers.PrimaryKeyRelatedField(queryset=Producto.objects.filter(es_extra=True))
+    cantidad = serializers.IntegerField(min_value=1, default=1)
 
 
 class DetallePedidoSerializer(serializers.ModelSerializer):
@@ -54,7 +55,7 @@ class DetallePedidoSerializer(serializers.ModelSerializer):
 
     def get_extras_detalle(self, obj):
         return [
-            {'producto': e.extra_id, 'nombre': e.extra.nombre, 'precio_unitario': e.precio_unitario}
+            {'producto': e.extra_id, 'nombre': e.extra.nombre, 'cantidad': e.cantidad, 'precio_unitario': e.precio_unitario}
             for e in obj.extras.select_related('extra').all()
         ]
 
@@ -132,6 +133,7 @@ class PedidoSerializer(serializers.ModelSerializer):
                     DetalleExtra.objects.create(
                         detalle_pedido=detalle,
                         extra=extra_producto,
+                        cantidad=extra_sel.get('cantidad', 1),
                         precio_unitario=extra_producto.precio,
                     )
             else:

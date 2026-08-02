@@ -37,7 +37,7 @@ function construirBloqueTicket(pedido) {
       const nombre = item.producto_nombre || item.combo_nombre || 'Producto';
       const subtotal = item.subtotal ?? item.precio_unitario * item.cantidad;
       const extrasTexto = item.extras_detalle && item.extras_detalle.length > 0
-        ? `<div class="ticket-extra">  + ${item.extras_detalle.map((e) => escapeHtml(e.nombre)).join(', ')}</div>`
+        ? `<div class="ticket-extra">  + ${item.extras_detalle.map((e) => escapeHtml(`${e.cantidad > 1 ? `${e.cantidad}x ` : ''}${e.nombre}`)).join(', ')}</div>`
         : '';
       return `
         <div class="ticket-item">
