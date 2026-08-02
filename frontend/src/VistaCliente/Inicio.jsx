@@ -8,6 +8,27 @@ import Menu from './Menu';
 import CarritoDrawer from './CarritoDrawer';
 import Footer from './Footer'; // <-- IMPORTAMOS EL NUEVO FOOTER
 
+// Precarga una imagen y resuelve la promesa cuando termina (o si falla, para no trabar el preloader)
+const precargarImagen = (src) =>
+  new Promise((resolve) => {
+    if (!src) return resolve();
+    const img = new Image();
+    img.onload = () => resolve();
+    img.onerror = () => resolve();
+    img.src = src;
+  });
+
+// Precarga metadata de un video (suficiente para poder reproducirlo apenas se muestre)
+const precargarVideo = (src) =>
+  new Promise((resolve) => {
+    if (!src) return resolve();
+    const video = document.createElement('video');
+    video.preload = 'auto';
+    video.onloadeddata = () => resolve();
+    video.onerror = () => resolve();
+    video.src = src;
+  });
+
 export default function Inicio() {
   const [configuracion, setConfiguracion] = useState({
     logo: "https://cdn-icons-png.flaticon.com/512/3075/3075977.png",
@@ -21,23 +42,28 @@ export default function Inicio() {
   const [combos, setCombos] = useState([]);
   const [items, setItems] = useState([]);
   const [carritoAbierto, setCarritoAbierto] = useState(false);
+  const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
+    let activo = true;
+
     const obtenerConfiguracion = async () => {
       try {
         const respuesta = await api.get('/configuracion/');
         if (respuesta.data && respuesta.data.length > 0) {
           const ultimaConfig = respuesta.data[respuesta.data.length - 1];
-          setConfiguracion((prev) => ({
-            logo: ultimaConfig.logo || prev.logo,
-            imagen_principal: ultimaConfig.imagen_principal || prev.imagen_principal,
-            video_principal: ultimaConfig.video_principal || prev.video_principal,
-            whatsapp: ultimaConfig.whatsapp || prev.whatsapp,
-            instagram: ultimaConfig.instagram || prev.instagram,
-          }));
+          return {
+            logo: ultimaConfig.logo || configuracion.logo,
+            imagen_principal: ultimaConfig.imagen_principal || configuracion.imagen_principal,
+            video_principal: ultimaConfig.video_principal || configuracion.video_principal,
+            whatsapp: ultimaConfig.whatsapp || configuracion.whatsapp,
+            instagram: ultimaConfig.instagram || configuracion.instagram,
+          };
         }
+        return null;
       } catch (error) {
         console.error("Error al cargar los datos del backend:", error);
+        return null;
       }
     };
 
@@ -48,6 +74,7 @@ export default function Inicio() {
           api.get('/productos/'),
           api.get('/combos/'),
         ]);
+        if (!activo) return;
         setCategorias(resCategorias.data);
         setProductos(resProductos.data);
         setCombos(resCombos.data.filter((c) => c.activo));
@@ -56,8 +83,36 @@ export default function Inicio() {
       }
     };
 
-    obtenerConfiguracion();
-    obtenerMenu();
+    const inicializar = async () => {
+      const [configNueva] = await Promise.all([
+        obtenerConfiguracion(),
+        obtenerMenu(),
+      ]);
+
+      if (!activo) return;
+
+      let configFinal = configuracion;
+      if (configNueva) {
+        configFinal = { ...configuracion, ...configNueva };
+        setConfiguracion(configFinal);
+      }
+
+      // Recién ahora precargamos el asset visual pesado del hero (imagen o video)
+      if (configFinal.video_principal) {
+        await precargarVideo(configFinal.video_principal);
+      } else {
+        await precargarImagen(configFinal.imagen_principal);
+      }
+
+      if (activo) setCargando(false);
+    };
+
+    inicializar();
+
+    return () => {
+      activo = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const armarLineaId = (tipo, id, extras) =>
@@ -99,6 +154,58 @@ export default function Inicio() {
     }
   };
 
+  if (cargando) {
+    return (
+      <div className="preloader-pantalla">
+        <img src={configuracion.logo} alt="Cargando" className="preloader-logo" />
+        <div className="preloader-barra">
+          <div className="preloader-barra-relleno" />
+        </div>
+        <style>{`
+          .preloader-pantalla {
+            position: fixed;
+            inset: 0;
+            background: #14100c;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            z-index: 9999;
+          }
+          .preloader-logo {
+            width: 72px;
+            height: 72px;
+            object-fit: contain;
+            animation: preloaderPulso 1.2s ease-in-out infinite;
+          }
+          @keyframes preloaderPulso {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.08); opacity: 0.7; }
+          }
+          .preloader-barra {
+            width: 160px;
+            height: 4px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.12);
+            overflow: hidden;
+          }
+          .preloader-barra-relleno {
+            width: 40%;
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #fb923c, #ef4444);
+            animation: preloaderDeslizar 1.1s ease-in-out infinite;
+          }
+          @keyframes preloaderDeslizar {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(250%); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
   return (
     <div className="cliente-container">
       <NavBar configuracion={configuracion} totalItems={totalItems} onPedir={pedirPorWhatsapp} />
@@ -131,7 +238,7 @@ export default function Inicio() {
 
       {/* <-- AQUÍ RENDERIZAMOS EL NUEVO FOOTER --> */}
       <Footer configuracion={configuracion} />
-      
+
     </div>
   );
 }
