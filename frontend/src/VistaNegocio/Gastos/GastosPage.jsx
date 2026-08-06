@@ -16,7 +16,7 @@ export default function GastosPage() {
   const [resumen, setResumen] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [mostrarGastoModal, setMostrarGastoModal] = useState(false);
-  const [mostrarInsumoModal, setMostrarInsumoModal] = useState(false);
+  const [modalInsumo, setModalInsumo] = useState(null);
   const [tab, setTab] = useState('stock');
 
   const cargarDatos = useCallback(async () => {
@@ -104,7 +104,7 @@ export default function GastosPage() {
           <>
             <div className="seccion-header">
               <h3>Insumos & Stock</h3>
-              <button type="button" className="btn-vibrante" onClick={() => setMostrarInsumoModal(true)}>
+              <button type="button" className="btn-vibrante" onClick={() => setModalInsumo({ insumo: null })}>
                 + Nuevo insumo
               </button>
             </div>
@@ -112,19 +112,30 @@ export default function GastosPage() {
             {insumos.length === 0 ? (
               <div className="estado-vacio">
                 <p>Todavía no cargaste insumos.</p>
-                <button type="button" className="btn-vibrante" onClick={() => setMostrarInsumoModal(true)}>
+                <button type="button" className="btn-vibrante" onClick={() => setModalInsumo({ insumo: null })}>
                   Cargar el primer insumo
                 </button>
               </div>
             ) : (
               <div className="stock-grid">
-                {insumos.map((insumo) => (
-                  <div key={insumo.id} className="stock-card">
-                    <span className="stock-card-nombre">{insumo.nombre}</span>
-                    <strong className="stock-card-cantidad">{insumo.cantidad_disponible}</strong>
-                    <span className="stock-card-unidad">{insumo.unidad}</span>
-                  </div>
-                ))}
+                {insumos.map((insumo) => {
+                  const bajo = Number(insumo.stock_minimo) > 0 && Number(insumo.cantidad_disponible) <= Number(insumo.stock_minimo);
+                  return (
+                    <div
+                      key={insumo.id}
+                      className={`stock-card ${bajo ? 'stock-card-bajo' : ''}`}
+                      onClick={() => setModalInsumo({ insumo })}
+                      role="button"
+                      tabIndex={0}
+                      title="Editar insumo"
+                    >
+                      {bajo && <span className="stock-card-aviso">⚠️ Queda poco</span>}
+                      <span className="stock-card-nombre">{insumo.nombre}</span>
+                      <strong className="stock-card-cantidad">{insumo.cantidad_disponible}</strong>
+                      <span className="stock-card-unidad">{insumo.unidad}</span>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </>
@@ -180,10 +191,11 @@ export default function GastosPage() {
         />
       )}
 
-      {mostrarInsumoModal && (
+      {modalInsumo && (
         <InsumoModal
-          onClose={() => setMostrarInsumoModal(false)}
-          onSaved={() => { setMostrarInsumoModal(false); cargarDatos(); }}
+          insumo={modalInsumo.insumo}
+          onClose={() => setModalInsumo(null)}
+          onSaved={() => { setModalInsumo(null); cargarDatos(); }}
         />
       )}
     </div>

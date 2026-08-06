@@ -69,6 +69,16 @@ class DetallePedidoSerializer(serializers.ModelSerializer):
         return data
 
 
+def mover_stock_item(item, signo):
+    if item.producto_id:
+        item.producto.ajustar_stock(signo * item.cantidad)
+        for extra in item.extras.all():
+            extra.extra.ajustar_stock(signo * extra.cantidad * item.cantidad)
+    elif item.combo_id:
+        for ci in item.combo.items.select_related('producto'):
+            ci.producto.ajustar_stock(signo * ci.cantidad * item.cantidad)
+
+
 class PedidoSerializer(serializers.ModelSerializer):
     items = DetallePedidoSerializer(many=True)
     localidad_nombre = serializers.CharField(source='localidad.nombre', read_only=True)
@@ -137,10 +147,20 @@ class PedidoSerializer(serializers.ModelSerializer):
                         precio_unitario=extra_producto.precio,
                     )
             else:
-                DetallePedido.objects.create(
+                detalle = DetallePedido.objects.create(
                     pedido=pedido,
                     combo=combo,
                     cantidad=item['cantidad'],
                     precio_unitario=combo.precio,
                 )
+            mover_stock_item(detalle, signo=-1)
+        return pedido
+
+    def update(self, instance, validated_data):
+        se_cancela = validated_data.get('estado') == 'cancelado' and instance.estado != 'cancelado'
+        pedido = super().update(instance, validated_data)
+        if se_cancela:
+            items = pedido.items.prefetch_related('extras__extra', 'combo__items__producto')
+            for item in items:
+                mover_stock_item(item, signo=1)
         return pedido

@@ -173,7 +173,8 @@ export default function Menu({ categorias, productos, onAgregar }) {
   const [productoDetalle, setProductoDetalle] = useState(null);
 
   const principales = productos.filter((p) => !p.es_extra);
-  const extrasDisponibles = productos.filter((p) => p.es_extra);
+  const extrasTodos = productos.filter((p) => p.es_extra);
+  const extrasParaProducto = (producto) => (producto ? extrasTodos.filter((e) => e.categoria === producto.categoria) : []);
 
   const productosFiltrados = (categoriaActiva === 'todas'
     ? principales
@@ -214,7 +215,7 @@ export default function Menu({ categorias, productos, onAgregar }) {
             <TarjetaProducto
               key={producto.id}
               producto={producto}
-              extrasDisponibles={extrasDisponibles}
+              extrasDisponibles={extrasParaProducto(producto)}
               onAgregar={onAgregar}
               onVerDetalle={setProductoDetalle}
             />
@@ -224,7 +225,7 @@ export default function Menu({ categorias, productos, onAgregar }) {
 
       <ModalProducto
         producto={productoDetalle}
-        extrasDisponibles={extrasDisponibles}
+        extrasDisponibles={extrasParaProducto(productoDetalle)}
         onCerrar={() => setProductoDetalle(null)}
         onAgregar={onAgregar}
       />
