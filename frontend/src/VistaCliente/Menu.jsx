@@ -5,6 +5,11 @@ const COLORES_CHIP = ['chip-mostaza', 'chip-naranja', 'chip-tomate'];
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
 
+const calcularPrecioTotal = (producto, extrasDisponibles, cantidadesExtras, cantidad) => {
+  const costoExtras = extrasDisponibles.reduce((acc, e) => acc + Number(e.precio) * (cantidadesExtras[e.id] || 0), 0);
+  return (Number(producto.precio) + costoExtras) * cantidad;
+};
+
 function SelectorExtras({ extrasDisponibles, cantidadesExtras, onCambiarCantidad }) {
   if (extrasDisponibles.length === 0) return null;
 
@@ -69,7 +74,7 @@ function TarjetaProducto({ producto, extrasDisponibles, onAgregar, onVerDetalle 
         <SelectorExtras extrasDisponibles={extrasDisponibles} cantidadesExtras={cantidadesExtras} onCambiarCantidad={cambiarCantidadExtra} />
 
         <div className="menu-tarjeta-footer">
-          <span className="menu-tarjeta-precio">{formatearPrecio(producto.precio)}</span>
+          <span className="menu-tarjeta-precio">{formatearPrecio(calcularPrecioTotal(producto, extrasDisponibles, cantidadesExtras, cantidad))}</span>
           <div className="menu-tarjeta-cantidad">
             <button type="button" onClick={() => setCantidad((c) => Math.max(1, c - 1))}>−</button>
             <span>{cantidad}</span>
@@ -151,7 +156,7 @@ function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
           <SelectorExtras extrasDisponibles={extrasDisponibles} cantidadesExtras={cantidadesExtras} onCambiarCantidad={cambiarCantidadExtra} />
 
           <div className="menu-tarjeta-footer">
-            <span className="menu-tarjeta-precio">{formatearPrecio(producto.precio)}</span>
+            <span className="menu-tarjeta-precio">{formatearPrecio(calcularPrecioTotal(producto, extrasDisponibles, cantidadesExtras, cantidad))}</span>
             <div className="menu-tarjeta-cantidad">
               <button type="button" onClick={() => setCantidad((c) => Math.max(1, c - 1))}>−</button>
               <span>{cantidad}</span>

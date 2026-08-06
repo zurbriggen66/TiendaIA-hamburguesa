@@ -1,11 +1,22 @@
+from django.utils.dateparse import parse_date
 from rest_framework import viewsets
 from .models import Pedido, Localidad, Pago
 from .serializers import PedidoSerializer, LocalidadSerializer, PagoSerializer, mover_stock_item
 
 
 class PedidoViewSet(viewsets.ModelViewSet):
-    queryset = Pedido.objects.prefetch_related('items__producto', 'items__extras__extra', 'pagos').select_related('localidad')
+    queryset = Pedido.objects.all()
     serializer_class = PedidoSerializer
+
+    def get_queryset(self):
+        queryset = Pedido.objects.prefetch_related('items__producto', 'items__extras__extra', 'pagos').select_related('localidad')
+        desde = parse_date(self.request.query_params.get('desde') or '')
+        hasta = parse_date(self.request.query_params.get('hasta') or '')
+        if desde:
+            queryset = queryset.filter(creado__date__gte=desde)
+        if hasta:
+            queryset = queryset.filter(creado__date__lte=hasta)
+        return queryset
 
     def perform_destroy(self, instance):
         # Si el pedido no estaba cancelado, el stock que descontó al crearse sigue "afuera" —
