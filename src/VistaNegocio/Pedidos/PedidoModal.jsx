@@ -25,7 +25,8 @@ export default function PedidoModal({ productos, categorias, localidades, onClos
   const [guardando, setGuardando] = useState(false);
 
   const productosPrincipales = productos.filter((p) => !p.es_extra);
-  const extrasDisponibles = productos.filter((p) => p.es_extra);
+  const extrasTodos = productos.filter((p) => p.es_extra);
+  const extrasParaProducto = (producto) => (producto ? extrasTodos.filter((e) => e.categoria === producto.categoria) : []);
 
   const productosFiltrados = categoriaActiva === 'todas'
     ? productosPrincipales
@@ -286,6 +287,9 @@ export default function PedidoModal({ productos, categorias, localidades, onClos
               <div className="pedido-filas">
                 {filas.map((fila) => {
                   const producto = productoPorId(fila.producto);
+                  const extrasDisponibles = extrasParaProducto(producto);
+                  const filaTieneExtras = fila.extras.length > 0;
+                  const filaTieneVarios = Number(fila.cantidad) > 1;
                   return (
                     <div key={fila.key} className="pedido-fila-grupo">
                       <div className="pedido-fila">
@@ -294,9 +298,16 @@ export default function PedidoModal({ productos, categorias, localidades, onClos
                           <span>{producto ? formatearPrecio(producto.precio) : ''}</span>
                         </div>
                         <div className="pedido-fila-cantidad-stepper">
-                          <button type="button" onClick={() => actualizarFila(fila.key, { cantidad: Math.max(1, Number(fila.cantidad) - 1) })}>−</button>
+                          <button type="button" onClick={() => actualizarFila(fila.key, { cantidad: Math.max(1, Number(fila.cantidad) - 1) })} disabled={filaTieneExtras}>−</button>
                           <span>{fila.cantidad}</span>
-                          <button type="button" onClick={() => actualizarFila(fila.key, { cantidad: Number(fila.cantidad) + 1 })}>+</button>
+                          <button
+                            type="button"
+                            onClick={() => actualizarFila(fila.key, { cantidad: Number(fila.cantidad) + 1 })}
+                            disabled={filaTieneExtras}
+                            title={filaTieneExtras ? 'Esta unidad tiene extras propios: agregá otra Argenta desde arriba si necesitás una segunda con distintos extras' : undefined}
+                          >
+                            +
+                          </button>
                         </div>
                         <button
                           type="button"
@@ -308,8 +319,19 @@ export default function PedidoModal({ productos, categorias, localidades, onClos
                         </button>
                       </div>
 
+                      {filaTieneExtras && (
+                        <p className="pedido-fila-aviso">
+                          Esta línea es 1 unidad con sus extras propios. Para otra {producto ? producto.nombre : 'unidad'} con extras distintos, tocala de nuevo en la grilla de arriba.
+                        </p>
+                      )}
+
                       {extrasDisponibles.length > 0 && (
                         <div className="pedido-fila-extras">
+                          {filaTieneVarios && (
+                            <p className="pedido-fila-aviso">
+                              Con {fila.cantidad} unidades en esta línea no se pueden poner extras (quedarían iguales en todas). Bajá la cantidad a 1 para personalizarla.
+                            </p>
+                          )}
                           {extrasDisponibles.map((extra) => {
                             const seleccionado = fila.extras.find((e) => e.id === extra.id);
                             const cantidadExtra = seleccionado ? seleccionado.cantidad : 0;
@@ -320,12 +342,18 @@ export default function PedidoModal({ productos, categorias, localidades, onClos
                                   <button
                                     type="button"
                                     onClick={() => cambiarCantidadExtraFila(fila.key, extra.id, Math.max(0, cantidadExtra - 1))}
-                                    disabled={cantidadExtra === 0}
+                                    disabled={cantidadExtra === 0 || filaTieneVarios}
                                   >
                                     −
                                   </button>
                                   <span>{cantidadExtra}</span>
-                                  <button type="button" onClick={() => cambiarCantidadExtraFila(fila.key, extra.id, cantidadExtra + 1)}>+</button>
+                                  <button
+                                    type="button"
+                                    onClick={() => cambiarCantidadExtraFila(fila.key, extra.id, cantidadExtra + 1)}
+                                    disabled={filaTieneVarios}
+                                  >
+                                    +
+                                  </button>
                                 </div>
                               </div>
                             );

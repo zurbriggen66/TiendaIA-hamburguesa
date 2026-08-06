@@ -18,8 +18,17 @@ const VARIANTES_TILE = [
   'resumen-tile-ganancia-positiva',
 ];
 
-const hoyISO = () => new Date().toISOString().slice(0, 10);
-const mesActualISO = () => new Date().toISOString().slice(0, 7);
+const pad2 = (n) => String(n).padStart(2, '0');
+// OJO: no usar toISOString() acá — convierte a UTC y en Argentina (UTC-3) eso hace
+// que "hoy" salte al día siguiente a partir de las 21:00 hora local.
+const hoyISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+};
+const mesActualISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+};
 
 const primerYUltimoDiaDelMes = (mesStr) => {
   const [anio, mes] = mesStr.split('-').map(Number);

@@ -3,9 +3,10 @@ import api from '../../services/api';
 
 const UNIDADES = ['kg', 'litros', 'unidades', 'otro'];
 
-export default function InsumoModal({ onClose, onSaved }) {
-  const [nombre, setNombre] = useState('');
-  const [unidad, setUnidad] = useState('kg');
+export default function InsumoModal({ insumo, onClose, onSaved }) {
+  const [nombre, setNombre] = useState(insumo ? insumo.nombre : '');
+  const [unidad, setUnidad] = useState(insumo ? insumo.unidad : 'kg');
+  const [stockMinimo, setStockMinimo] = useState(insumo ? insumo.stock_minimo : '');
   const [guardando, setGuardando] = useState(false);
 
   const guardar = async (e) => {
@@ -17,7 +18,12 @@ export default function InsumoModal({ onClose, onSaved }) {
 
     setGuardando(true);
     try {
-      await api.post('/insumos/', { nombre: nombre.trim(), unidad });
+      const datos = { nombre: nombre.trim(), unidad, stock_minimo: stockMinimo || 0 };
+      if (insumo) {
+        await api.patch(`/insumos/${insumo.id}/`, datos);
+      } else {
+        await api.post('/insumos/', datos);
+      }
       onSaved();
     } catch (error) {
       console.error('Error al guardar el insumo:', error);
@@ -31,7 +37,7 @@ export default function InsumoModal({ onClose, onSaved }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>Nuevo insumo</h3>
+          <h3>{insumo ? 'Editar insumo' : 'Nuevo insumo'}</h3>
           <button type="button" className="modal-close" onClick={onClose}>✕</button>
         </div>
 
@@ -57,10 +63,26 @@ export default function InsumoModal({ onClose, onSaved }) {
             </select>
           </div>
 
+          <div className="form-group">
+            <label className="form-label">Avisar cuando queden menos de (opcional)</label>
+            <div className="input-con-sufijo">
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                className="input-vibrante"
+                placeholder="0"
+                value={stockMinimo}
+                onChange={(e) => setStockMinimo(e.target.value)}
+              />
+              <span>{unidad}</span>
+            </div>
+          </div>
+
           <div className="modal-actions">
             <button type="button" className="btn-secundario" onClick={onClose}>Cancelar</button>
             <button type="submit" className="btn-vibrante" disabled={guardando}>
-              {guardando ? 'Guardando...' : 'Guardar insumo'}
+              {guardando ? 'Guardando...' : insumo ? 'Guardar cambios' : 'Guardar insumo'}
             </button>
           </div>
         </form>
