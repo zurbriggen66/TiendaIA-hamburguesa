@@ -5,6 +5,7 @@ class Insumo(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     unidad = models.CharField(max_length=20, default='unidades')
     cantidad_disponible = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    stock_minimo = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     creado = models.DateTimeField(auto_now_add=True)
 
     class Meta:

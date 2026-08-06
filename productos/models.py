@@ -31,6 +31,11 @@ class Producto(models.Model):
     def __str__(self):
         return self.nombre
 
+    def ajustar_stock(self, delta_unidades):
+        for pi in self.detalle_insumos.select_related('insumo'):
+            pi.insumo.cantidad_disponible += pi.cantidad * delta_unidades
+            pi.insumo.save(update_fields=['cantidad_disponible'])
+
 
 class ProductoInsumo(models.Model):
     producto = models.ForeignKey(Producto, related_name='detalle_insumos', on_delete=models.CASCADE)
