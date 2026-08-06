@@ -467,3 +467,5 @@ export default function Menu({ categorias, productos, onAgregar }) {
     </section>
   );
 }
+
+//
