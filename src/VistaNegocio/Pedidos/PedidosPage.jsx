@@ -28,6 +28,23 @@ const ETIQUETA_SIGUIENTE = {
   listo: 'Marcar entregado',
 };
 
+const pad2 = (n) => String(n).padStart(2, '0');
+// OJO: no usar toISOString() acá — convierte a UTC y en Argentina (UTC-3) eso hace
+// que "hoy" salte al día siguiente a partir de las 21:00 hora local.
+const hoyISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+};
+const mesActualISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+};
+const primerYUltimoDiaDelMes = (mesStr) => {
+  const [anio, mes] = mesStr.split('-').map(Number);
+  const ultimoDia = new Date(anio, mes, 0).getDate();
+  return { primero: `${mesStr}-01`, ultimo: `${mesStr}-${String(ultimoDia).padStart(2, '0')}` };
+};
+
 export default function PedidosPage() {
   const [pedidos, setPedidos] = useState([]);
   const [productos, setProductos] = useState([]);
@@ -35,6 +52,9 @@ export default function PedidosPage() {
   const [localidades, setLocalidades] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [tab, setTab] = useState('pedidos');
+  const [filtroPeriodo, setFiltroPeriodo] = useState('general');
+  const [mesSeleccionado, setMesSeleccionado] = useState(mesActualISO());
+  const [diaSeleccionado, setDiaSeleccionado] = useState(hoyISO());
   const [mostrarModal, setMostrarModal] = useState(false);
   const [modalLocalidad, setModalLocalidad] = useState(null);
   const [modalEnvio, setModalEnvio] = useState(null);
@@ -43,8 +63,15 @@ export default function PedidosPage() {
   const cargarDatos = useCallback(async () => {
     setCargando(true);
     try {
+      let params = {};
+      if (filtroPeriodo === 'mensual') {
+        const { primero, ultimo } = primerYUltimoDiaDelMes(mesSeleccionado);
+        params = { desde: primero, hasta: ultimo };
+      } else if (filtroPeriodo === 'dia') {
+        params = { desde: diaSeleccionado, hasta: diaSeleccionado };
+      }
       const [resPedidos, resProductos, resCategorias, resLocalidades] = await Promise.all([
-        api.get('/pedidos/'),
+        api.get('/pedidos/', { params }),
         api.get('/productos/'),
         api.get('/categorias/'),
         api.get('/localidades/'),
@@ -58,7 +85,7 @@ export default function PedidosPage() {
     } finally {
       setCargando(false);
     }
-  }, []);
+  }, [filtroPeriodo, mesSeleccionado, diaSeleccionado]);
 
   useEffect(() => {
     cargarDatos();
@@ -131,14 +158,58 @@ export default function PedidosPage() {
         </div>
 
         {tab === 'pedidos' && (
+          <div className="tabs-bar">
+            <button type="button" className={`tab-boton ${filtroPeriodo === 'general' ? 'tab-activo' : ''}`} onClick={() => setFiltroPeriodo('general')}>
+              General
+            </button>
+            <button type="button" className={`tab-boton ${filtroPeriodo === 'mensual' ? 'tab-activo' : ''}`} onClick={() => setFiltroPeriodo('mensual')}>
+              Mensual
+            </button>
+            <button type="button" className={`tab-boton ${filtroPeriodo === 'dia' ? 'tab-activo' : ''}`} onClick={() => setFiltroPeriodo('dia')}>
+              Por día
+            </button>
+          </div>
+        )}
+
+        {tab === 'pedidos' && filtroPeriodo === 'mensual' && (
+          <div className="form-group estadisticas-selector-periodo">
+            <label className="form-label">Mes</label>
+            <input
+              type="month"
+              className="input-vibrante"
+              value={mesSeleccionado}
+              onChange={(e) => setMesSeleccionado(e.target.value)}
+            />
+          </div>
+        )}
+
+        {tab === 'pedidos' && filtroPeriodo === 'dia' && (
+          <div className="form-group estadisticas-selector-periodo">
+            <label className="form-label">Día</label>
+            <input
+              type="date"
+              className="input-vibrante"
+              value={diaSeleccionado}
+              onChange={(e) => setDiaSeleccionado(e.target.value)}
+            />
+          </div>
+        )}
+
+        {tab === 'pedidos' && (
           cargando ? (
             <p className="estado-vacio">Cargando...</p>
           ) : pedidos.length === 0 ? (
             <div className="estado-vacio">
-              <p>Todavía no hay pedidos cargados.</p>
-              <button type="button" className="btn-vibrante" onClick={() => setMostrarModal(true)}>
-                Crear el primer pedido
-              </button>
+              {filtroPeriodo === 'general' ? (
+                <>
+                  <p>Todavía no hay pedidos cargados.</p>
+                  <button type="button" className="btn-vibrante" onClick={() => setMostrarModal(true)}>
+                    Crear el primer pedido
+                  </button>
+                </>
+              ) : (
+                <p>No hay pedidos en este período.</p>
+              )}
             </div>
           ) : (
             <div className="pedidos-grid">
