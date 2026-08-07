@@ -76,6 +76,39 @@ function construirBloqueTicket(pedido) {
     </div>`;
 }
 
+function construirBloqueTicketCocina(pedido) {
+  const entregaTexto = pedido.tipo_entrega === 'delivery'
+    ? `🛵 Delivery${pedido.localidad_nombre ? ` — ${escapeHtml(pedido.localidad_nombre)}` : ''}`
+    : '🏠 Retiro en local';
+
+  const filasItems = pedido.items
+    .map((item) => {
+      const nombre = item.producto_nombre || item.combo_nombre || 'Producto';
+      const extrasTexto = item.extras_detalle && item.extras_detalle.length > 0
+        ? `<div class="ticket-cocina-extra">+ ${item.extras_detalle.map((e) => escapeHtml(`${e.cantidad > 1 ? `${e.cantidad}x ` : ''}${e.nombre}`)).join(', ')}</div>`
+        : '';
+      return `
+        <div class="ticket-cocina-item">${item.cantidad} x ${escapeHtml(nombre)}</div>
+        ${extrasTexto}`;
+    })
+    .join('');
+
+  return `
+    <div class="ticket">
+      <div class="ticket-header">
+        <strong>COCINA</strong>
+        ${pedido.id ? `<span>Pedido #${pedido.id}</span>` : ''}
+      </div>
+      <div class="ticket-linea"></div>
+      <div class="ticket-cocina-dato">${entregaTexto}</div>
+      <div class="ticket-cocina-dato">${escapeHtml(pedido.cliente || 'Sin nombre')}</div>
+      ${pedido.hora_salida ? `<div class="ticket-cocina-dato">🕒 Aprox. ${String(pedido.hora_salida).slice(0, 5)}</div>` : ''}
+      <div class="ticket-linea"></div>
+      ${filasItems}
+      ${pedido.nota ? `<div class="ticket-linea"></div><div class="ticket-cocina-nota">${escapeHtml(pedido.nota)}</div>` : ''}
+    </div>`;
+}
+
 function construirDesgloseTicket(pedido) {
   const tieneEnvio = Number(pedido.costo_envio) > 0;
   const tieneDescuento = Number(pedido.descuento_pct) > 0;
@@ -92,7 +125,8 @@ export function construirHtmlTicket(pedido, config) {
   const anchoMm = config.anchoPapel === '58mm' ? 58 : 80;
   const copias = Math.max(1, Number(config.copias) || 1);
   const bloque = construirBloqueTicket(pedido);
-  const bloques = Array.from({ length: copias }, () => bloque).join('<div class="ticket-corte"></div>');
+  const bloquesCliente = Array.from({ length: copias }, () => bloque);
+  const bloques = [...bloquesCliente, construirBloqueTicketCocina(pedido)].join('<div class="ticket-corte"></div>');
 
   return `<!doctype html>
 <html>
@@ -122,6 +156,10 @@ export function construirHtmlTicket(pedido, config) {
   .ticket-nota { font-size: 18px; margin: 6px 0; }
   .ticket-footer { text-align: center; margin-top: 10px; }
   .ticket-corte { border-top: 3px dashed #000; margin: 14px 0; page-break-before: always; }
+  .ticket-cocina-dato { font-size: 22px; margin: 4px 0; }
+  .ticket-cocina-item { font-size: 30px; font-weight: 800; margin: 10px 0 0; line-height: 1.2; }
+  .ticket-cocina-extra { font-size: 22px; margin: 2px 0 6px 10px; }
+  .ticket-cocina-nota { font-size: 26px; font-weight: 800; margin: 10px 0 0; padding: 8px; border: 3px solid #000; }
 </style>
 </head>
 <body>${bloques}</body>
@@ -165,8 +203,10 @@ export function imprimirPrueba() {
     id: 'PRUEBA',
     cliente: 'Cliente de prueba',
     telefono: '3541000000',
-    tipo_entrega: 'retiro',
-    direccion: '',
+    tipo_entrega: 'delivery',
+    direccion: 'Calle Falsa 123',
+    localidad_nombre: 'Centro',
+    hora_salida: '20:30',
     creado: new Date().toISOString(),
     total: 12000,
     nota: 'Sin cebolla, gracias',

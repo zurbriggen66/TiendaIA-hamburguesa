@@ -263,7 +263,10 @@ export default function PedidosPage() {
                     {pedido.items.map((item) => (
                       <li key={item.id}>
                         <div className="pedido-item-info">
-                          <span>{item.cantidad} × {item.producto_nombre || item.combo_nombre}</span>
+                          <span>
+                            {item.cantidad} × {item.producto_nombre || item.combo_nombre}
+                            {item.descuento_pct > 0 && <span className="badge-descuento badge-descuento-chica">🏷️ -{item.descuento_pct}%</span>}
+                          </span>
                           {item.extras_detalle && item.extras_detalle.length > 0 && (
                             <span className="pedido-item-extras">
                               + {item.extras_detalle.map((e) => `${e.cantidad > 1 ? `${e.cantidad}x ` : ''}${e.nombre}`).join(', ')}
