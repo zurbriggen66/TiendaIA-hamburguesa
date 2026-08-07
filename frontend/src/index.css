@@ -548,6 +548,33 @@ body {
   box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.3);
 }
 
+.badge-descuento {
+  display: inline-flex;
+  align-self: flex-start;
+  background: linear-gradient(135deg, #fbbf24, #ef4444);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.7rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin-bottom: 6px;
+  white-space: nowrap;
+}
+
+.badge-descuento-chica {
+  font-size: 0.65rem;
+  padding: 2px 7px;
+  margin: 0 0 0 6px;
+  vertical-align: middle;
+}
+
+.precio-tachado {
+  color: var(--text-muted);
+  text-decoration: line-through;
+  font-size: 0.85em;
+  margin-right: 6px;
+}
+
 .producto-imagen-wrap {
   height: 160px;
   background: linear-gradient(135deg, var(--surface-2), var(--surface));

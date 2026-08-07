@@ -5,9 +5,10 @@ const COLORES_CHIP = ['chip-mostaza', 'chip-naranja', 'chip-tomate'];
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
 
-const calcularPrecioTotal = (producto, extrasDisponibles, cantidadesExtras, cantidad) => {
+const calcularPrecioTotal = (producto, extrasDisponibles, cantidadesExtras, cantidad, usarDescuento = true) => {
   const costoExtras = extrasDisponibles.reduce((acc, e) => acc + Number(e.precio) * (cantidadesExtras[e.id] || 0), 0);
-  return (Number(producto.precio) + costoExtras) * cantidad;
+  const precioUnidad = usarDescuento && producto.descuento_activo ? Number(producto.precio_actual) : Number(producto.precio);
+  return (precioUnidad + costoExtras) * cantidad;
 };
 
 function SelectorExtras({ extrasDisponibles, cantidadesExtras, onCambiarCantidad }) {
@@ -44,7 +45,8 @@ function TarjetaProducto({ producto, extrasDisponibles, onAgregar, onVerDetalle 
     const extras = extrasDisponibles
       .filter((e) => (cantidadesExtras[e.id] || 0) > 0)
       .map((e) => ({ ...e, cantidad: cantidadesExtras[e.id] }));
-    onAgregar(producto, cantidad, extras);
+    const precioBase = producto.descuento_activo ? Number(producto.precio_actual) : Number(producto.precio);
+    onAgregar({ ...producto, precio: precioBase }, cantidad, extras);
     setCantidad(1);
     setCantidadesExtras({});
   };
@@ -52,6 +54,7 @@ function TarjetaProducto({ producto, extrasDisponibles, onAgregar, onVerDetalle 
   return (
     <div className="menu-tarjeta">
       {producto.destacado && <span className="badge-destacado">⭐ Destacado</span>}
+      {producto.descuento_activo && <span className="badge-descuento">🏷️ -{producto.descuento_pct}%</span>}
       <div
         className="menu-tarjeta-imagen"
         onClick={() => onVerDetalle(producto)}
@@ -74,7 +77,12 @@ function TarjetaProducto({ producto, extrasDisponibles, onAgregar, onVerDetalle 
         <SelectorExtras extrasDisponibles={extrasDisponibles} cantidadesExtras={cantidadesExtras} onCambiarCantidad={cambiarCantidadExtra} />
 
         <div className="menu-tarjeta-footer">
-          <span className="menu-tarjeta-precio">{formatearPrecio(calcularPrecioTotal(producto, extrasDisponibles, cantidadesExtras, cantidad))}</span>
+          <span className="menu-tarjeta-precio">
+            {producto.descuento_activo && (
+              <span className="precio-tachado">{formatearPrecio(calcularPrecioTotal(producto, extrasDisponibles, cantidadesExtras, cantidad, false))}</span>
+            )}
+            {formatearPrecio(calcularPrecioTotal(producto, extrasDisponibles, cantidadesExtras, cantidad))}
+          </span>
           <div className="menu-tarjeta-cantidad">
             <button type="button" onClick={() => setCantidad((c) => Math.max(1, c - 1))}>−</button>
             <span>{cantidad}</span>
@@ -121,7 +129,8 @@ function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
     const extras = extrasDisponibles
       .filter((e) => (cantidadesExtras[e.id] || 0) > 0)
       .map((e) => ({ ...e, cantidad: cantidadesExtras[e.id] }));
-    onAgregar(producto, cantidad, extras);
+    const precioBase = producto.descuento_activo ? Number(producto.precio_actual) : Number(producto.precio);
+    onAgregar({ ...producto, precio: precioBase }, cantidad, extras);
     onCerrar();
   };
 
@@ -149,6 +158,7 @@ function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
 
         <div className="modal-producto-info">
           {producto.destacado && <span className="badge-destacado">⭐ Destacado</span>}
+          {producto.descuento_activo && <span className="badge-descuento">🏷️ -{producto.descuento_pct}%</span>}
           <span className="producto-categoria-tag">{producto.categoria_nombre}</span>
           <h3>{producto.nombre}</h3>
           {producto.descripcion && <p className="modal-producto-descripcion">{producto.descripcion}</p>}
@@ -156,7 +166,12 @@ function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
           <SelectorExtras extrasDisponibles={extrasDisponibles} cantidadesExtras={cantidadesExtras} onCambiarCantidad={cambiarCantidadExtra} />
 
           <div className="menu-tarjeta-footer">
-            <span className="menu-tarjeta-precio">{formatearPrecio(calcularPrecioTotal(producto, extrasDisponibles, cantidadesExtras, cantidad))}</span>
+            <span className="menu-tarjeta-precio">
+              {producto.descuento_activo && (
+                <span className="precio-tachado">{formatearPrecio(calcularPrecioTotal(producto, extrasDisponibles, cantidadesExtras, cantidad, false))}</span>
+              )}
+              {formatearPrecio(calcularPrecioTotal(producto, extrasDisponibles, cantidadesExtras, cantidad))}
+            </span>
             <div className="menu-tarjeta-cantidad">
               <button type="button" onClick={() => setCantidad((c) => Math.max(1, c - 1))}>−</button>
               <span>{cantidad}</span>
@@ -350,7 +365,8 @@ export default function Menu({ categorias, productos, onAgregar }) {
           background: #fffdfb;
         }
 
-        .modal-producto-info .badge-destacado {
+        .modal-producto-info .badge-destacado,
+        .modal-producto-info .badge-descuento {
           position: static;
           align-self: flex-start;
           margin-bottom: 8px;
@@ -420,6 +436,10 @@ export default function Menu({ categorias, productos, onAgregar }) {
           text-align: center;
           font-weight: 700;
           color: #241a13;
+        }
+
+        .modal-producto-info .precio-tachado {
+          color: #a89a8f;
         }
 
         .modal-producto-info .extra-selector-fila {

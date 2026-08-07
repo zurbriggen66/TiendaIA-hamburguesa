@@ -9,6 +9,9 @@ const nuevaFila = (productoId) => ({ key: ++contadorFila, producto: productoId, 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
 
+const precioEfectivo = (producto) =>
+  producto.descuento_activo ? Number(producto.precio_actual) : Number(producto.precio);
+
 export default function PedidoModal({ productos, categorias, localidades, onClose, onSaved }) {
   const [cliente, setCliente] = useState('');
   const [telefono, setTelefono] = useState('');
@@ -77,7 +80,7 @@ export default function PedidoModal({ productos, categorias, localidades, onClos
 
   const totalEstimado = filasValidas.reduce((acc, f) => {
     const producto = productoPorId(f.producto);
-    const precioUnidad = (producto ? Number(producto.precio) : 0) + costoExtrasFila(f);
+    const precioUnidad = (producto ? precioEfectivo(producto) : 0) + costoExtrasFila(f);
     return acc + precioUnidad * Number(f.cantidad);
   }, 0);
 
@@ -275,8 +278,16 @@ export default function PedidoModal({ productos, categorias, localidades, onClos
                   className="pedido-producto-picker-item"
                   onClick={() => agregarProductoClick(p)}
                 >
+                  {p.descuento_activo && <span className="badge-descuento badge-descuento-chica">🏷️ -{p.descuento_pct}%</span>}
                   <span>{p.nombre}</span>
-                  <strong>{formatearPrecio(p.precio)}</strong>
+                  {p.descuento_activo ? (
+                    <strong>
+                      <span className="precio-tachado">{formatearPrecio(p.precio)}</span>
+                      {' '}{formatearPrecio(p.precio_actual)}
+                    </strong>
+                  ) : (
+                    <strong>{formatearPrecio(p.precio)}</strong>
+                  )}
                 </button>
               ))}
             </div>
@@ -295,7 +306,12 @@ export default function PedidoModal({ productos, categorias, localidades, onClos
                       <div className="pedido-fila">
                         <div className="pedido-fila-nombre">
                           <strong>{producto ? producto.nombre : 'Producto'}</strong>
-                          <span>{producto ? formatearPrecio(producto.precio) : ''}</span>
+                          <span>
+                            {producto && producto.descuento_activo && (
+                              <span className="precio-tachado">{formatearPrecio(producto.precio)}</span>
+                            )}
+                            {' '}{producto ? formatearPrecio(precioEfectivo(producto)) : ''}
+                          </span>
                         </div>
                         <div className="pedido-fila-cantidad-stepper">
                           <button type="button" onClick={() => actualizarFila(fila.key, { cantidad: Math.max(1, Number(fila.cantidad) - 1) })} disabled={filaTieneExtras}>−</button>

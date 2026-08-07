@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import api from '../../services/api';
 import CategoriaModal from './CategoriaModal';
 import ProductoModal from './ProductoModal';
+import DescuentoProductoModal from './DescuentoProductoModal';
 
 const COLORES_CHIP = ['chip-mostaza', 'chip-naranja', 'chip-tomate'];
 
@@ -13,6 +14,7 @@ export default function ProductosPage() {
 
   const [modalCategoria, setModalCategoria] = useState(null); // { categoria: null|obj }
   const [modalProducto, setModalProducto] = useState(null); // { producto: null|obj }
+  const [modalDescuento, setModalDescuento] = useState(null); // producto|null
 
   const cargarDatos = useCallback(async () => {
     setCargando(true);
@@ -118,6 +120,7 @@ export default function ProductosPage() {
               <div key={prod.id} className="producto-card">
                 {prod.destacado && <span className="badge-destacado">⭐ Destacado</span>}
                 {prod.es_extra && <span className="badge-extra">🍟 Extra</span>}
+                {prod.descuento_activo && <span className="badge-descuento">🏷️ -{prod.descuento_pct}%</span>}
                 <div className="producto-imagen-wrap">
                   {prod.imagen ? (
                     <img src={prod.imagen} alt={prod.nombre} className="producto-imagen" />
@@ -130,8 +133,16 @@ export default function ProductosPage() {
                   <h4>{prod.nombre}</h4>
                   {prod.descripcion && <p className="producto-descripcion">{prod.descripcion}</p>}
                   <div className="producto-footer">
-                    <span className="producto-precio">{formatearPrecio(prod.precio)}</span>
+                    {prod.descuento_activo ? (
+                      <span className="producto-precio">
+                        <span className="precio-tachado">{formatearPrecio(prod.precio)}</span>
+                        {' '}{formatearPrecio(prod.precio_actual)}
+                      </span>
+                    ) : (
+                      <span className="producto-precio">{formatearPrecio(prod.precio)}</span>
+                    )}
                     <div className="producto-acciones">
+                      <button type="button" title="Descuento por tiempo" onClick={() => setModalDescuento(prod)}>🏷️</button>
                       <button type="button" onClick={() => setModalProducto({ producto: prod })}>✎</button>
                       <button type="button" onClick={() => eliminarProducto(prod)}>🗑</button>
                     </div>
@@ -167,6 +178,14 @@ export default function ProductosPage() {
           categoriaPreseleccionada={categoriaActiva !== 'todas' ? categoriaActiva : null}
           onClose={() => setModalProducto(null)}
           onSaved={() => { setModalProducto(null); cargarDatos(); }}
+        />
+      )}
+
+      {modalDescuento && (
+        <DescuentoProductoModal
+          producto={modalDescuento}
+          onClose={() => setModalDescuento(null)}
+          onSaved={() => { setModalDescuento(null); cargarDatos(); }}
         />
       )}
     </div>

@@ -36,9 +36,9 @@ class DetallePedidoSerializer(serializers.ModelSerializer):
         model = DetallePedido
         fields = [
             'id', 'producto', 'producto_nombre', 'combo', 'combo_nombre', 'cantidad',
-            'precio_unitario', 'subtotal', 'extras_detalle', 'extras',
+            'precio_unitario', 'descuento_pct', 'subtotal', 'extras_detalle', 'extras',
         ]
-        read_only_fields = ['precio_unitario']
+        read_only_fields = ['precio_unitario', 'descuento_pct']
         extra_kwargs = {
             'producto': {'required': False, 'allow_null': True},
             'combo': {'required': False, 'allow_null': True},
@@ -67,6 +67,20 @@ class DetallePedidoSerializer(serializers.ModelSerializer):
         if combo and data.get('extras'):
             raise serializers.ValidationError('Los extras solo se pueden agregar a líneas de producto, no de combo.')
         return data
+
+
+def calcular_precio_producto(producto, antojo_activo):
+    candidatos = []
+    if producto.tiene_descuento_activo():
+        candidatos.append((producto.descuento_pct, producto.precio_actual()))
+    if antojo_activo and antojo_activo.producto_id == producto.id:
+        descuento = Decimal(antojo_activo.descuento_pct) / Decimal(100)
+        precio_antojo = (producto.precio * (Decimal(1) - descuento)).quantize(Decimal('1'))
+        candidatos.append((antojo_activo.descuento_pct, precio_antojo))
+
+    if candidatos:
+        return min(candidatos, key=lambda c: c[1])
+    return 0, producto.precio
 
 
 def mover_stock_item(item, signo):
@@ -128,15 +142,13 @@ class PedidoSerializer(serializers.ModelSerializer):
             extras_data = item.get('extras', [])
 
             if producto:
-                precio_unitario = producto.precio
-                if antojo_activo and antojo_activo.producto_id == producto.id:
-                    descuento = Decimal(antojo_activo.descuento_pct) / Decimal(100)
-                    precio_unitario = (producto.precio * (Decimal(1) - descuento)).quantize(Decimal('1'))
+                descuento_pct_aplicado, precio_unitario = calcular_precio_producto(producto, antojo_activo)
                 detalle = DetallePedido.objects.create(
                     pedido=pedido,
                     producto=producto,
                     cantidad=item['cantidad'],
                     precio_unitario=precio_unitario,
+                    descuento_pct=descuento_pct_aplicado,
                 )
                 for extra_sel in extras_data:
                     extra_producto = extra_sel['producto']
