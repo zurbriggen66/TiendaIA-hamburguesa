@@ -1,4 +1,7 @@
+from decimal import Decimal
+
 from django.db import models
+from django.utils import timezone
 
 
 class Categoria(models.Model):
@@ -23,6 +26,8 @@ class Producto(models.Model):
     destacado = models.BooleanField(default=False)
     es_extra = models.BooleanField(default=False)
     insumos = models.ManyToManyField('gastos.Insumo', through='ProductoInsumo', blank=True, related_name='productos')
+    descuento_pct = models.PositiveIntegerField(default=0)
+    descuento_hasta = models.DateTimeField(null=True, blank=True)
     creado = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -30,6 +35,15 @@ class Producto(models.Model):
 
     def __str__(self):
         return self.nombre
+
+    def tiene_descuento_activo(self):
+        return bool(self.descuento_pct) and self.descuento_hasta is not None and self.descuento_hasta > timezone.now()
+
+    def precio_actual(self):
+        if self.tiene_descuento_activo():
+            descuento = Decimal(self.descuento_pct) / Decimal(100)
+            return (self.precio * (Decimal(1) - descuento)).quantize(Decimal('1'))
+        return self.precio
 
     def ajustar_stock(self, delta_unidades):
         for pi in self.detalle_insumos.select_related('insumo'):

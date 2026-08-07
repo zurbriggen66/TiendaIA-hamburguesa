@@ -98,6 +98,7 @@ class DetallePedido(models.Model):
     combo = models.ForeignKey(Combo, null=True, blank=True, on_delete=models.PROTECT)
     cantidad = models.PositiveIntegerField()
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
+    descuento_pct = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         nombre = self.producto.nombre if self.producto else self.combo.nombre
