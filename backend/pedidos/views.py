@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.http import JsonResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -27,6 +29,16 @@ class PedidoViewSet(viewsets.ModelViewSet):
         origen = self.request.query_params.get('origen')
         if origen:
             queryset = queryset.filter(origen=origen)
+
+        ultimas_horas = self.request.query_params.get('ultimas_horas')
+        if ultimas_horas:
+            try:
+                horas = int(ultimas_horas)
+            except ValueError:
+                horas = None
+            if horas:
+                queryset = queryset.filter(creado__gte=timezone.now() - timedelta(hours=horas))
+
         return queryset
 
     def perform_create(self, serializer):

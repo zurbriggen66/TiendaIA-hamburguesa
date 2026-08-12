@@ -45,6 +45,12 @@ const primerYUltimoDiaDelMes = (mesStr) => {
   return { primero: `${mesStr}-01`, ultimo: `${mesStr}-${String(ultimoDia).padStart(2, '0')}` };
 };
 
+const hace7DiasISO = () => {
+  const d = new Date();
+  d.setDate(d.getDate() - 6);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+};
+
 export default function PedidosPage() {
   const [pedidos, setPedidos] = useState([]);
   const [productos, setProductos] = useState([]);
@@ -52,15 +58,34 @@ export default function PedidosPage() {
   const [localidades, setLocalidades] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [tab, setTab] = useState('pedidos');
-  const [filtroPeriodo, setFiltroPeriodo] = useState('general');
+  const [filtroPeriodo, setFiltroPeriodo] = useState('rango');
   const [mesSeleccionado, setMesSeleccionado] = useState(mesActualISO());
   const [diaSeleccionado, setDiaSeleccionado] = useState(hoyISO());
+  const [desdeRango, setDesdeRango] = useState(hace7DiasISO());
+  const [hastaRango, setHastaRango] = useState(hoyISO());
   const [mostrarModal, setMostrarModal] = useState(false);
   const [modalLocalidad, setModalLocalidad] = useState(null);
   const [modalEnvio, setModalEnvio] = useState(null);
   const [modalPago, setModalPago] = useState(null);
 
-  const cargarDatos = useCallback(async () => {
+  // El catálogo (productos/categorías/localidades) no depende del filtro de pedidos —
+  // se carga una sola vez, en vez de repetirse cada vez que cambia el período elegido.
+  const cargarCatalogo = useCallback(async () => {
+    try {
+      const [resProductos, resCategorias, resLocalidades] = await Promise.all([
+        api.get('/productos/'),
+        api.get('/categorias/'),
+        api.get('/localidades/'),
+      ]);
+      setProductos(resProductos.data);
+      setCategorias(resCategorias.data);
+      setLocalidades(resLocalidades.data);
+    } catch (error) {
+      console.error('Error al cargar productos/categorías/localidades:', error);
+    }
+  }, []);
+
+  const cargarPedidos = useCallback(async () => {
     setCargando(true);
     try {
       let params = {};
@@ -69,27 +94,31 @@ export default function PedidosPage() {
         params = { desde: primero, hasta: ultimo };
       } else if (filtroPeriodo === 'dia') {
         params = { desde: diaSeleccionado, hasta: diaSeleccionado };
+      } else if (filtroPeriodo === 'rango') {
+        params = { desde: desdeRango, hasta: hastaRango };
       }
-      const [resPedidos, resProductos, resCategorias, resLocalidades] = await Promise.all([
-        api.get('/pedidos/', { params }),
-        api.get('/productos/'),
-        api.get('/categorias/'),
-        api.get('/localidades/'),
-      ]);
-      setPedidos(resPedidos.data);
-      setProductos(resProductos.data);
-      setCategorias(resCategorias.data);
-      setLocalidades(resLocalidades.data);
+      const { data } = await api.get('/pedidos/', { params });
+      setPedidos(data);
     } catch (error) {
-      console.error('Error al cargar pedidos/productos/localidades:', error);
+      console.error('Error al cargar los pedidos:', error);
     } finally {
       setCargando(false);
     }
-  }, [filtroPeriodo, mesSeleccionado, diaSeleccionado]);
+  }, [filtroPeriodo, mesSeleccionado, diaSeleccionado, desdeRango, hastaRango]);
 
   useEffect(() => {
-    cargarDatos();
-  }, [cargarDatos]);
+    cargarCatalogo();
+  }, [cargarCatalogo]);
+
+  useEffect(() => {
+    cargarPedidos();
+  }, [cargarPedidos]);
+
+  // Los modales necesitan recargar pedidos (y, si tocan stock, el catálogo) al guardar.
+  const cargarDatos = useCallback(() => {
+    cargarPedidos();
+    cargarCatalogo();
+  }, [cargarPedidos, cargarCatalogo]);
 
   const cambiarEstado = async (pedido, nuevoEstado) => {
     try {
@@ -159,15 +188,43 @@ export default function PedidosPage() {
 
         {tab === 'pedidos' && (
           <div className="tabs-bar">
-            <button type="button" className={`tab-boton ${filtroPeriodo === 'general' ? 'tab-activo' : ''}`} onClick={() => setFiltroPeriodo('general')}>
-              General
-            </button>
-            <button type="button" className={`tab-boton ${filtroPeriodo === 'mensual' ? 'tab-activo' : ''}`} onClick={() => setFiltroPeriodo('mensual')}>
-              Mensual
+            <button type="button" className={`tab-boton ${filtroPeriodo === 'rango' ? 'tab-activo' : ''}`} onClick={() => setFiltroPeriodo('rango')}>
+              Rango
             </button>
             <button type="button" className={`tab-boton ${filtroPeriodo === 'dia' ? 'tab-activo' : ''}`} onClick={() => setFiltroPeriodo('dia')}>
               Por día
             </button>
+            <button type="button" className={`tab-boton ${filtroPeriodo === 'mensual' ? 'tab-activo' : ''}`} onClick={() => setFiltroPeriodo('mensual')}>
+              Mensual
+            </button>
+            <button type="button" className={`tab-boton ${filtroPeriodo === 'general' ? 'tab-activo' : ''}`} onClick={() => setFiltroPeriodo('general')}>
+              General
+            </button>
+          </div>
+        )}
+
+        {tab === 'pedidos' && filtroPeriodo === 'rango' && (
+          <div className="form-row estadisticas-selector-periodo">
+            <div className="form-group">
+              <label className="form-label">Desde</label>
+              <input
+                type="date"
+                className="input-vibrante"
+                value={desdeRango}
+                max={hastaRango}
+                onChange={(e) => setDesdeRango(e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Hasta</label>
+              <input
+                type="date"
+                className="input-vibrante"
+                value={hastaRango}
+                min={desdeRango}
+                onChange={(e) => setHastaRango(e.target.value)}
+              />
+            </div>
           </div>
         )}
 
