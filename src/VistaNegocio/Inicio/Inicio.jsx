@@ -27,16 +27,25 @@ const ETIQUETA_ESTADO = {
   cancelado: 'Cancelado',
 };
 
+const ORDEN_ESTADOS = ['pendiente', 'en_preparacion', 'listo', 'entregado'];
+
+const ETIQUETA_SIGUIENTE = {
+  pendiente: 'Marcar en preparación',
+  en_preparacion: 'Marcar listo',
+  listo: 'Marcar entregado',
+};
+
 export default function Inicio() {
   const [reloj, setReloj] = useState(new Date());
   const [ventasHoy, setVentasHoy] = useState(0);
   const [ticketPromedio, setTicketPromedio] = useState(0);
   const [totalPedidosCaja, setTotalPedidosCaja] = useState(0);
   const [cajaInfo, setCajaInfo] = useState(null);
-  const [pedidosHoy, setPedidosHoy] = useState([]);
+  const [pedidosRecientes, setPedidosRecientes] = useState([]);
   const [cajaAbierta, setCajaAbierta] = useState(true);
   const [porConfirmar, setPorConfirmar] = useState([]);
   const [confirmando, setConfirmando] = useState(null);
+  const [cambiandoEstado, setCambiandoEstado] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
 
@@ -55,9 +64,10 @@ export default function Inicio() {
   const cargarInicio = async () => {
     setCargando(true);
     try {
-      const [resHoy, resPorConfirmar, resProductos, resCategorias, resLocalidades] = await Promise.all([
+      const [resHoy, resPorConfirmar, resRecientes, resProductos, resCategorias, resLocalidades] = await Promise.all([
         api.get('/estadisticas/hoy/'),
         api.get('/pedidos/', { params: { confirmado: 'false', origen: 'web' } }),
+        api.get('/pedidos/', { params: { ultimas_horas: 24, confirmado: 'true' } }),
         api.get('/productos/'),
         api.get('/categorias/'),
         api.get('/localidades/'),
@@ -67,9 +77,9 @@ export default function Inicio() {
       setTicketPromedio(data.ticket_promedio || 0);
       setTotalPedidosCaja(data.total_pedidos || 0);
       setCajaInfo(data.caja);
-      setPedidosHoy(data.pedidos || []);
       setCajaAbierta(Boolean(data.caja_abierta));
       setPorConfirmar((resPorConfirmar.data || []).filter((p) => p.estado !== 'cancelado'));
+      setPedidosRecientes(resRecientes.data || []);
       setProductos(resProductos.data);
       setCategorias(resCategorias.data);
       setLocalidades(resLocalidades.data);
@@ -111,6 +121,35 @@ export default function Inicio() {
       alert('No se pudo cancelar el pedido.');
     } finally {
       setConfirmando(null);
+    }
+  };
+
+  const avanzarEstadoReciente = async (pedido) => {
+    const siguiente = ORDEN_ESTADOS[ORDEN_ESTADOS.indexOf(pedido.estado) + 1];
+    if (!siguiente) return;
+    setCambiandoEstado(pedido.id);
+    try {
+      const { data } = await api.patch(`/pedidos/${pedido.id}/`, { estado: siguiente });
+      setPedidosRecientes((prev) => prev.map((p) => (p.id === pedido.id ? data : p)));
+    } catch (err) {
+      console.error('Error al cambiar el estado del pedido:', err);
+      alert('No se pudo cambiar el estado del pedido.');
+    } finally {
+      setCambiandoEstado(null);
+    }
+  };
+
+  const cancelarPedidoReciente = async (pedido) => {
+    if (!window.confirm('¿Cancelar este pedido?')) return;
+    setCambiandoEstado(pedido.id);
+    try {
+      const { data } = await api.patch(`/pedidos/${pedido.id}/`, { estado: 'cancelado' });
+      setPedidosRecientes((prev) => prev.map((p) => (p.id === pedido.id ? data : p)));
+    } catch (err) {
+      console.error('Error al cancelar el pedido:', err);
+      alert('No se pudo cancelar el pedido.');
+    } finally {
+      setCambiandoEstado(null);
     }
   };
 
@@ -254,9 +293,9 @@ export default function Inicio() {
         <div className="inicio-card inicio-card-pedidos">
           <div className="inicio-card-encabezado">
             <span className="inicio-card-icono">🧾</span>
-            <h3 className="inicio-card-titulo">Últimos pedidos de la caja</h3>
-            {!cargando && !error && pedidosHoy.length > 0 && (
-              <span className="inicio-contador-pedidos">{pedidosHoy.length}</span>
+            <h3 className="inicio-card-titulo">Pedidos de las últimas 24 horas</h3>
+            {!cargando && !error && pedidosRecientes.length > 0 && (
+              <span className="inicio-contador-pedidos">{pedidosRecientes.length}</span>
             )}
           </div>
 
@@ -264,17 +303,13 @@ export default function Inicio() {
             <p className="estado-vacio">Cargando...</p>
           ) : error ? (
             <p className="estado-vacio">{error}</p>
-          ) : !cajaAbierta ? (
+          ) : pedidosRecientes.length === 0 ? (
             <div className="estado-vacio">
-              <p>No hay ninguna caja abierta.</p>
-            </div>
-          ) : pedidosHoy.length === 0 ? (
-            <div className="estado-vacio">
-              <p>Todavía no entró ningún pedido en esta caja.</p>
+              <p>Todavía no entró ningún pedido en las últimas 24 horas.</p>
             </div>
           ) : (
             <div className="inicio-pedidos-lista">
-              {pedidosHoy.map((pedido) => (
+              {pedidosRecientes.map((pedido) => (
                 <div key={pedido.id} className="inicio-pedido-item">
                   <div className="inicio-pedido-avatar">
                     {(pedido.cliente || '?').charAt(0).toUpperCase()}
@@ -294,6 +329,29 @@ export default function Inicio() {
                   </div>
 
                   <span className="inicio-pedido-monto">{formatearPrecio(pedido.total)}</span>
+
+                  {pedido.estado !== 'entregado' && pedido.estado !== 'cancelado' && (
+                    <div className="inicio-pedido-acciones">
+                      {ETIQUETA_SIGUIENTE[pedido.estado] && (
+                        <button
+                          type="button"
+                          className="btn-vibrante inicio-btn-avanzar"
+                          onClick={() => avanzarEstadoReciente(pedido)}
+                          disabled={cambiandoEstado === pedido.id}
+                        >
+                          {cambiandoEstado === pedido.id ? '...' : ETIQUETA_SIGUIENTE[pedido.estado]}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="inicio-btn-cancelar"
+                        onClick={() => cancelarPedidoReciente(pedido)}
+                        disabled={cambiandoEstado === pedido.id}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -642,11 +700,28 @@ export default function Inicio() {
             color: #ff9e00;
           }
 
+          .inicio-pedido-acciones {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+          }
+
+          .inicio-btn-avanzar {
+            font-size: 0.78rem;
+            padding: 8px 14px;
+            white-space: nowrap;
+          }
+
           @media (max-width: 560px) {
             .inicio-pedido-item {
               flex-wrap: wrap;
             }
             .inicio-pedido-monto {
+              margin-left: 58px;
+            }
+            .inicio-pedido-acciones {
+              width: 100%;
               margin-left: 58px;
             }
           }
