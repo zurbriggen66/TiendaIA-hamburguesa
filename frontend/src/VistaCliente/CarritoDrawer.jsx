@@ -40,23 +40,24 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
   const [direccion, setDireccion] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [exito, setExito] = useState(false);
+  const [errores, setErrores] = useState({});
 
   const total = items.reduce((acc, linea) => acc + precioUnitarioLinea(linea) * linea.cantidad, 0);
 
   const enviarPedido = async (e) => {
     e.preventDefault();
-    if (items.length === 0) {
-      alert('Agregá al menos un producto al pedido.');
+    if (items.length === 0) return;
+
+    const nuevosErrores = {};
+    if (!nombre.trim()) nuevosErrores.nombre = 'Falta tu nombre';
+    if (!telefono.trim()) nuevosErrores.telefono = 'Falta tu teléfono';
+    if (tipoEntrega === 'delivery' && !direccion.trim()) nuevosErrores.direccion = 'Falta la dirección de entrega';
+
+    if (Object.keys(nuevosErrores).length > 0) {
+      setErrores(nuevosErrores);
       return;
     }
-    if (!nombre.trim() || !telefono.trim()) {
-      alert('Completá tu nombre y teléfono.');
-      return;
-    }
-    if (tipoEntrega === 'delivery' && !direccion.trim()) {
-      alert('Completá la dirección para el delivery.');
-      return;
-    }
+    setErrores({});
 
     setEnviando(true);
     try {
@@ -156,10 +157,24 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
                 <span>Datos de contacto</span>
               </div>
               <div className="pedido-campo">
-                <input type="text" className="pedido-input" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Tu nombre" />
+                <input
+                  type="text"
+                  className={`pedido-input ${errores.nombre ? 'pedido-input-error' : ''}`}
+                  value={nombre}
+                  onChange={(e) => { setNombre(e.target.value); setErrores((prev) => ({ ...prev, nombre: undefined })); }}
+                  placeholder="Tu nombre"
+                />
+                {errores.nombre && <span className="pedido-error-texto">{errores.nombre}</span>}
               </div>
               <div className="pedido-campo">
-                <input type="tel" className="pedido-input" value={telefono} onChange={(e) => setTelefono(e.target.value)} placeholder="Tu WhatsApp o teléfono" />
+                <input
+                  type="tel"
+                  className={`pedido-input ${errores.telefono ? 'pedido-input-error' : ''}`}
+                  value={telefono}
+                  onChange={(e) => { setTelefono(e.target.value); setErrores((prev) => ({ ...prev, telefono: undefined })); }}
+                  placeholder="Tu WhatsApp o teléfono"
+                />
+                {errores.telefono && <span className="pedido-error-texto">{errores.telefono}</span>}
               </div>
             </div>
 
@@ -172,7 +187,7 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
                 <button
                   type="button"
                   className={`pedido-entrega-opcion ${tipoEntrega === 'retiro' ? 'pedido-entrega-activa' : ''}`}
-                  onClick={() => setTipoEntrega('retiro')}
+                  onClick={() => { setTipoEntrega('retiro'); setErrores((prev) => ({ ...prev, direccion: undefined })); }}
                 >
                   {tipoEntrega === 'retiro' && <span className="pedido-entrega-check">✓</span>}
                   <span className="pedido-entrega-icono">🛍️</span>
@@ -182,7 +197,7 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
                 <button
                   type="button"
                   className={`pedido-entrega-opcion ${tipoEntrega === 'delivery' ? 'pedido-entrega-activa' : ''}`}
-                  onClick={() => setTipoEntrega('delivery')}
+                  onClick={() => { setTipoEntrega('delivery'); setErrores((prev) => ({ ...prev, direccion: undefined })); }}
                 >
                   {tipoEntrega === 'delivery' && <span className="pedido-entrega-check">✓</span>}
                   <span className="pedido-entrega-icono">🛵</span>
@@ -195,7 +210,14 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
             {tipoEntrega === 'delivery' && (
               <>
                 <div className="pedido-campo">
-                  <input type="text" className="pedido-input" value={direccion} onChange={(e) => setDireccion(e.target.value)} placeholder="Calle, número y referencia" />
+                  <input
+                    type="text"
+                    className={`pedido-input ${errores.direccion ? 'pedido-input-error' : ''}`}
+                    value={direccion}
+                    onChange={(e) => { setDireccion(e.target.value); setErrores((prev) => ({ ...prev, direccion: undefined })); }}
+                    placeholder="Calle, número y referencia"
+                  />
+                  {errores.direccion && <span className="pedido-error-texto">{errores.direccion}</span>}
                 </div>
                 <p className="pedido-aviso">🛵 El envío tiene un costo adicional que coordinamos por WhatsApp.</p>
               </>
@@ -501,6 +523,19 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
         .pedido-input:focus {
           outline: none;
           border-color: #f97316;
+        }
+
+        .pedido-input-error {
+          border-color: #ef4444;
+          background: #fef4f3;
+        }
+
+        .pedido-error-texto {
+          display: block;
+          margin-top: 6px;
+          font-size: 0.76rem;
+          color: #ef4444;
+          font-weight: 600;
         }
 
         .pedido-entrega-opciones {
