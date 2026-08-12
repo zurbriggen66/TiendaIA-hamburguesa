@@ -96,6 +96,7 @@ export default function PedidoModal({ productos, categorias, localidades, onClos
       await api.post('/pedidos/', {
         cliente,
         telefono,
+        origen: 'admin',
         tipo_entrega: tipoEntrega,
         direccion: tipoEntrega === 'delivery' ? direccion : '',
         localidad: tipoEntrega === 'delivery' ? (localidadId || null) : null,

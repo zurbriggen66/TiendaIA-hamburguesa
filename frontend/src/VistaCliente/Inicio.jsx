@@ -29,6 +29,13 @@ const precargarVideo = (src) =>
     video.src = src;
   });
 
+// Safari en iOS es mucho más restrictivo que Chrome/Android para cargar videos que
+// no están insertados en la página: "onloadeddata" a veces nunca dispara para un
+// <video> fuera del DOM, dejando el preloader esperando para siempre. Le ponemos un
+// límite de tiempo a cualquier precarga para que la app nunca quede trabada.
+const conLimiteDeTiempo = (promesa, ms) =>
+  Promise.race([promesa, new Promise((resolve) => setTimeout(resolve, ms))]);
+
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
 
@@ -103,11 +110,14 @@ export default function Inicio() {
         setConfiguracion(configFinal);
       }
 
-      // Recién ahora precargamos el asset visual pesado del hero (imagen o video)
+      // Recién ahora precargamos el asset visual pesado del hero (imagen o video).
+      // Con límite de tiempo: si la precarga no resuelve rápido (típico en iOS con
+      // video), seguimos igual — el video/imagen termina de cargar solo cuando el
+      // Hero lo renderice, en vez de dejar al usuario mirando el logo para siempre.
       if (configFinal.video_principal) {
-        await precargarVideo(configFinal.video_principal);
+        await conLimiteDeTiempo(precargarVideo(configFinal.video_principal), 4000);
       } else {
-        await precargarImagen(configFinal.imagen_principal);
+        await conLimiteDeTiempo(precargarImagen(configFinal.imagen_principal), 4000);
       }
 
       if (activo) setCargando(false);

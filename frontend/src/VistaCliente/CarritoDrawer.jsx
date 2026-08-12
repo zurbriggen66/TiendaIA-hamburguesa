@@ -66,6 +66,7 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
         telefono: telefono.trim(),
         tipo_entrega: tipoEntrega,
         direccion: tipoEntrega === 'delivery' ? direccion.trim() : '',
+        origen: 'web',
         items: items.map((linea) =>
           linea.tipo === 'combo'
             ? { combo: linea.item.id, cantidad: linea.cantidad }

@@ -36,13 +36,25 @@ const primerYUltimoDiaDelMes = (mesStr) => {
   return { primero: `${mesStr}-01`, ultimo: `${mesStr}-${String(ultimoDia).padStart(2, '0')}` };
 };
 
+const formatearFechaHoraCaja = (fecha) =>
+  new Date(fecha).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+
 export default function CobranzasPage() {
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [tab, setTab] = useState('general');
   const [mesSeleccionado, setMesSeleccionado] = useState(mesActualISO());
   const [diaSeleccionado, setDiaSeleccionado] = useState(hoyISO());
+  const [cajas, setCajas] = useState([]);
+  const [cajaSeleccionada, setCajaSeleccionada] = useState('');
   const [modalPago, setModalPago] = useState(null);
+
+  useEffect(() => {
+    api.get('/cajas/').then(({ data }) => {
+      setCajas(data);
+      setCajaSeleccionada((actual) => actual || (data[0] ? String(data[0].id) : ''));
+    }).catch((error) => console.error('Error al cargar las cajas:', error));
+  }, []);
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -53,6 +65,13 @@ export default function CobranzasPage() {
         params = { desde: primero, hasta: ultimo };
       } else if (tab === 'dia') {
         params = { desde: diaSeleccionado, hasta: diaSeleccionado };
+      } else if (tab === 'caja') {
+        if (!cajaSeleccionada) {
+          setDatos(null);
+          setCargando(false);
+          return;
+        }
+        params = { caja: cajaSeleccionada };
       }
       const { data } = await api.get('/cobranzas/', { params });
       setDatos(data);
@@ -61,7 +80,7 @@ export default function CobranzasPage() {
     } finally {
       setCargando(false);
     }
-  }, [tab, mesSeleccionado, diaSeleccionado]);
+  }, [tab, mesSeleccionado, diaSeleccionado, cajaSeleccionada]);
 
   useEffect(() => {
     cargar();
@@ -84,6 +103,9 @@ export default function CobranzasPage() {
           </button>
           <button type="button" className={`tab-boton ${tab === 'dia' ? 'tab-activo' : ''}`} onClick={() => setTab('dia')}>
             Por día
+          </button>
+          <button type="button" className={`tab-boton ${tab === 'caja' ? 'tab-activo' : ''}`} onClick={() => setTab('caja')}>
+            Por caja
           </button>
         </div>
 
@@ -108,6 +130,28 @@ export default function CobranzasPage() {
               value={diaSeleccionado}
               onChange={(e) => setDiaSeleccionado(e.target.value)}
             />
+          </div>
+        )}
+
+        {tab === 'caja' && (
+          <div className="form-group estadisticas-selector-periodo">
+            <label className="form-label">Caja</label>
+            {cajas.length === 0 ? (
+              <p className="estado-vacio-chico">Todavía no hay ninguna caja registrada.</p>
+            ) : (
+              <select
+                className="input-vibrante"
+                value={cajaSeleccionada}
+                onChange={(e) => setCajaSeleccionada(e.target.value)}
+              >
+                {cajas.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {formatearFechaHoraCaja(c.abierta_en)}
+                    {c.cerrada_en ? ` → ${formatearFechaHoraCaja(c.cerrada_en)}` : ' (abierta)'}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         )}
 

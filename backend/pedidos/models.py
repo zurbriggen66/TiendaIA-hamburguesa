@@ -30,11 +30,22 @@ class Pedido(models.Model):
         ('delivery', 'Delivery'),
     ]
 
+    ORIGENES = [
+        ('web', 'Tienda web'),
+        ('admin', 'Cargado manualmente'),
+    ]
+
     cliente = models.CharField(max_length=100, blank=True)
     telefono = models.CharField(max_length=30, blank=True)
     tipo_entrega = models.CharField(max_length=20, choices=TIPOS_ENTREGA, default='retiro')
     direccion = models.CharField(max_length=200, blank=True)
     localidad = models.ForeignKey(Localidad, null=True, blank=True, on_delete=models.SET_NULL, related_name='pedidos')
+    caja = models.ForeignKey('Caja', null=True, blank=True, on_delete=models.SET_NULL, related_name='pedidos')
+    origen = models.CharField(max_length=10, choices=ORIGENES, default='admin')
+    # Pedidos de la tienda web quedan sin confirmar hasta que el dueño verifique que el cliente
+    # realmente envió el WhatsApp (el botón de la tienda solo abre WhatsApp, no garantiza el envío).
+    # Los pedidos cargados a mano en el admin se consideran confirmados desde que se crean.
+    confirmado = models.BooleanField(default=True)
     costo_envio = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     descuento_pct = models.PositiveIntegerField(default=0)
     hora_salida = models.TimeField(null=True, blank=True)
@@ -68,6 +79,28 @@ class Pedido(models.Model):
         if cobrado >= self.calcular_total():
             return 'pagado'
         return 'parcial'
+
+
+class Caja(models.Model):
+    # Día "comercial" al que pertenece la caja (lo elige quien la abre, por defecto hoy).
+    # Todo lo vendido mientras esta caja está abierta se atribuye a este día, aunque el
+    # cierre termine cruzando la medianoche.
+    dia = models.DateField()
+    abierta_en = models.DateTimeField(auto_now_add=True)
+    cerrada_en = models.DateTimeField(null=True, blank=True)
+    nota_apertura = models.CharField(max_length=200, blank=True)
+    nota_cierre = models.CharField(max_length=200, blank=True)
+
+    class Meta:
+        ordering = ['-abierta_en']
+
+    def __str__(self):
+        estado = 'abierta' if self.esta_abierta else 'cerrada'
+        return f'Caja #{self.id} ({estado})'
+
+    @property
+    def esta_abierta(self):
+        return self.cerrada_en is None
 
 
 class Pago(models.Model):
