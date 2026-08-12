@@ -12,6 +12,7 @@ import CombosPage from './VistaNegocio/Combos/CombosPage';
 import ImpresionPage from './VistaNegocio/Impresion/ImpresionPage';
 import AntojoConfigPage from './VistaNegocio/Antojo/AntojoConfigPage';
 import CobranzasPage from './VistaNegocio/Cobranzas/CobranzasPage';
+import CajasPage from './VistaNegocio/Cajas/CajasPage';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         <Route path="/admin" element={<DashboardLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="inicio" element={<InicioPage />} />
+          <Route path="cajas" element={<CajasPage />} />
           <Route path="productos" element={<ProductosPage />} />
           <Route path="pedidos" element={<PedidosPage />} />
           <Route path="gastos" element={<GastosPage />} />

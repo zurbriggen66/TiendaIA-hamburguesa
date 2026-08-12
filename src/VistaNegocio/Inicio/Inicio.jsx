@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../../services/api';
+import AbrirCajaModal from '../Cajas/AbrirCajaModal';
+import CerrarCajaModal from '../Cajas/CerrarCajaModal';
+import PedidoModal from '../Pedidos/PedidoModal';
 
 const formatearPrecio = (valor) =>
   new Intl.NumberFormat('es-AR', {
@@ -15,36 +19,100 @@ const formatearHora = (fecha) =>
     hour12: false,
   });
 
+const ETIQUETA_ESTADO = {
+  pendiente: 'Pendiente',
+  en_preparacion: 'En preparación',
+  listo: 'Listo',
+  entregado: 'Entregado',
+  cancelado: 'Cancelado',
+};
+
 export default function Inicio() {
   const [reloj, setReloj] = useState(new Date());
   const [ventasHoy, setVentasHoy] = useState(0);
+  const [ticketPromedio, setTicketPromedio] = useState(0);
+  const [totalPedidosCaja, setTotalPedidosCaja] = useState(0);
+  const [cajaInfo, setCajaInfo] = useState(null);
   const [pedidosHoy, setPedidosHoy] = useState([]);
+  const [cajaAbierta, setCajaAbierta] = useState(true);
+  const [porConfirmar, setPorConfirmar] = useState([]);
+  const [confirmando, setConfirmando] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
+
+  const [productos, setProductos] = useState([]);
+  const [categorias, setCategorias] = useState([]);
+  const [localidades, setLocalidades] = useState([]);
+  const [mostrarAbrirCaja, setMostrarAbrirCaja] = useState(false);
+  const [mostrarCerrarCaja, setMostrarCerrarCaja] = useState(false);
+  const [mostrarNuevoPedido, setMostrarNuevoPedido] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => setReloj(new Date()), 1000);
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    const cargarInicio = async () => {
-      setCargando(true);
-      try {
-        const { data } = await api.get('/estadisticas/hoy/');
-        setVentasHoy(data.ventas_totales || 0);
-        setPedidosHoy(data.pedidos || []);
-        setError(null);
-      } catch (err) {
-        console.error('Error cargando datos de Inicio:', err);
-        setError('No se pudieron cargar los datos de hoy.');
-      } finally {
-        setCargando(false);
-      }
-    };
+  const cargarInicio = async () => {
+    setCargando(true);
+    try {
+      const [resHoy, resPorConfirmar, resProductos, resCategorias, resLocalidades] = await Promise.all([
+        api.get('/estadisticas/hoy/'),
+        api.get('/pedidos/', { params: { confirmado: 'false', origen: 'web' } }),
+        api.get('/productos/'),
+        api.get('/categorias/'),
+        api.get('/localidades/'),
+      ]);
+      const data = resHoy.data;
+      setVentasHoy(data.ventas_totales || 0);
+      setTicketPromedio(data.ticket_promedio || 0);
+      setTotalPedidosCaja(data.total_pedidos || 0);
+      setCajaInfo(data.caja);
+      setPedidosHoy(data.pedidos || []);
+      setCajaAbierta(Boolean(data.caja_abierta));
+      setPorConfirmar((resPorConfirmar.data || []).filter((p) => p.estado !== 'cancelado'));
+      setProductos(resProductos.data);
+      setCategorias(resCategorias.data);
+      setLocalidades(resLocalidades.data);
+      setError(null);
+    } catch (err) {
+      console.error('Error cargando datos de Inicio:', err);
+      setError('No se pudieron cargar los datos de hoy.');
+    } finally {
+      setCargando(false);
+    }
+  };
 
+  useEffect(() => {
     cargarInicio();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const confirmarPedido = async (pedido) => {
+    setConfirmando(pedido.id);
+    try {
+      await api.post(`/pedidos/${pedido.id}/confirmar/`);
+      await cargarInicio();
+    } catch (err) {
+      console.error('Error al confirmar el pedido:', err);
+      alert('No se pudo confirmar el pedido.');
+    } finally {
+      setConfirmando(null);
+    }
+  };
+
+  const cancelarPedido = async (pedido) => {
+    if (!window.confirm(`¿Cancelar el pedido de ${pedido.cliente || 'este cliente'}? Esto asume que nunca llegó por WhatsApp.`)) return;
+    setConfirmando(pedido.id);
+    try {
+      await api.patch(`/pedidos/${pedido.id}/`, { estado: 'cancelado' });
+      await cargarInicio();
+    } catch (err) {
+      console.error('Error al cancelar el pedido:', err);
+      alert('No se pudo cancelar el pedido.');
+    } finally {
+      setConfirmando(null);
+    }
+  };
 
   const horas = String(reloj.getHours()).padStart(2, '0');
   const minutos = String(reloj.getMinutes()).padStart(2, '0');
@@ -81,27 +149,112 @@ export default function Inicio() {
             <p className="inicio-card-subtexto inicio-fecha-capitalizada">{fechaLegible}</p>
           </div>
 
-          {/* Tarjeta: Total vendido */}
+          {/* Tarjeta: Caja actual */}
           <div className="inicio-card inicio-card-ventas">
             <div className="inicio-card-encabezado">
               <span className="inicio-card-icono">💰</span>
-              <h3 className="inicio-card-titulo">Total vendido hoy</h3>
+              <h3 className="inicio-card-titulo">Caja actual</h3>
             </div>
-            <p className="inicio-monto-grande">{formatearPrecio(ventasHoy)}</p>
-            <p className="inicio-card-subtexto">
-              {cargando ? (
-                <span className="inicio-punteo-cargando">Actualizando</span>
-              ) : (
-                'Basado en pedidos no cancelados de hoy'
-              )}
-            </p>
+            {!cargando && !error && !cajaAbierta ? (
+              <>
+                <p className="inicio-sin-caja">Sin caja abierta</p>
+                <p className="inicio-card-subtexto">
+                  <Link to="/admin/cajas" className="inicio-link-caja">ver historial de cajas →</Link>
+                </p>
+                <button type="button" className="btn-vibrante inicio-btn-caja" onClick={() => setMostrarAbrirCaja(true)}>
+                  Abrir caja
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="inicio-monto-grande">{formatearPrecio(ventasHoy)}</p>
+                <p className="inicio-card-subtexto">
+                  {cargando ? (
+                    <span className="inicio-punteo-cargando">Actualizando</span>
+                  ) : (
+                    <>
+                      Abierta desde las {cajaInfo ? formatearHora(cajaInfo.abierta_en) : '--:--'} ·{' '}
+                      <Link to="/admin/cajas" className="inicio-link-caja">ver caja →</Link>
+                    </>
+                  )}
+                </p>
+                {!cargando && (
+                  <div className="inicio-caja-stats">
+                    <div>
+                      <span>Ticket promedio</span>
+                      <strong>{formatearPrecio(ticketPromedio)}</strong>
+                    </div>
+                    <div>
+                      <span>Pedidos</span>
+                      <strong>{totalPedidosCaja}</strong>
+                    </div>
+                  </div>
+                )}
+                <div className="inicio-caja-acciones">
+                  <button type="button" className="inicio-btn-cerrar-caja" onClick={() => setMostrarCerrarCaja(true)}>
+                    Cerrar caja
+                  </button>
+                  <button type="button" className="btn-vibrante inicio-btn-caja" onClick={() => setMostrarNuevoPedido(true)}>
+                    + Nuevo pedido
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
+
+        {!cargando && !error && porConfirmar.length > 0 && (
+          <div className="inicio-card inicio-card-confirmar">
+            <div className="inicio-card-encabezado">
+              <span className="inicio-card-icono">📥</span>
+              <h3 className="inicio-card-titulo">Pedidos por confirmar</h3>
+              <span className="inicio-contador-pedidos inicio-contador-confirmar">{porConfirmar.length}</span>
+            </div>
+            <p className="inicio-card-subtexto inicio-confirmar-aviso">
+              Llegaron desde la tienda web. Confirmalos cuando el cliente te haya mandado el WhatsApp — recién ahí se suman a la caja.
+            </p>
+
+            <div className="inicio-pedidos-lista">
+              {porConfirmar.map((pedido) => (
+                <div key={pedido.id} className="inicio-pedido-confirmar-item">
+                  <div className="inicio-pedido-info">
+                    <div className="inicio-pedido-info-top">
+                      <h4>{pedido.cliente || `Pedido #${pedido.id}`}</h4>
+                    </div>
+                    <div className="inicio-pedido-info-bottom">
+                      <span>🕐 {formatearHora(pedido.creado)}</span>
+                      <span>{pedido.tipo_entrega === 'delivery' ? '🛵 Delivery' : '🏠 Retiro'}</span>
+                      <span>{formatearPrecio(pedido.total)}</span>
+                    </div>
+                  </div>
+                  <div className="inicio-pedido-confirmar-acciones">
+                    <button
+                      type="button"
+                      className="inicio-btn-cancelar"
+                      onClick={() => cancelarPedido(pedido)}
+                      disabled={confirmando === pedido.id}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-vibrante inicio-btn-confirmar"
+                      onClick={() => confirmarPedido(pedido)}
+                      disabled={confirmando === pedido.id}
+                    >
+                      {confirmando === pedido.id ? 'Confirmando...' : '✓ Confirmar pedido'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="inicio-card inicio-card-pedidos">
           <div className="inicio-card-encabezado">
             <span className="inicio-card-icono">🧾</span>
-            <h3 className="inicio-card-titulo">Pedidos salidos / entregados hoy</h3>
+            <h3 className="inicio-card-titulo">Últimos pedidos de la caja</h3>
             {!cargando && !error && pedidosHoy.length > 0 && (
               <span className="inicio-contador-pedidos">{pedidosHoy.length}</span>
             )}
@@ -111,9 +264,13 @@ export default function Inicio() {
             <p className="estado-vacio">Cargando...</p>
           ) : error ? (
             <p className="estado-vacio">{error}</p>
+          ) : !cajaAbierta ? (
+            <div className="estado-vacio">
+              <p>No hay ninguna caja abierta.</p>
+            </div>
           ) : pedidosHoy.length === 0 ? (
             <div className="estado-vacio">
-              <p>No hay pedidos salidos o entregados hoy.</p>
+              <p>Todavía no entró ningún pedido en esta caja.</p>
             </div>
           ) : (
             <div className="inicio-pedidos-lista">
@@ -127,7 +284,7 @@ export default function Inicio() {
                     <div className="inicio-pedido-info-top">
                       <h4>{pedido.cliente || `Pedido #${pedido.id}`}</h4>
                       <span className={`badge-estado estado-${pedido.estado}`}>
-                        {pedido.estado === 'listo' ? 'Listo' : pedido.estado === 'entregado' ? 'Entregado' : pedido.estado}
+                        {ETIQUETA_ESTADO[pedido.estado] || pedido.estado}
                       </span>
                     </div>
                     <div className="inicio-pedido-info-bottom">
@@ -143,6 +300,31 @@ export default function Inicio() {
           )}
         </div>
       </div>
+
+      {mostrarAbrirCaja && (
+        <AbrirCajaModal
+          onClose={() => setMostrarAbrirCaja(false)}
+          onSaved={() => { setMostrarAbrirCaja(false); cargarInicio(); }}
+        />
+      )}
+
+      {mostrarCerrarCaja && cajaInfo && (
+        <CerrarCajaModal
+          caja={{ id: cajaInfo.id, abierta_en: cajaInfo.abierta_en, total_ventas: ventasHoy, total_pedidos: totalPedidosCaja }}
+          onClose={() => setMostrarCerrarCaja(false)}
+          onSaved={() => { setMostrarCerrarCaja(false); cargarInicio(); }}
+        />
+      )}
+
+      {mostrarNuevoPedido && (
+        <PedidoModal
+          productos={productos}
+          categorias={categorias}
+          localidades={localidades}
+          onClose={() => setMostrarNuevoPedido(false)}
+          onSaved={() => { setMostrarNuevoPedido(false); cargarInicio(); }}
+        />
+      )}
 
       <style>
         {`
@@ -241,9 +423,129 @@ export default function Inicio() {
             color: transparent;
           }
 
+          .inicio-sin-caja {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin: 12px 0 0;
+            color: rgba(255, 255, 255, 0.55);
+          }
+
+          .inicio-btn-caja {
+            margin-top: 16px;
+            font-size: 0.85rem;
+            padding: 10px 18px;
+          }
+
+          .inicio-caja-acciones {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-top: 16px;
+          }
+
+          .inicio-btn-cerrar-caja {
+            background: none;
+            border: none;
+            color: var(--text-muted, rgba(255,255,255,0.5));
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 6px 4px;
+          }
+          .inicio-btn-cerrar-caja:hover {
+            color: #f87171;
+          }
+
+          .inicio-link-caja {
+            color: #ff9e00;
+            text-decoration: none;
+            font-weight: 600;
+          }
+          .inicio-link-caja:hover {
+            text-decoration: underline;
+          }
+
           .inicio-punteo-cargando::after {
             content: '...';
             animation: inicioPunteo 1.2s steps(4, end) infinite;
+          }
+
+          .inicio-caja-stats {
+            display: flex;
+            gap: 24px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+          }
+
+          .inicio-caja-stats div {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+          }
+
+          .inicio-caja-stats span {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-muted, rgba(255,255,255,0.5));
+          }
+
+          .inicio-caja-stats strong {
+            font-size: 1.05rem;
+            color: rgba(255, 255, 255, 0.9);
+          }
+
+          .inicio-card-confirmar {
+            border-color: rgba(251, 191, 36, 0.35);
+            margin-bottom: 20px;
+          }
+
+          .inicio-contador-confirmar {
+            background: rgba(251, 191, 36, 0.18);
+            color: #fbbf24;
+            border-color: rgba(251, 191, 36, 0.4);
+          }
+
+          .inicio-confirmar-aviso {
+            margin-top: 4px;
+            margin-bottom: 18px;
+          }
+
+          .inicio-pedido-confirmar-item {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 14px 18px;
+          }
+
+          .inicio-pedido-confirmar-acciones {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+          }
+
+          .inicio-btn-cancelar {
+            background: none;
+            border: none;
+            color: var(--text-muted, rgba(255,255,255,0.5));
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 6px 8px;
+          }
+          .inicio-btn-cancelar:hover {
+            color: #f87171;
+          }
+
+          .inicio-btn-confirmar {
+            font-size: 0.85rem;
+            padding: 9px 16px;
           }
 
           @keyframes inicioPunteo {

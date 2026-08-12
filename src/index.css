@@ -319,6 +319,13 @@ body {
   margin-bottom: 8px;
 }
 
+.form-ayuda {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
 .upload-box {
   border: 2px dashed var(--border);
   border-radius: 8px;
@@ -3171,6 +3178,153 @@ body {
   }
 
   .cobranza-pendiente-fila {
+    flex-wrap: wrap;
+  }
+}
+
+/* === VISTA NEGOCIO - CAJAS (CajasPage.jsx) === */
+.caja-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-radius: 14px;
+  padding: 20px 24px;
+  margin-bottom: 28px;
+  border: 1px solid var(--border);
+}
+
+.caja-banner-abierta {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.14), rgba(34, 197, 94, 0.03));
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+.caja-banner-cerrada {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.14), rgba(239, 68, 68, 0.03));
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.caja-banner-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.caja-banner-estado {
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--text);
+}
+
+.caja-banner-detalle {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.caja-banner-stats {
+  display: flex;
+  gap: 28px;
+}
+
+.caja-banner-stats div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.caja-banner-stats span {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.caja-banner-stats strong {
+  font-size: 1.15rem;
+  color: var(--text);
+}
+
+.btn-cerrar-caja {
+  background: linear-gradient(135deg, #f87171, #dc2626);
+}
+
+.cajas-historial {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.caja-historial-fila {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+
+.badge-caja {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+  color: #ffffff;
+}
+
+.badge-caja-abierta {
+  background: linear-gradient(135deg, #4ade80, #16a34a);
+}
+
+.badge-caja-cerrada {
+  background: linear-gradient(135deg, #a3a3a3, #737373);
+}
+
+.caja-historial-horario {
+  flex: 1;
+  min-width: 0;
+  color: var(--text);
+  font-size: 0.88rem;
+  text-transform: capitalize;
+}
+
+.caja-historial-horario-detalle {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  text-transform: none;
+}
+
+.caja-historial-pedidos {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.caja-historial-total {
+  font-weight: 700;
+  color: #fdba74;
+  white-space: nowrap;
+}
+
+.caja-cerrar-resumen {
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+.caja-cerrar-resumen strong {
+  color: var(--text);
+}
+
+@media (max-width: 560px) {
+  .caja-banner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .caja-historial-fila {
     flex-wrap: wrap;
   }
 }

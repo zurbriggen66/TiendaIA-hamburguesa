@@ -119,6 +119,7 @@ export default function DashboardLayout() {
           <nav className="sidebar-menu">
             <div className="menu-section-title">Inicio</div>
             <NavLink to="/admin/inicio" className={linkClass}>Inicio</NavLink>
+            <NavLink to="/admin/cajas" className={linkClass}>🗄️ Caja</NavLink>
 
             <div className="menu-section-title">Gestión</div>
             <NavLink to="/admin/productos" className={linkClass}>Productos & Stock</NavLink>
