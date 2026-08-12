@@ -214,20 +214,43 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
         .pedido-overlay {
           position: fixed;
           inset: 0;
+          height: 100vh;
+          height: 100dvh;
           background: rgba(17, 24, 39, 0.55);
           z-index: 50;
           display: flex;
           justify-content: flex-end;
+          animation: pedidoFondoAparece 0.2s ease-out;
+        }
+
+        @keyframes pedidoFondoAparece {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
 
         .pedido-drawer {
           width: 100%;
           max-width: 420px;
-          height: 100%;
+          height: 100vh;
+          height: 100dvh;
           background: #ffffff;
           padding: 22px;
           overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
           box-shadow: -20px 0 40px -10px rgba(0, 0, 0, 0.5);
+          animation: pedidoDrawerAparece 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        @keyframes pedidoDrawerAparece {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .pedido-overlay,
+          .pedido-drawer {
+            animation: none;
+          }
         }
 
         .pedido-header {

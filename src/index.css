@@ -17,6 +17,10 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+html {
+  background-color: var(--bg);
+}
+
 body {
   background-color: var(--bg);
   color: var(--text);
