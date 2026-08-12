@@ -8,7 +8,7 @@ from django.utils.dateparse import parse_date
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from pedidos.models import Pedido, DetallePedido, Pago
+from pedidos.models import Pedido, DetallePedido, Pago, Caja
 from gastos.models import Gasto
 
 MONTO = DecimalField(max_digits=12, decimal_places=2)
@@ -19,8 +19,11 @@ class EstadisticasView(APIView):
         desde_periodo = parse_date(request.query_params.get('desde') or '')
         hasta_periodo = parse_date(request.query_params.get('hasta') or '')
 
-        pedidos_validos = Pedido.objects.exclude(estado='cancelado').prefetch_related('items__extras')
-        items_validos = DetallePedido.objects.exclude(pedido__estado='cancelado')
+        # Un pedido de la tienda web que todavía no fue confirmado por el dueño no es una
+        # venta real todavía (puede que el cliente nunca haya mandado el WhatsApp) — no
+        # cuenta acá, igual que no cuenta en la caja ni en el dashboard de "Inicio".
+        pedidos_validos = Pedido.objects.filter(confirmado=True).exclude(estado='cancelado').prefetch_related('items__extras')
+        items_validos = DetallePedido.objects.filter(pedido__confirmado=True).exclude(pedido__estado='cancelado')
         gastos_qs = Gasto.objects.all()
 
         if desde_periodo:
@@ -87,9 +90,28 @@ class EstadisticasView(APIView):
 
 class HoyView(APIView):
     def get(self, request):
-        hoy = timezone.localtime().date()
-        pedidos_totales_hoy = Pedido.objects.exclude(estado='cancelado').filter(creado__date=hoy)
-        pedidos_salidos_hoy = pedidos_totales_hoy.filter(estado__in=['listo', 'entregado']).select_related('localidad')
+        caja = Caja.objects.filter(cerrada_en__isnull=True).order_by('-abierta_en').first()
+        pedidos_por_confirmar = Pedido.objects.filter(
+            origen='web', confirmado=False,
+        ).exclude(estado='cancelado').count()
+
+        if not caja:
+            return Response({
+                'caja_abierta': False,
+                'caja': None,
+                'ventas_totales': 0,
+                'ticket_promedio': 0,
+                'total_pedidos': 0,
+                'pedidos_por_confirmar': pedidos_por_confirmar,
+                'pedidos': [],
+            })
+
+        pedidos_totales = Pedido.objects.filter(caja=caja, confirmado=True).exclude(estado='cancelado')
+
+        # Los "últimos pedidos de la caja" muestran cualquier estado (no solo listo/entregado)
+        # para que el dueño vea todo lo que entró desde que abrió, con un tope para no
+        # mandar una lista gigante en un turno muy activo.
+        ultimos_pedidos = pedidos_totales.select_related('localidad').order_by('-creado')[:20]
 
         pedidos_data = [
             {
@@ -101,13 +123,20 @@ class HoyView(APIView):
                 'estado': pedido.estado,
                 'total': float(pedido.calcular_total()),
             }
-            for pedido in pedidos_salidos_hoy
+            for pedido in ultimos_pedidos
         ]
 
-        ventas_totales_hoy = sum((pedido.calcular_total() for pedido in pedidos_totales_hoy), Decimal('0'))
+        totales = [pedido.calcular_total() for pedido in pedidos_totales]
+        ventas_totales = sum(totales, Decimal('0'))
+        ticket_promedio = (ventas_totales / len(totales)) if totales else 0
 
         return Response({
-            'ventas_totales': float(ventas_totales_hoy),
+            'caja_abierta': True,
+            'caja': {'id': caja.id, 'dia': caja.dia.isoformat(), 'abierta_en': caja.abierta_en.isoformat()},
+            'ventas_totales': float(ventas_totales),
+            'ticket_promedio': float(ticket_promedio),
+            'total_pedidos': len(totales),
+            'pedidos_por_confirmar': pedidos_por_confirmar,
             'pedidos': pedidos_data,
         })
 
@@ -116,12 +145,16 @@ class CobranzasView(APIView):
     def get(self, request):
         desde_periodo = parse_date(request.query_params.get('desde') or '')
         hasta_periodo = parse_date(request.query_params.get('hasta') or '')
+        caja_id = request.query_params.get('caja')
 
         pagos_qs = Pago.objects.all()
-        if desde_periodo:
-            pagos_qs = pagos_qs.filter(creado__date__gte=desde_periodo)
-        if hasta_periodo:
-            pagos_qs = pagos_qs.filter(creado__date__lte=hasta_periodo)
+        if caja_id:
+            pagos_qs = pagos_qs.filter(pedido__caja_id=caja_id)
+        else:
+            if desde_periodo:
+                pagos_qs = pagos_qs.filter(creado__date__gte=desde_periodo)
+            if hasta_periodo:
+                pagos_qs = pagos_qs.filter(creado__date__lte=hasta_periodo)
 
         por_metodo_qs = pagos_qs.values('metodo').annotate(total=Sum('monto')).order_by('-total')
         etiquetas_metodo = dict(Pago.METODOS)
@@ -131,8 +164,10 @@ class CobranzasView(APIView):
         ]
         total_cobrado = sum((m['total'] for m in por_metodo), Decimal('0'))
 
-        # El estado de cobro es una foto del presente, no se filtra por período.
-        pedidos_activos = Pedido.objects.exclude(estado='cancelado').prefetch_related('items__extras', 'pagos')
+        # El estado de cobro es una foto del presente, no se filtra por período. Tampoco
+        # incluye pedidos web sin confirmar todavía: no tiene sentido pedir que se cobre
+        # algo que el dueño ni siquiera validó como una venta real.
+        pedidos_activos = Pedido.objects.filter(confirmado=True).exclude(estado='cancelado').prefetch_related('items__extras', 'pagos')
         pedidos_pendientes = []
         for pedido in pedidos_activos:
             estado_cobro = pedido.calcular_estado_cobro()

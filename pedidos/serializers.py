@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from rest_framework import serializers
-from .models import Pedido, DetallePedido, DetalleExtra, Localidad, Pago
+from .models import Pedido, DetallePedido, DetalleExtra, Localidad, Pago, Caja
 from productos.models import Producto
 from antojo.models import AntojoDelDia
 
@@ -10,6 +10,26 @@ class LocalidadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Localidad
         fields = '__all__'
+
+
+class CajaSerializer(serializers.ModelSerializer):
+    esta_abierta = serializers.BooleanField(read_only=True)
+    total_ventas = serializers.SerializerMethodField()
+    total_pedidos = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Caja
+        fields = [
+            'id', 'dia', 'abierta_en', 'cerrada_en', 'nota_apertura', 'nota_cierre',
+            'esta_abierta', 'total_ventas', 'total_pedidos',
+        ]
+        read_only_fields = ['dia', 'abierta_en', 'cerrada_en']
+
+    def get_total_ventas(self, obj):
+        return sum((p.calcular_total() for p in obj.pedidos.filter(confirmado=True).exclude(estado='cancelado')), Decimal('0'))
+
+    def get_total_pedidos(self, obj):
+        return obj.pedidos.filter(confirmado=True).exclude(estado='cancelado').count()
 
 
 class PagoSerializer(serializers.ModelSerializer):
@@ -106,11 +126,13 @@ class PedidoSerializer(serializers.ModelSerializer):
         model = Pedido
         fields = [
             'id', 'cliente', 'telefono', 'tipo_entrega', 'direccion', 'estado', 'creado', 'items',
-            'localidad', 'localidad_nombre', 'costo_envio', 'descuento_pct', 'hora_salida', 'nota',
-            'pagos', 'subtotal', 'total', 'cobrado', 'estado_cobro',
+            'localidad', 'localidad_nombre', 'caja', 'origen', 'confirmado', 'costo_envio', 'descuento_pct',
+            'hora_salida', 'nota', 'pagos', 'subtotal', 'total', 'cobrado', 'estado_cobro',
         ]
         extra_kwargs = {
             'localidad': {'required': False, 'allow_null': True},
+            'caja': {'read_only': True},
+            'confirmado': {'read_only': True},
         }
 
     def get_subtotal(self, obj):
