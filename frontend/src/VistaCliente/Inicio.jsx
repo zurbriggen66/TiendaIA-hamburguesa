@@ -29,6 +29,12 @@ const precargarVideo = (src) =>
     video.src = src;
   });
 
+const formatearPrecio = (precio) =>
+  new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
+
+const precioUnitarioLinea = (linea) =>
+  Number(linea.item.precio) + (linea.extras || []).reduce((acc, e) => acc + Number(e.precio) * e.cantidad, 0);
+
 export default function Inicio() {
   const [configuracion, setConfiguracion] = useState({
     logo: "https://cdn-icons-png.flaticon.com/512/3075/3075977.png",
@@ -145,6 +151,7 @@ export default function Inicio() {
   };
 
   const totalItems = items.reduce((acc, item) => acc + item.cantidad, 0);
+  const totalCarrito = items.reduce((acc, linea) => acc + precioUnitarioLinea(linea) * linea.cantidad, 0);
 
   const pedirPorWhatsapp = () => {
     if (totalItems > 0) {
@@ -207,7 +214,7 @@ export default function Inicio() {
   }
 
   return (
-    <div className="cliente-container">
+    <div className="cliente-container" style={totalItems > 0 ? { paddingBottom: 76 } : undefined}>
       <NavBar configuracion={configuracion} totalItems={totalItems} onPedir={pedirPorWhatsapp} />
 
       <Hero configuracion={configuracion} />
@@ -220,10 +227,15 @@ export default function Inicio() {
 
       <Menu categorias={categorias} productos={productos} onAgregar={agregarAlCarrito} />
 
-      <button type="button" className="carrito-flotante" onClick={() => setCarritoAbierto(true)}>
-        🛒
-        {totalItems > 0 && <span className="carrito-flotante-badge">{totalItems}</span>}
-      </button>
+      {totalItems > 0 && (
+        <button type="button" className="carrito-barra-flotante" onClick={() => setCarritoAbierto(true)}>
+          <span className="carrito-barra-info">
+            <span className="carrito-barra-badge">{totalItems}</span>
+            Ver mi pedido
+          </span>
+          <span className="carrito-barra-total">{formatearPrecio(totalCarrito)}</span>
+        </button>
+      )}
 
       {carritoAbierto && (
         <CarritoDrawer

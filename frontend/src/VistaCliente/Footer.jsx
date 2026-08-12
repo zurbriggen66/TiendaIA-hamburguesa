@@ -1,5 +1,7 @@
 import React from 'react';
 
+const ENLACE_CREAR_TIENDA = 'https://www.instagram.com/tiendaia_arg';
+
 export default function Footer({ configuracion }) {
   return (
     <footer style={{
@@ -67,7 +69,52 @@ export default function Footer({ configuracion }) {
         </a>
       )}
 
-      {/* 3. Sección de Desarrollo: TiendaIA Premium */}
+      {/* 3. Banner promocional: invitación a crear una tienda propia */}
+      <a
+        href={ENLACE_CREAR_TIENDA}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          width: '100%',
+          maxWidth: '360px',
+          marginTop: '15px',
+          padding: '22px 24px',
+          borderRadius: '18px',
+          background: 'linear-gradient(135deg, #fb923c, #ef4444)',
+          textDecoration: 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '10px',
+          textAlign: 'center',
+          boxShadow: '0 12px 30px -10px rgba(239, 68, 68, 0.55)',
+          border: '1px solid rgba(255, 255, 255, 0.15)',
+          transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+        }}
+        onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 16px 34px -10px rgba(239, 68, 68, 0.7)'; }}
+        onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 12px 30px -10px rgba(239, 68, 68, 0.55)'; }}
+      >
+        <span style={{ fontSize: '1.8rem', lineHeight: 1 }}>🚀</span>
+        <span style={{ color: '#ffffff', fontWeight: 900, fontSize: '1.05rem', letterSpacing: '-0.01em' }}>
+          Creá una tienda así para tu emprendimiento
+        </span>
+        <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.82rem' }}>
+          Pedidos online, catálogo y carrito, listos para tu negocio.
+        </span>
+        <span style={{
+          marginTop: '6px',
+          padding: '9px 20px',
+          borderRadius: '999px',
+          background: '#ffffff',
+          color: '#c73f16',
+          fontWeight: 800,
+          fontSize: '0.85rem',
+        }}>
+          Quiero la mía
+        </span>
+      </a>
+
+      {/* 4. Sección de Desarrollo: TiendaIA Premium */}
       <div style={{
         marginTop: '15px',
         paddingTop: '25px',
@@ -115,7 +162,7 @@ export default function Footer({ configuracion }) {
         </div>
       </div>
 
-      {/* 4. Derechos de autor (Movido al final) */}
+      {/* 5. Derechos de autor (Movido al final) */}
       <span style={{ 
         color: '#7a7a7a', 
         fontSize: '0.85rem', 

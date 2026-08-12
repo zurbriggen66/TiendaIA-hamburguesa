@@ -1,6 +1,4 @@
-import React, { useState, useEffect } from 'react';
-
-const COLORES_CHIP = ['chip-mostaza', 'chip-naranja', 'chip-tomate'];
+import React, { useState, useEffect, useRef } from 'react';
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
@@ -191,6 +189,11 @@ function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
 export default function Menu({ categorias, productos, onAgregar }) {
   const [categoriaActiva, setCategoriaActiva] = useState('todas');
   const [productoDetalle, setProductoDetalle] = useState(null);
+  const cintaRef = useRef(null);
+  const pausadaRef = useRef(false);
+  const posicionCintaRef = useRef(0);
+  const reanudarCintaRef = useRef(null);
+  const arrastreRef = useRef({ activo: false, inicioX: 0, inicioScroll: 0, movido: false });
 
   const principales = productos.filter((p) => !p.es_extra);
   const extrasTodos = productos.filter((p) => p.es_extra);
@@ -201,29 +204,128 @@ export default function Menu({ categorias, productos, onAgregar }) {
     : principales.filter((p) => p.categoria === categoriaActiva)
   ).slice().sort((a, b) => Number(b.destacado) - Number(a.destacado));
 
+  const categoriasConTodos = [{ id: 'todas', nombre: 'Todos', imagen: null }, ...categorias];
+  const totalCategorias = categoriasConTodos.length;
+  const esSlider = totalCategorias > 4;
+
+  useEffect(() => {
+    if (!esSlider) return undefined;
+    const cinta = cintaRef.current;
+    if (!cinta) return undefined;
+
+    posicionCintaRef.current = cinta.scrollLeft;
+
+    let frame;
+    const avanzar = () => {
+      // scrollLeft solo guarda enteros: si acumuláramos sobre su propio valor,
+      // el redondeo del navegador descarta el incremento de 0.4 en cada cuadro y la cinta queda trabada.
+      if (pausadaRef.current) {
+        posicionCintaRef.current = cinta.scrollLeft;
+      } else {
+        posicionCintaRef.current += 0.4;
+      }
+
+      const mitad = cinta.scrollWidth / 2;
+      if (mitad > 0) {
+        if (posicionCintaRef.current >= mitad) posicionCintaRef.current -= mitad;
+        else if (posicionCintaRef.current < 0) posicionCintaRef.current += mitad;
+      }
+
+      cinta.scrollLeft = posicionCintaRef.current;
+      frame = requestAnimationFrame(avanzar);
+    };
+    frame = requestAnimationFrame(avanzar);
+    return () => cancelAnimationFrame(frame);
+  }, [esSlider, totalCategorias]);
+
+  const pausarCinta = () => {
+    window.clearTimeout(reanudarCintaRef.current);
+    pausadaRef.current = true;
+  };
+  const reanudarCinta = (demora = 0) => {
+    window.clearTimeout(reanudarCintaRef.current);
+    reanudarCintaRef.current = window.setTimeout(() => { pausadaRef.current = false; }, demora);
+  };
+
+  const iniciarArrastreMouse = (e) => {
+    if (e.pointerType !== 'mouse' || !cintaRef.current) return;
+    arrastreRef.current = { activo: true, inicioX: e.clientX, inicioScroll: cintaRef.current.scrollLeft, movido: false };
+    pausarCinta();
+  };
+  const moverArrastreMouse = (e) => {
+    const estado = arrastreRef.current;
+    if (!estado.activo || e.pointerType !== 'mouse' || !cintaRef.current) return;
+    const delta = e.clientX - estado.inicioX;
+    if (Math.abs(delta) > 4) estado.movido = true;
+    cintaRef.current.scrollLeft = estado.inicioScroll - delta;
+  };
+  const terminarArrastreMouse = (e) => {
+    if (e.pointerType !== 'mouse') return;
+    arrastreRef.current.activo = false;
+    reanudarCinta(1500);
+  };
+
+  const tarjetaCategoria = (cat, keySuffix) => (
+    <button
+      key={keySuffix === undefined ? cat.id : `${cat.id}-${keySuffix}`}
+      type="button"
+      className={`filtro-categoria-card ${categoriaActiva === cat.id ? 'filtro-categoria-activa' : ''}`}
+      onClick={() => {
+        if (arrastreRef.current.movido) {
+          arrastreRef.current.movido = false;
+          return;
+        }
+        setCategoriaActiva(cat.id);
+      }}
+    >
+      <span className="filtro-categoria-imagen">
+        {cat.imagen ? <img src={cat.imagen} alt="" /> : (cat.id === 'todas' ? '🍽️' : '🍔')}
+      </span>
+      <span className="filtro-categoria-nombre">{cat.nombre}</span>
+      <span className="filtro-categoria-check">✓</span>
+    </button>
+  );
+
   return (
     <section className="menu-seccion" id="menu">
       <h2 className="menu-titulo fuente-impacto">Productos destacados</h2>
 
       {categorias.length > 0 && (
-        <div className="categorias-bar menu-categorias-bar">
-          <button
-            type="button"
-            className={`chip-categoria chip-todas ${categoriaActiva === 'todas' ? 'chip-activo' : ''}`}
-            onClick={() => setCategoriaActiva('todas')}
-          >
-            Todas
-          </button>
-          {categorias.map((cat, i) => (
-            <button
-              key={cat.id}
-              type="button"
-              className={`chip-categoria ${COLORES_CHIP[i % COLORES_CHIP.length]} ${categoriaActiva === cat.id ? 'chip-activo' : ''}`}
-              onClick={() => setCategoriaActiva(cat.id)}
+        <div className="menu-filtro-categorias">
+          <div className="menu-filtro-header">
+            <span className="menu-filtro-icono" aria-hidden="true">🍔</span>
+            <div className="menu-filtro-titulo-linea">
+              <span className="menu-filtro-linea" />
+              <span className="menu-filtro-titulo">Filtrar por categoría</span>
+              <span className="menu-filtro-linea" />
+            </div>
+          </div>
+
+          {esSlider ? (
+            <div
+              className="menu-filtro-cinta"
+              ref={cintaRef}
+              onMouseEnter={pausarCinta}
+              onMouseLeave={() => reanudarCinta(0)}
+              onTouchStart={pausarCinta}
+              onTouchEnd={() => reanudarCinta(1500)}
+              onPointerDown={iniciarArrastreMouse}
+              onPointerMove={moverArrastreMouse}
+              onPointerUp={terminarArrastreMouse}
+              onPointerLeave={(e) => { if (arrastreRef.current.activo) terminarArrastreMouse(e); }}
             >
-              {cat.nombre}
-            </button>
-          ))}
+              <div className="menu-filtro-cinta-track">
+                {[...categoriasConTodos, ...categoriasConTodos].map((cat, i) => tarjetaCategoria(cat, i))}
+              </div>
+            </div>
+          ) : (
+            <div
+              className="menu-filtro-grid"
+              style={{ gridTemplateColumns: `repeat(${totalCategorias}, minmax(0, 160px))` }}
+            >
+              {categoriasConTodos.map((cat) => tarjetaCategoria(cat))}
+            </div>
+          )}
         </div>
       )}
 
@@ -251,6 +353,159 @@ export default function Menu({ categorias, productos, onAgregar }) {
       />
 
       <style>{`
+        .menu-filtro-categorias {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 22px;
+          padding: 24px 20px 26px;
+          margin-bottom: 32px;
+        }
+
+        .menu-filtro-header {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 6px;
+          margin-bottom: 22px;
+        }
+
+        .menu-filtro-icono {
+          font-size: 1.5rem;
+          line-height: 1;
+        }
+
+        .menu-filtro-titulo-linea {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          width: 100%;
+          max-width: 380px;
+        }
+
+        .menu-filtro-linea {
+          flex: 1;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, #f97316 50%, transparent);
+        }
+
+        .menu-filtro-titulo {
+          font-weight: 800;
+          font-size: 0.78rem;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: #fb923c;
+          white-space: nowrap;
+        }
+
+        .menu-filtro-grid {
+          display: grid;
+          gap: 10px;
+          justify-content: center;
+        }
+
+        .menu-filtro-cinta {
+          overflow-x: auto;
+          overflow-y: hidden;
+          cursor: grab;
+          scrollbar-width: none;
+          -webkit-overflow-scrolling: touch;
+          touch-action: pan-x;
+          -webkit-mask-image: linear-gradient(90deg, transparent, #000 24px, #000 calc(100% - 24px), transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 24px, #000 calc(100% - 24px), transparent);
+        }
+        .menu-filtro-cinta::-webkit-scrollbar {
+          display: none;
+        }
+        .menu-filtro-cinta:active {
+          cursor: grabbing;
+        }
+
+        .menu-filtro-cinta-track {
+          display: flex;
+          gap: 12px;
+          width: max-content;
+        }
+
+        .menu-filtro-cinta-track .filtro-categoria-card {
+          flex: 0 0 104px;
+        }
+
+        .filtro-categoria-card {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 10px;
+          min-width: 0;
+          background: var(--surface-2);
+          border: 2px solid transparent;
+          border-radius: 18px;
+          padding: 18px 8px 14px;
+          cursor: pointer;
+          color: var(--text);
+          font-family: inherit;
+          transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .filtro-categoria-card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 10px 20px -12px rgba(0, 0, 0, 0.45);
+        }
+
+        .filtro-categoria-activa {
+          border-color: #f97316;
+          background: linear-gradient(180deg, rgba(249, 115, 22, 0.2), rgba(249, 115, 22, 0.06));
+          box-shadow: 0 10px 24px -12px rgba(249, 115, 22, 0.5);
+        }
+
+        .filtro-categoria-imagen {
+          width: clamp(44px, 100%, 64px);
+          aspect-ratio: 1 / 1;
+          border-radius: 16px;
+          overflow: hidden;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: clamp(1.4rem, 8vw, 2rem);
+          background: var(--surface);
+          flex-shrink: 0;
+        }
+
+        .filtro-categoria-imagen img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .filtro-categoria-nombre {
+          font-weight: 800;
+          font-size: 0.7rem;
+          letter-spacing: 0.02em;
+          text-transform: uppercase;
+          text-align: center;
+          line-height: 1.25;
+          overflow-wrap: break-word;
+        }
+
+        .filtro-categoria-check {
+          width: 22px;
+          height: 22px;
+          border-radius: 50%;
+          border: 2px solid var(--border);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.7rem;
+          color: transparent;
+          background: transparent;
+          transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        }
+
+        .filtro-categoria-activa .filtro-categoria-check {
+          border-color: transparent;
+          background: linear-gradient(135deg, #fb923c, #ef4444);
+          color: #ffffff;
+        }
+
         .menu-tarjeta-imagen {
           cursor: pointer;
         }
