@@ -376,8 +376,8 @@ export default function Inicio() {
           .inicio-card {
             position: relative;
             background: linear-gradient(160deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 60%),
-                        var(--card-bg, #1a1410);
-            border: 1px solid rgba(255, 158, 0, 0.15);
+                        var(--card-bg, #163a30);
+            border: 1px solid rgba(232, 99, 12, 0.15);
             border-radius: 16px;
             padding: 24px 26px;
             overflow: hidden;
@@ -395,7 +395,7 @@ export default function Inicio() {
           }
 
           .inicio-card:hover {
-            border-color: rgba(255, 158, 0, 0.35);
+            border-color: rgba(232, 99, 12, 0.35);
           }
 
           .inicio-card-encabezado {
@@ -407,7 +407,7 @@ export default function Inicio() {
 
           .inicio-card-icono {
             font-size: 1.1rem;
-            filter: drop-shadow(0 0 6px rgba(255, 158, 0, 0.35));
+            filter: drop-shadow(0 0 6px rgba(232, 99, 12, 0.35));
           }
 
           .inicio-card-titulo {
@@ -455,7 +455,7 @@ export default function Inicio() {
             font-size: 2.4rem;
             font-weight: 800;
             margin: 12px 0 0;
-            background: linear-gradient(90deg, #ffb347, #ff9e00);
+            background: linear-gradient(90deg, #f4854a, #e8630c);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
@@ -495,7 +495,7 @@ export default function Inicio() {
           }
 
           .inicio-link-caja {
-            color: #ff9e00;
+            color: #e8630c;
             text-decoration: none;
             font-weight: 600;
           }
@@ -599,9 +599,9 @@ export default function Inicio() {
 
           .inicio-contador-pedidos {
             margin-left: auto;
-            background: rgba(255, 158, 0, 0.15);
-            color: #ff9e00;
-            border: 1px solid rgba(255, 158, 0, 0.35);
+            background: rgba(232, 99, 12, 0.15);
+            color: #e8630c;
+            border: 1px solid rgba(232, 99, 12, 0.35);
             border-radius: 20px;
             padding: 2px 12px;
             font-size: 0.8rem;

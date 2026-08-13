@@ -182,7 +182,7 @@ export default function Inicio() {
           .preloader-pantalla {
             position: fixed;
             inset: 0;
-            background: #14100c;
+            background: #0d2b23;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -211,7 +211,7 @@ export default function Inicio() {
             width: 40%;
             height: 100%;
             border-radius: 999px;
-            background: linear-gradient(135deg, #fb923c, #ef4444);
+            background: linear-gradient(135deg, #f4854a, #e8630c);
             animation: preloaderDeslizar 1.1s ease-in-out infinite;
           }
           @keyframes preloaderDeslizar {

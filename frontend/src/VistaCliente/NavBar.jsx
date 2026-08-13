@@ -42,7 +42,7 @@ export default function NavBar({ configuracion, totalItems, onPedir }) {
           grid-template-columns: 1fr auto 1fr !important;
           align-items: center !important;
           padding: 12px 20px !important; /* Espaciado extra para que respire */
-          background-color: #1a1614; /* Fondo oscuro unificado */
+          background-color: #0d2b23; /* Fondo oscuro unificado */
           gap: 15px 0;
         }
 
@@ -94,14 +94,14 @@ export default function NavBar({ configuracion, totalItems, onPedir }) {
           height: 46px;
           border-radius: 50%;
           border: none;
-          background: linear-gradient(135deg, #f0651f 0%, #c73f16 100%);
+          background: linear-gradient(135deg, #f4854a 0%, #e8630c 100%);
           color: #fff;
           font-size: 20px;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          box-shadow: 0 4px 10px rgba(199, 63, 22, 0.25); /* Sombra elegante */
+          box-shadow: 0 4px 10px rgba(232, 99, 12, 0.25); /* Sombra elegante */
         }
         
         .nav-btn-carrito-badge {
@@ -113,7 +113,7 @@ export default function NavBar({ configuracion, totalItems, onPedir }) {
           padding: 0 4px;
           border-radius: 50%;
           background: #fff;
-          color: #c73f16;
+          color: #b84e0a;
           font-size: 11px;
           font-weight: 800;
           display: flex;
@@ -128,7 +128,7 @@ export default function NavBar({ configuracion, totalItems, onPedir }) {
           top: 100% !important; /* Lo ubica exactamente debajo de la barra */
           left: 0 !important;
           width: 100% !important;
-          background-color: #1a1614 !important; /* Mismo fondo oscuro */
+          background-color: #0d2b23 !important; /* Mismo fondo oscuro */
           padding: 20px 0 30px 0 !important; /* Espaciado arriba y abajo */
           box-shadow: 0 15px 20px rgba(0, 0, 0, 0.4) !important; /* Sombra para despegarlo del fondo */
           
@@ -147,7 +147,7 @@ export default function NavBar({ configuracion, totalItems, onPedir }) {
           grid-template-columns: 1fr auto 1fr !important;
           align-items: center !important;
           padding: 12px 20px !important;
-          background-color: #1a1614;
+          background-color: #0d2b23;
           gap: 15px 0;
           /* Agrega estas dos líneas: */
           position: relative !important; 

@@ -5,15 +5,15 @@ const ENLACE_CREAR_TIENDA = 'https://www.instagram.com/tiendaia_arg';
 export default function Footer({ configuracion }) {
   return (
     <footer style={{
-      // Fondo negro "flashero": Degradado radial que da profundidad
-      background: 'radial-gradient(ellipse at top, #1c1510 0%, #030303 80%)',
+      // Fondo verde oscuro (Pantone 5535 C) con profundidad radial
+      background: 'radial-gradient(ellipse at top, #163a30 0%, #071a15 80%)',
       padding: '50px 20px 30px 20px',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       gap: '25px',
       // Borde superior brillante muy sutil y sombra hacia arriba
-      borderTop: '1px solid rgba(242, 104, 0, 0.2)',
+      borderTop: '1px solid rgba(232, 99, 12, 0.2)',
       boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.8)',
       marginTop: '40px',
       position: 'relative'
@@ -32,8 +32,8 @@ export default function Footer({ configuracion }) {
               borderRadius: '50%',
               backgroundColor: '#0a0a0a',
               padding: '12px',
-              boxShadow: '0 0 25px rgba(242, 104, 0, 0.15), inset 0 0 15px rgba(242, 104, 0, 0.1)',
-              border: '1px solid rgba(242, 104, 0, 0.1)'
+              boxShadow: '0 0 25px rgba(232, 99, 12, 0.15), inset 0 0 15px rgba(232, 99, 12, 0.1)',
+              border: '1px solid rgba(232, 99, 12, 0.1)'
             }} 
           />
         </div>
@@ -49,17 +49,17 @@ export default function Footer({ configuracion }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'linear-gradient(135deg, #ff7a00 0%, #cc5500 100%)',
+            background: 'linear-gradient(135deg, #f4854a 0%, #e8630c 100%)',
             color: '#ffffff',
             padding: '14px',
             borderRadius: '50%',
             textDecoration: 'none',
-            boxShadow: '0 0 20px rgba(242, 104, 0, 0.5), 0 4px 10px rgba(0,0,0,0.5)',
+            boxShadow: '0 0 20px rgba(232, 99, 12, 0.5), 0 4px 10px rgba(0,0,0,0.5)',
             transition: 'all 0.3s ease',
-            border: '1px solid #ff9933'
+            border: '1px solid #f4a35c'
           }}
-          onMouseOver={(e) => { e.currentTarget.style.boxShadow = '0 0 30px rgba(242, 104, 0, 0.8)'; }}
-          onMouseOut={(e) => { e.currentTarget.style.boxShadow = '0 0 20px rgba(242, 104, 0, 0.5), 0 4px 10px rgba(0,0,0,0.5)'; }}
+          onMouseOver={(e) => { e.currentTarget.style.boxShadow = '0 0 30px rgba(232, 99, 12, 0.8)'; }}
+          onMouseOut={(e) => { e.currentTarget.style.boxShadow = '0 0 20px rgba(232, 99, 12, 0.5), 0 4px 10px rgba(0,0,0,0.5)'; }}
         >
           <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
@@ -69,48 +69,35 @@ export default function Footer({ configuracion }) {
         </a>
       )}
 
-      {/* 3. Banner promocional: invitación a crear una tienda propia */}
+      {/* 3. Nota discreta: invitación a crear una tienda propia (sin competir con la marca) */}
       <a
         href={ENLACE_CREAR_TIENDA}
         target="_blank"
         rel="noopener noreferrer"
         style={{
           width: '100%',
-          maxWidth: '360px',
-          marginTop: '15px',
-          padding: '22px 24px',
-          borderRadius: '18px',
-          background: 'linear-gradient(135deg, #fb923c, #ef4444)',
+          maxWidth: '340px',
+          marginTop: '10px',
+          padding: '16px 20px',
+          borderRadius: '14px',
+          background: 'rgba(232, 99, 12, 0.06)',
           textDecoration: 'none',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: '10px',
+          gap: '5px',
           textAlign: 'center',
-          boxShadow: '0 12px 30px -10px rgba(239, 68, 68, 0.55)',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
-          transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+          border: '1px solid rgba(232, 99, 12, 0.22)',
+          transition: 'background 0.2s ease, border-color 0.2s ease',
         }}
-        onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 16px 34px -10px rgba(239, 68, 68, 0.7)'; }}
-        onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 12px 30px -10px rgba(239, 68, 68, 0.55)'; }}
+        onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(232, 99, 12, 0.11)'; e.currentTarget.style.borderColor = 'rgba(232, 99, 12, 0.4)'; }}
+        onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(232, 99, 12, 0.06)'; e.currentTarget.style.borderColor = 'rgba(232, 99, 12, 0.22)'; }}
       >
-        <span style={{ fontSize: '1.8rem', lineHeight: 1 }}>🚀</span>
-        <span style={{ color: '#ffffff', fontWeight: 900, fontSize: '1.05rem', letterSpacing: '-0.01em' }}>
-          Creá una tienda así para tu emprendimiento
+        <span style={{ color: '#f4a35c', fontWeight: 700, fontSize: '0.88rem', letterSpacing: '-0.005em' }}>
+          ¿Querés una tienda como esta para tu negocio?
         </span>
-        <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.82rem' }}>
-          Pedidos online, catálogo y carrito, listos para tu negocio.
-        </span>
-        <span style={{
-          marginTop: '6px',
-          padding: '9px 20px',
-          borderRadius: '999px',
-          background: '#ffffff',
-          color: '#c73f16',
-          fontWeight: 800,
-          fontSize: '0.85rem',
-        }}>
-          Quiero la mía
+        <span style={{ color: 'rgba(245,237,231,0.5)', fontSize: '0.76rem' }}>
+          Escribinos y te contamos cómo →
         </span>
       </a>
 
@@ -144,19 +131,19 @@ export default function Footer({ configuracion }) {
           letterSpacing: '0.5px'
         }}>
           {/* Ícono de TiendaIA con resplandor */}
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f26800" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0px 0px 6px rgba(242,104,0,0.6))' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e8630c" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0px 0px 6px rgba(232,99,12,0.6))' }}>
             <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
             <polyline points="2 17 12 22 22 17"></polyline>
             <polyline points="2 12 12 17 22 12"></polyline>
           </svg>
           {/* Texto TiendaIA con brillo tipográfico */}
-          <span style={{ 
-            color: '#ffffff', 
-            textShadow: '0 0 10px rgba(255,255,255,0.2)' 
+          <span style={{
+            color: '#ffffff',
+            textShadow: '0 0 10px rgba(255,255,255,0.2)'
           }}>
-            Tienda<span style={{ 
-              color: '#f26800', 
-              textShadow: '0 0 12px rgba(242,104,0,0.6)' 
+            Tienda<span style={{
+              color: '#e8630c',
+              textShadow: '0 0 12px rgba(232,99,12,0.6)'
             }}>IA</span>
           </span>
         </div>

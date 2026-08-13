@@ -385,7 +385,7 @@ export default function Menu({ categorias, productos, onAgregar }) {
         .menu-filtro-linea {
           flex: 1;
           height: 1px;
-          background: linear-gradient(90deg, transparent, #f97316 50%, transparent);
+          background: linear-gradient(90deg, transparent, #e8630c 50%, transparent);
         }
 
         .menu-filtro-titulo {
@@ -393,7 +393,7 @@ export default function Menu({ categorias, productos, onAgregar }) {
           font-size: 0.78rem;
           letter-spacing: 0.1em;
           text-transform: uppercase;
-          color: #fb923c;
+          color: #e8630c;
           white-space: nowrap;
         }
 
@@ -452,9 +452,9 @@ export default function Menu({ categorias, productos, onAgregar }) {
         }
 
         .filtro-categoria-activa {
-          border-color: #f97316;
-          background: linear-gradient(180deg, rgba(249, 115, 22, 0.2), rgba(249, 115, 22, 0.06));
-          box-shadow: 0 10px 24px -12px rgba(249, 115, 22, 0.5);
+          border-color: #e8630c;
+          background: linear-gradient(180deg, rgba(232, 99, 12, 0.2), rgba(232, 99, 12, 0.06));
+          box-shadow: 0 10px 24px -12px rgba(232, 99, 12, 0.5);
         }
 
         .filtro-categoria-imagen {
@@ -502,7 +502,7 @@ export default function Menu({ categorias, productos, onAgregar }) {
 
         .filtro-categoria-activa .filtro-categoria-check {
           border-color: transparent;
-          background: linear-gradient(135deg, #fb923c, #ef4444);
+          background: linear-gradient(135deg, #f4854a, #e8630c);
           color: #ffffff;
         }
 
@@ -702,7 +702,7 @@ export default function Menu({ categorias, productos, onAgregar }) {
           background: #f5efe8;
         }
         .modal-producto-info .extra-selector-fila-activa {
-          border-color: #f97316;
+          border-color: #e8630c;
         }
         .modal-producto-info .extra-selector-nombre {
           color: #241a13;
@@ -715,7 +715,7 @@ export default function Menu({ categorias, productos, onAgregar }) {
           color: #241a13;
         }
         .modal-producto-info .extra-selector-stepper button:not(:disabled):hover {
-          background: linear-gradient(135deg, #fb923c, #ef4444);
+          background: linear-gradient(135deg, #f4854a, #e8630c);
           color: #ffffff;
         }
         .modal-producto-info .extra-selector-stepper span {
