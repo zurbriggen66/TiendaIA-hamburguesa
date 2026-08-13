@@ -74,9 +74,12 @@ class DetallePedidoSerializer(serializers.ModelSerializer):
         return obj.calcular_subtotal()
 
     def get_extras_detalle(self, obj):
+        # Sin .select_related() a propósito: eso armaría un queryset nuevo y descartaría el
+        # prefetch_related del viewset (items__extras__extra), volviendo a la base una vez
+        # por cada línea del pedido. Así se usa el cache que ya vino cargado.
         return [
             {'producto': e.extra_id, 'nombre': e.extra.nombre, 'cantidad': e.cantidad, 'precio_unitario': e.precio_unitario}
-            for e in obj.extras.select_related('extra').all()
+            for e in obj.extras.all()
         ]
 
     def validate(self, data):

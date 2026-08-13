@@ -51,10 +51,14 @@ class Pedido(models.Model):
     hora_salida = models.TimeField(null=True, blank=True)
     nota = models.TextField(blank=True)
     estado = models.CharField(max_length=20, choices=ESTADOS, default='pendiente')
-    creado = models.DateTimeField(auto_now_add=True)
+    # Indexado: todos los filtros del admin (rango, día, mes, últimas horas) y el orden
+    # por defecto pegan contra esta columna.
+    creado = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
-        ordering = ['-creado']
+        # El '-id' es el desempate: si dos pedidos comparten `creado` exacto, sin un orden
+        # determinístico las páginas podrían repetir o saltear pedidos en el borde.
+        ordering = ['-creado', '-id']
 
     def __str__(self):
         return f'Pedido #{self.id}'

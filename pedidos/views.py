@@ -5,17 +5,29 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from .models import Pedido, Localidad, Pago, Caja
 from .serializers import PedidoSerializer, LocalidadSerializer, PagoSerializer, CajaSerializer, mover_stock_item
 
 
+class PedidosPagination(PageNumberPagination):
+    """Paginación solo para pedidos: el resto de la API sigue devolviendo listas planas."""
+
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 200
+
+
 class PedidoViewSet(viewsets.ModelViewSet):
     queryset = Pedido.objects.all()
     serializer_class = PedidoSerializer
+    pagination_class = PedidosPagination
 
     def get_queryset(self):
-        queryset = Pedido.objects.prefetch_related('items__producto', 'items__extras__extra', 'pagos').select_related('localidad')
+        queryset = Pedido.objects.prefetch_related(
+            'items__producto', 'items__combo', 'items__extras__extra', 'pagos',
+        ).select_related('localidad')
         desde = parse_date(self.request.query_params.get('desde') or '')
         hasta = parse_date(self.request.query_params.get('hasta') or '')
         if desde:
