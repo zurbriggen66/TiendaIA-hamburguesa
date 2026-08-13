@@ -40,7 +40,7 @@ export default function Dashboard() {
     QRCode.toDataURL(`${window.location.origin}/#menu`, {
       width: 480,
       margin: 2,
-      color: { dark: '#1a120d', light: '#ffffff' },
+      color: { dark: '#0d2b23', light: '#ffffff' },
     })
       .then(setQrCarta)
       .catch((error) => console.error('Error al generar el QR de la carta:', error));

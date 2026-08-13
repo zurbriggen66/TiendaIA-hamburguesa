@@ -2,12 +2,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
 
 :root {
-  --bg: #1a120d;
-  --surface: #241a16;
-  --surface-2: #2e211b;
-  --border: #3d2c24;
+  /* Fondo: Pantone 5535 C "British Racing Green". Acento: Pantone 16-1358 TCX "Orange Tiger". */
+  --bg: #0d2b23;
+  --surface: #163a30;
+  --surface-2: #1e4a3c;
+  --border: #2c5c4a;
   --text: #f5ede7;
-  --text-muted: #b8a89d;
+  --text-muted: #a9c4b6;
+
+  --accent: #e8630c;
+  --accent-light: #f4854a;
+  --accent-dark: #b84e0a;
+  --accent-gradient: linear-gradient(135deg, var(--accent-light), var(--accent));
 }
 
 * {
@@ -65,7 +71,7 @@ body {
 }
 
 .cliente-footer-links a:hover {
-  color: #fb923c;
+  color: #e8630c;
 }
 
 /* === VISTA NEGOCIO (Dashboard.jsx) === */
@@ -95,7 +101,7 @@ body {
   border-bottom: 1px solid var(--border);
   font-size: 1.25rem;
   font-weight: bold;
-  color: #fb923c;
+  color: #e8630c;
 }
 
 .sidebar-menu {
@@ -134,7 +140,7 @@ body {
 }
 
 .sidebar-badge {
-  background: linear-gradient(135deg, #fb923c, #ef4444);
+  background: linear-gradient(135deg, #f4854a, #e8630c);
   color: #ffffff;
   font-size: 0.7rem;
   font-weight: 700;
@@ -153,9 +159,9 @@ body {
 }
 
 .menu-item.active {
-  background: linear-gradient(135deg, #fb923c, #ef4444);
+  background: linear-gradient(135deg, #f4854a, #e8630c);
   color: #ffffff;
-  box-shadow: 0 6px 14px -6px rgba(239, 68, 68, 0.5);
+  box-shadow: 0 6px 14px -6px rgba(232, 99, 12, 0.5);
 }
 
 .sidebar-footer {
@@ -194,7 +200,7 @@ body {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #fbbf24, #ef4444);
+  background: linear-gradient(135deg, #f4a35c, #e8630c);
   color: white;
   display: flex;
   align-items: center;
@@ -346,7 +352,7 @@ body {
 }
 
 .upload-link {
-  color: #fb923c;
+  color: #e8630c;
   font-weight: 600;
 }
 
@@ -477,21 +483,21 @@ body {
 }
 
 .chip-mostaza {
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  background: linear-gradient(135deg, #f4a35c, #e8630c);
 }
 
 .chip-naranja {
-  background: linear-gradient(135deg, #fb923c, #f97316);
+  background: linear-gradient(135deg, #f4854a, #e8630c);
 }
 
 .chip-tomate {
-  background: linear-gradient(135deg, #f87171, #ef4444);
+  background: linear-gradient(135deg, #e8630c, #b84e0a);
 }
 
 .chip-nueva {
   background: var(--surface);
-  color: #fb923c;
-  border: 2px dashed #7c4a2d;
+  color: #e8630c;
+  border: 2px dashed var(--border);
 }
 
 .chip-nueva:hover {
@@ -594,7 +600,7 @@ body {
 .badge-descuento {
   display: inline-flex;
   align-self: flex-start;
-  background: linear-gradient(135deg, #fbbf24, #ef4444);
+  background: linear-gradient(135deg, #f4a35c, #e8630c);
   color: #ffffff;
   font-weight: 700;
   font-size: 0.7rem;
@@ -651,7 +657,7 @@ body {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #fb923c;
+  color: #e8630c;
   background: var(--surface-2);
   padding: 2px 10px;
   border-radius: 999px;
@@ -693,7 +699,7 @@ body {
 .producto-acciones button {
   border: 1px solid var(--border);
   background: var(--surface-2);
-  color: #fdba74;
+  color: #f4a35c;
   border-radius: 8px;
   width: 28px;
   height: 28px;
@@ -706,9 +712,9 @@ body {
 }
 
 .producto-card-nueva {
-  border: 2px dashed #7c4a2d;
+  border: 2px dashed var(--border);
   background: var(--surface);
-  color: #fb923c;
+  color: #e8630c;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -907,7 +913,7 @@ body {
 
 .input-vibrante:focus {
   outline: none;
-  border-color: #f97316;
+  border-color: #e8630c;
 }
 
 .input-con-sufijo {
@@ -931,7 +937,7 @@ body {
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  color: #fdba74;
+  color: #f4a35c;
   cursor: pointer;
 }
 
@@ -956,11 +962,11 @@ body {
 }
 
 .upload-box-vibrante:hover {
-  border-color: #f97316;
+  border-color: #e8630c;
 }
 
 .btn-vibrante {
-  background: linear-gradient(135deg, #fb923c, #ef4444);
+  background: linear-gradient(135deg, #f4854a, #e8630c);
   color: #ffffff;
   border: none;
   padding: 12px 24px;
@@ -972,7 +978,7 @@ body {
 
 .btn-vibrante:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 16px -6px rgba(239, 68, 68, 0.5);
+  box-shadow: 0 8px 16px -6px rgba(232, 99, 12, 0.5);
 }
 
 .btn-vibrante:disabled {
@@ -1230,7 +1236,7 @@ body {
 }
 
 .estado-en_preparacion {
-  background: linear-gradient(135deg, #fb923c, #f97316);
+  background: linear-gradient(135deg, #f4854a, #e8630c);
 }
 
 .estado-listo {
@@ -1364,9 +1370,9 @@ body {
 }
 
 .pedido-card-nuevo {
-  border: 2px dashed #7c4a2d;
+  border: 2px dashed var(--border);
   background: var(--surface);
-  color: #fb923c;
+  color: #e8630c;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1420,7 +1426,7 @@ body {
 .pedido-fila-quitar {
   border: 1px solid var(--border);
   background: var(--surface-2);
-  color: #fdba74;
+  color: #f4a35c;
   border-radius: 8px;
   width: 32px;
   height: 32px;
@@ -1468,7 +1474,7 @@ body {
 }
 
 .pedido-producto-picker-item:hover {
-  border-color: #fb923c;
+  border-color: #e8630c;
   transform: translateY(-1px);
 }
 
@@ -1522,7 +1528,7 @@ body {
 }
 
 .pedido-fila-cantidad-stepper button:not(:disabled):hover {
-  background: linear-gradient(135deg, #fb923c, #ef4444);
+  background: linear-gradient(135deg, #f4854a, #e8630c);
   color: #ffffff;
 }
 
@@ -1548,7 +1554,7 @@ body {
 .btn-agregar-fila {
   background: none;
   border: none;
-  color: #fb923c;
+  color: #e8630c;
   font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
@@ -1567,7 +1573,7 @@ body {
   border-radius: 10px;
   padding: 12px 16px;
   font-size: 0.9rem;
-  color: #fdba74;
+  color: #f4a35c;
   margin-bottom: 8px;
 }
 
@@ -1615,7 +1621,7 @@ body {
 }
 
 .resumen-tile-servicios {
-  background: linear-gradient(135deg, #fb923c, #f97316);
+  background: linear-gradient(135deg, #f4854a, #e8630c);
 }
 
 .resumen-tile-sueldos {
@@ -1662,12 +1668,12 @@ body {
 }
 
 .tab-boton:hover {
-  color: #fb923c;
+  color: #e8630c;
 }
 
 .tab-boton.tab-activo {
-  color: #fb923c;
-  border-bottom-color: #f97316;
+  color: #e8630c;
+  border-bottom-color: #e8630c;
 }
 
 .stock-grid {
@@ -1694,7 +1700,7 @@ body {
 }
 
 .stock-card:hover {
-  border-color: #fb923c;
+  border-color: #e8630c;
   transform: translateY(-1px);
 }
 
@@ -1718,7 +1724,7 @@ body {
 .stock-card-cantidad {
   font-size: 2rem;
   font-weight: 800;
-  color: #fb923c;
+  color: #e8630c;
   line-height: 1.1;
 }
 
@@ -1779,7 +1785,7 @@ body {
 .gasto-fila-borrar {
   border: 1px solid var(--border);
   background: var(--surface-2);
-  color: #fdba74;
+  color: #f4a35c;
   border-radius: 8px;
   width: 28px;
   height: 28px;
@@ -1808,7 +1814,7 @@ body {
 }
 
 .badge-categoria-servicios {
-  background: linear-gradient(135deg, #fb923c, #f97316);
+  background: linear-gradient(135deg, #f4854a, #e8630c);
 }
 
 .badge-categoria-sueldos {
@@ -1821,9 +1827,9 @@ body {
 
 .aviso-sin-insumos {
   font-size: 0.85rem;
-  color: #fdba74;
+  color: #f4a35c;
   background: var(--surface-2);
-  border: 1px dashed #7c4a2d;
+  border: 1px dashed var(--border);
   border-radius: 10px;
   padding: 12px 16px;
   margin-bottom: 8px;
@@ -1831,9 +1837,9 @@ body {
 
 .aviso-envio {
   font-size: 0.82rem;
-  color: #fdba74;
+  color: #f4a35c;
   background: var(--surface-2);
-  border: 1px dashed #7c4a2d;
+  border: 1px dashed var(--border);
   border-radius: 10px;
   padding: 10px 14px;
   margin-bottom: 16px;
@@ -1877,14 +1883,14 @@ body {
   border-radius: 10px;
   border: 1.5px solid var(--border);
   background: var(--surface-2);
-  color: #fdba74;
+  color: #f4a35c;
   font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
 }
 
 .tipo-entrega-selector button.activo {
-  background: linear-gradient(135deg, #fb923c, #ef4444);
+  background: linear-gradient(135deg, #f4854a, #e8630c);
   border-color: transparent;
   color: #ffffff;
 }
@@ -2008,7 +2014,7 @@ body {
 
 .nav-btn-pedir {
   position: relative;
-  background: linear-gradient(135deg, #fb923c, #ef4444);
+  background: linear-gradient(135deg, #f4854a, #e8630c);
   color: #ffffff;
   border: none;
   padding: 10px 20px;
@@ -2198,7 +2204,7 @@ body {
 .menu-tarjeta-cantidad button {
   border: 1px solid var(--border);
   background: var(--surface-2);
-  color: #fdba74;
+  color: #f4a35c;
   border-radius: 8px;
   width: 28px;
   height: 28px;
@@ -2235,7 +2241,7 @@ body {
 }
 
 .extra-selector-fila-activa {
-  border-color: #fb923c;
+  border-color: #e8630c;
 }
 
 .extra-selector-nombre {
@@ -2277,7 +2283,7 @@ body {
 }
 
 .extra-selector-stepper button:not(:disabled):hover {
-  background: linear-gradient(135deg, #fb923c, #ef4444);
+  background: linear-gradient(135deg, #f4854a, #e8630c);
   color: #ffffff;
 }
 
@@ -2302,7 +2308,7 @@ body {
   padding-bottom: max(16px, env(safe-area-inset-bottom));
   border: none;
   border-top: 1px solid rgba(255, 255, 255, 0.15);
-  background: linear-gradient(135deg, #fb923c, #ef4444);
+  background: linear-gradient(135deg, #f4854a, #e8630c);
   color: #ffffff;
   font-family: inherit;
   font-weight: 700;
@@ -2427,13 +2433,13 @@ body {
   width: 100%;
   max-width: 24px;
   height: var(--bar-height, 0%);
-  background: #f97316;
+  background: #e8630c;
   border-radius: 4px 4px 0 0;
   transition: background 0.15s;
 }
 
 .grafico-ventas-barra-activa {
-  background: #ea580c;
+  background: #b84e0a;
 }
 
 .grafico-ventas-tooltip {
@@ -2492,7 +2498,7 @@ body {
   flex-shrink: 0;
   width: 28px;
   font-weight: 800;
-  color: #fb923c;
+  color: #e8630c;
   text-align: center;
 }
 
@@ -2530,7 +2536,7 @@ body {
 .ranking-barra {
   height: 100%;
   width: var(--bar-width, 0%);
-  background: linear-gradient(90deg, #fb923c, #ef4444);
+  background: linear-gradient(90deg, #f4854a, #e8630c);
   border-radius: 999px;
 }
 
@@ -2576,7 +2582,7 @@ body {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #fb923c;
+  color: #e8630c;
 }
 
 .antojo-dia-info h3 {
@@ -2608,7 +2614,7 @@ body {
 }
 
 .antojo-dia-badge-descuento {
-  background: linear-gradient(135deg, #fbbf24, #ef4444);
+  background: linear-gradient(135deg, #f4a35c, #e8630c);
   color: #ffffff;
   font-weight: 700;
   font-size: 0.75rem;
@@ -2733,7 +2739,7 @@ body {
 
 .combo-card-incluye {
   font-size: 0.78rem;
-  color: #fdba74;
+  color: #f4a35c;
 }
 
 .combo-card-footer {
@@ -2758,7 +2764,7 @@ body {
 .combo-card-acciones button {
   border: 1px solid var(--border);
   background: var(--surface-2);
-  color: #fdba74;
+  color: #f4a35c;
   border-radius: 8px;
   width: 28px;
   height: 28px;
@@ -2771,9 +2777,9 @@ body {
 }
 
 .combo-card-nuevo {
-  border: 2px dashed #7c4a2d;
+  border: 2px dashed var(--border);
   background: var(--surface);
-  color: #fb923c;
+  color: #e8630c;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2811,8 +2817,8 @@ body {
 .combo-publico-card {
   display: flex;
   gap: 16px;
-  background: linear-gradient(135deg, #241a16, #2e211b);
-  border: 1px solid #7c4a2d;
+  background: linear-gradient(135deg, var(--surface), var(--surface-2));
+  border: 1px solid var(--border);
   border-radius: 16px;
   padding: 16px;
 }
@@ -2856,7 +2862,7 @@ body {
 
 .combo-publico-incluye {
   font-size: 0.75rem;
-  color: #fdba74;
+  color: #f4a35c;
 }
 
 .combo-publico-footer {
@@ -2900,8 +2906,8 @@ body {
   align-items: center;
   gap: 12px;
   background: var(--surface);
-  border: 1px solid #7c4a2d;
-  border-left: 4px solid #fb923c;
+  border: 1px solid var(--border);
+  border-left: 4px solid #e8630c;
   border-radius: 12px;
   padding: 14px 16px;
   max-width: 340px;
@@ -3037,7 +3043,7 @@ body {
 }
 
 .switch-vibrante input:checked + .switch-track {
-  background: linear-gradient(135deg, #fb923c, #ef4444);
+  background: linear-gradient(135deg, #f4854a, #e8630c);
   border-color: transparent;
 }
 
@@ -3329,7 +3335,7 @@ body {
 
 .caja-historial-total {
   font-weight: 700;
-  color: #fdba74;
+  color: #f4a35c;
   white-space: nowrap;
 }
 

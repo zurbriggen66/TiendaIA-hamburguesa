@@ -17,7 +17,7 @@ export default function Combos({ combos, onAgregar }) {
       className="combos-seccion" 
       style={{ 
         padding: '16px 0 20px 0', 
-        background: 'linear-gradient(135deg, #f26800 0%, #cc5500 100%)',
+        background: 'linear-gradient(135deg, #f4854a 0%, #e8630c 100%)',
         boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
         marginTop: '0',        // ← Eliminamos el margen superior para pegar la franja
         marginBottom: '0',     // ← Opcional: pegarlo también por abajo si lo necesitas
@@ -126,7 +126,7 @@ export default function Combos({ combos, onAgregar }) {
                       onAgregar(combo, 1);
                     }}
                     style={{
-                      backgroundColor: '#f26800',
+                      backgroundColor: '#e8630c',
                       color: '#ffffff',
                       border: 'none',
                       padding: '9px 14px',
@@ -134,7 +134,7 @@ export default function Combos({ combos, onAgregar }) {
                       fontWeight: 'bold',
                       fontSize: '0.88rem',
                       cursor: 'pointer',
-                      boxShadow: '0 3px 8px rgba(242, 104, 0, 0.35)'
+                      boxShadow: '0 3px 8px rgba(232, 99, 12, 0.35)'
                     }}
                   >
                     Agregar al pedido

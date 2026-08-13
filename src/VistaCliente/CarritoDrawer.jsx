@@ -297,7 +297,7 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
           align-items: center;
           justify-content: center;
           font-size: 1.1rem;
-          background: linear-gradient(135deg, #fb923c, #ef4444);
+          background: linear-gradient(135deg, #f4854a, #e8630c);
         }
 
         .pedido-header h3 {
@@ -386,7 +386,7 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
           font-size: 0.62rem;
           font-weight: 700;
           text-transform: uppercase;
-          background: linear-gradient(135deg, #fb923c, #ef4444);
+          background: linear-gradient(135deg, #f4854a, #e8630c);
           color: #ffffff;
           padding: 2px 8px;
           border-radius: 999px;
@@ -475,7 +475,7 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
 
         .pedido-total strong {
           font-size: 1.2rem;
-          color: #ef4444;
+          color: #e8630c;
         }
 
         .pedido-seccion {
@@ -523,7 +523,7 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
         }
         .pedido-input:focus {
           outline: none;
-          border-color: #f97316;
+          border-color: #e8630c;
         }
 
         .pedido-input-error {
@@ -565,8 +565,8 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
         }
 
         .pedido-entrega-activa {
-          border-color: #ef4444;
-          background: linear-gradient(180deg, rgba(239, 68, 68, 0.06), rgba(251, 146, 60, 0.02));
+          border-color: #e8630c;
+          background: linear-gradient(180deg, rgba(232, 99, 12, 0.06), rgba(244, 133, 74, 0.02));
         }
 
         .pedido-entrega-check {
@@ -576,7 +576,7 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
           width: 20px;
           height: 20px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #fb923c, #ef4444);
+          background: linear-gradient(135deg, #f4854a, #e8630c);
           color: #ffffff;
           font-size: 0.65rem;
           display: flex;
@@ -635,7 +635,7 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
         }
 
         .pedido-btn-primario {
-          background: linear-gradient(135deg, #fb923c, #ef4444);
+          background: linear-gradient(135deg, #f4854a, #e8630c);
           color: #ffffff;
           border: none;
           padding: 12px 24px;
