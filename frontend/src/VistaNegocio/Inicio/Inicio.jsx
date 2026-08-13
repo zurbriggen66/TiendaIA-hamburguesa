@@ -60,8 +60,10 @@ export default function Inicio() {
     try {
       const [resHoy, resPorConfirmar, resRecientes, resProductos, resCategorias, resLocalidades, resFijos] = await Promise.all([
         api.get('/estadisticas/hoy/'),
-        api.get('/pedidos/', { params: { confirmado: 'false', origen: 'web' } }),
-        api.get('/pedidos/', { params: { ultimas_horas: 24, confirmado: 'true' } }),
+        // page_size alto: ambas listas se muestran enteras, no queremos que un día
+        // movido las recorte a los 20 por defecto de la paginación.
+        api.get('/pedidos/', { params: { confirmado: 'false', origen: 'web', page_size: 100 } }),
+        api.get('/pedidos/', { params: { ultimas_horas: 24, confirmado: 'true', page_size: 100 } }),
         api.get('/productos/'),
         api.get('/categorias/'),
         api.get('/localidades/'),
@@ -73,8 +75,8 @@ export default function Inicio() {
       setTotalPedidosCaja(data.total_pedidos || 0);
       setCajaInfo(data.caja);
       setCajaAbierta(Boolean(data.caja_abierta));
-      setPorConfirmar((resPorConfirmar.data || []).filter((p) => p.estado !== 'cancelado'));
-      setPedidosRecientes(resRecientes.data || []);
+      setPorConfirmar((resPorConfirmar.data.results || []).filter((p) => p.estado !== 'cancelado'));
+      setPedidosRecientes(resRecientes.data.results || []);
       setProductos(resProductos.data);
       setCategorias(resCategorias.data);
       setLocalidades(resLocalidades.data);

@@ -3370,6 +3370,20 @@ body {
   font-size: 0.95rem;
 }
 
+/* Pie de la lista de pedidos: cuántos se ven y el botón para traer más */
+.pedidos-paginacion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0 8px;
+}
+
+.pedidos-paginacion-conteo {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
 .cobranza-pendientes-lista {
   display: flex;
   flex-direction: column;
