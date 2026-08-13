@@ -88,12 +88,80 @@ class EstadisticasView(APIView):
             .order_by('-cantidad_total')[:5]
         )
 
+        # En qué se fue la plata de los gastos: por rubro y por medio de pago.
+        # Mismo criterio que CobranzasView.por_metodo (se omiten los que dan 0).
+        etiquetas_categoria = dict(Gasto.CATEGORIAS)
+        etiquetas_metodo = dict(Gasto.METODOS_PAGO)
+
+        # Con qué cobraron las ventas del período. Ojo: los pagos son lo efectivamente
+        # cobrado, así que la suma puede ser menor a ventas_totales si hay pedidos sin
+        # cobrar o cobrados a medias — esa diferencia se muestra aparte para que el
+        # desglose cierre siempre contra el total de ventas.
+        pagos_periodo = Pago.objects.filter(pedido__in=pedidos_validos)
+        ventas_por_metodo = [
+            {
+                'metodo': fila['metodo'],
+                'metodo_label': etiquetas_metodo.get(fila['metodo'], fila['metodo']),
+                'total': fila['total'],
+            }
+            for fila in pagos_periodo.values('metodo').annotate(total=Sum('monto')).order_by('-total')
+            if fila['total']
+        ]
+        total_cobrado = sum((f['total'] for f in ventas_por_metodo), Decimal('0'))
+        sin_cobrar = ventas_totales - total_cobrado
+        if sin_cobrar > 0:
+            ventas_por_metodo.append({
+                'metodo': 'sin_cobrar',
+                'metodo_label': 'Sin cobrar todavía',
+                'total': sin_cobrar,
+            })
+
+        # El detalle de cada gasto va anidado dentro de su rubro, para que al tocar
+        # "Sueldos" se pueda ver qué se pagó y con qué, sin pedir nada más al servidor.
+        detalle_por_categoria = defaultdict(list)
+        detalle_por_metodo = defaultdict(list)
+        for gasto in gastos_qs.values('id', 'categoria', 'descripcion', 'monto', 'metodo_pago', 'fecha').order_by('-fecha'):
+            detalle = {
+                'id': gasto['id'],
+                'descripcion': gasto['descripcion'],
+                'monto': gasto['monto'],
+                'fecha': gasto['fecha'],
+                'categoria_label': etiquetas_categoria.get(gasto['categoria'], gasto['categoria']),
+                'metodo_label': etiquetas_metodo.get(gasto['metodo_pago'], gasto['metodo_pago']),
+            }
+            detalle_por_categoria[gasto['categoria']].append(detalle)
+            detalle_por_metodo[gasto['metodo_pago']].append(detalle)
+
+        gastos_por_categoria = [
+            {
+                'categoria': fila['categoria'],
+                'categoria_label': etiquetas_categoria.get(fila['categoria'], fila['categoria']),
+                'total': fila['total'],
+                'gastos': detalle_por_categoria[fila['categoria']],
+            }
+            for fila in gastos_qs.values('categoria').annotate(total=Sum('monto')).order_by('-total')
+            if fila['total']
+        ]
+        gastos_por_metodo = [
+            {
+                'metodo': fila['metodo_pago'],
+                'metodo_label': etiquetas_metodo.get(fila['metodo_pago'], fila['metodo_pago']),
+                'total': fila['total'],
+                'gastos': detalle_por_metodo[fila['metodo_pago']],
+            }
+            for fila in gastos_qs.values('metodo_pago').annotate(total=Sum('monto')).order_by('-total')
+            if fila['total']
+        ]
+
         return Response({
             'ventas_totales': ventas_totales,
             'gastos_totales': gastos_totales,
             'ganancia_neta': ventas_totales - gastos_totales,
             'total_pedidos': total_pedidos,
             'ticket_promedio': ticket_promedio,
+            'gastos_por_categoria': gastos_por_categoria,
+            'gastos_por_metodo': gastos_por_metodo,
+            'ventas_por_metodo': ventas_por_metodo,
             'ventas_por_dia': [
                 {'dia': dia, 'total': por_dia[dia]} for dia in sorted(por_dia.keys())
             ],
