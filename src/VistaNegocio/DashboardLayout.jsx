@@ -47,16 +47,21 @@ export default function DashboardLayout() {
 
     const consultarPedidos = async () => {
       try {
-        const { data } = await api.get('/pedidos/');
+        // Un pedido nuevo siempre entra dentro de las últimas 24hs: mirar el historial
+        // completo cada 15 segundos (y en todas las pantallas del admin) era el gasto
+        // más grande de la app y crecía con cada pedido acumulado.
+        const { data } = await api.get('/pedidos/', { params: { ultimas_horas: 24, page_size: 100 } });
         if (!activo) return;
 
+        const pedidosRecientes = data.results;
+
         if (primeraConsulta.current) {
-          data.forEach((p) => idsVistos.current.add(p.id));
+          pedidosRecientes.forEach((p) => idsVistos.current.add(p.id));
           primeraConsulta.current = false;
           return;
         }
 
-        const nuevos = data.filter((p) => !idsVistos.current.has(p.id));
+        const nuevos = pedidosRecientes.filter((p) => !idsVistos.current.has(p.id));
         if (nuevos.length > 0) {
           nuevos.forEach((p) => idsVistos.current.add(p.id));
           reproducirSonidoAviso();
