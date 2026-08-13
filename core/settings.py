@@ -165,4 +165,13 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
     r'^https://tienda-ia-hamburguesa.*\.vercel\.app$',
 ]
 
+# En desarrollo, Vite cambia de puerto solo si el 5173 está ocupado (5174, 5175...).
+# Sin esto, la API rechaza al frontend por CORS y todo falla con "Network Error".
+# Solo aplica con DEBUG=True: en producción sigue valiendo únicamente la lista de arriba.
+if DEBUG:
+    CORS_ALLOWED_ORIGIN_REGEXES += [
+        r'^http://localhost:\d+$',
+        r'^http://127\.0\.0\.1:\d+$',
+    ]
+
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
