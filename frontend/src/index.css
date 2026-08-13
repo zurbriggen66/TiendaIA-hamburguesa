@@ -1194,6 +1194,40 @@ body {
   border-color: #4ade80;
 }
 
+/* Mientras el pedido no esté cobrado, "Cobrar" es la acción principal de la tarjeta:
+   va relleno, más grande y con un latido suave para que no se pase por alto. */
+.pedido-accion-cobrar-pendiente {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  border-color: transparent;
+  color: #ffffff;
+  font-size: 0.82rem;
+  padding: 8px 16px;
+  box-shadow: 0 4px 12px -4px rgba(34, 197, 94, 0.6);
+  animation: cobrarLatido 2.2s ease-in-out infinite;
+}
+
+.pedido-accion-cobrar-pendiente:hover {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  border-color: transparent;
+  color: #ffffff;
+  animation: none;
+}
+
+.pedido-accion-cobrar-pendiente span {
+  font-size: 0.95rem;
+}
+
+@keyframes cobrarLatido {
+  0%, 100% { box-shadow: 0 4px 12px -4px rgba(34, 197, 94, 0.6); }
+  50% { box-shadow: 0 4px 18px -2px rgba(34, 197, 94, 0.95); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pedido-accion-cobrar-pendiente {
+    animation: none;
+  }
+}
+
 .pedido-accion-detalle {
   color: #60a5fa;
 }
@@ -1795,6 +1829,119 @@ body {
 
 .gasto-fila-borrar:hover {
   background: #4a2f1f;
+}
+
+/* Filas de gastos fijos: suman el botón de pagar y el de editar a la grilla base */
+.gasto-fila-fijo {
+  grid-template-columns: auto 1fr auto auto auto auto auto;
+}
+
+.gasto-fila-vence {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.gasto-fila-vence-texto {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.gasto-fijo-pagar {
+  font-size: 0.78rem;
+  padding: 6px 12px;
+  white-space: nowrap;
+}
+
+/* Desglose de gastos en Estadísticas: por rubro y por medio de pago, lado a lado */
+.gastos-desglose-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.gastos-desglose-titulo {
+  margin: 0 0 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.desglose-grupo {
+  display: flex;
+  flex-direction: column;
+}
+
+/* La fila del rubro es un botón: se toca para desplegar el detalle */
+.desglose-fila {
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.desglose-fila:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.desglose-flecha {
+  display: inline-block;
+  width: 12px;
+  color: var(--text-muted);
+}
+
+.desglose-detalle {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 4px 0 12px 20px;
+  padding-left: 14px;
+  border-left: 2px solid var(--border);
+}
+
+.desglose-detalle-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.desglose-detalle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.desglose-detalle-info strong {
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.desglose-detalle-info span {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.desglose-detalle-monto {
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+@media (max-width: 768px) {
+  .gasto-fila-fijo {
+    grid-template-columns: 1fr auto;
+  }
 }
 
 .badge-categoria {
@@ -3149,6 +3296,98 @@ body {
 .pago-form input {
   width: 140px;
   flex: none;
+}
+
+/* Lo que falta cobrar: es el dato principal del modal, va grande y aislado */
+.pago-falta-destacado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: rgba(248, 113, 113, 0.1);
+  border: 1.5px solid rgba(248, 113, 113, 0.45);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.pago-falta-destacado span {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.pago-falta-destacado strong {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #f87171;
+  line-height: 1.1;
+}
+
+.pago-falta-saldado {
+  background: rgba(74, 222, 128, 0.1);
+  border-color: rgba(74, 222, 128, 0.45);
+}
+
+.pago-falta-saldado strong {
+  color: #4ade80;
+}
+
+.pago-lista-titulo {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.pago-form-nuevo {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.pago-monto-fila {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pago-monto-fila .input-vibrante {
+  flex: 1;
+}
+
+.pago-btn-todo {
+  flex: none;
+  padding: 10px 16px;
+  white-space: nowrap;
+}
+
+.pago-aviso-parcial {
+  margin: 8px 0 0;
+  font-size: 0.78rem;
+  color: #fbbf24;
+}
+
+.pago-btn-confirmar {
+  width: 100%;
+  margin-top: 4px;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+}
+
+/* Pie de la lista de pedidos: cuántos se ven y el botón para traer más */
+.pedidos-paginacion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0 8px;
+}
+
+.pedidos-paginacion-conteo {
+  font-size: 0.82rem;
+  color: var(--text-muted);
 }
 
 .cobranza-pendientes-lista {

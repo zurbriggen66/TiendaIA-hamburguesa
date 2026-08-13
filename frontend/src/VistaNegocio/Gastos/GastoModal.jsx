@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import api from '../../services/api';
+import { METODOS_PAGO } from '../../utils/metodosPago';
 
 const CATEGORIAS = [
   { value: 'insumos', label: 'Insumos / Stock' },
@@ -12,6 +13,7 @@ export default function GastoModal({ insumos, onClose, onSaved }) {
   const [categoria, setCategoria] = useState('insumos');
   const [descripcion, setDescripcion] = useState('');
   const [monto, setMonto] = useState('');
+  const [metodoPago, setMetodoPago] = useState('efectivo');
   const [insumoId, setInsumoId] = useState(insumos[0] ? insumos[0].id : '');
   const [cantidad, setCantidad] = useState('');
   const [guardando, setGuardando] = useState(false);
@@ -33,6 +35,7 @@ export default function GastoModal({ insumos, onClose, onSaved }) {
       categoria,
       descripcion: descripcion.trim(),
       monto,
+      metodo_pago: metodoPago,
     };
     if (esInsumo && insumoId && cantidad) {
       payload.insumo = insumoId;
@@ -93,6 +96,14 @@ export default function GastoModal({ insumos, onClose, onSaved }) {
                 value={monto}
                 onChange={(e) => setMonto(e.target.value)}
               />
+            </div>
+            <div className="form-group">
+              <label className="form-label">¿Con qué lo pagaste?</label>
+              <select className="input-vibrante" value={metodoPago} onChange={(e) => setMetodoPago(e.target.value)}>
+                {METODOS_PAGO.map((m) => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
             </div>
           </div>
 

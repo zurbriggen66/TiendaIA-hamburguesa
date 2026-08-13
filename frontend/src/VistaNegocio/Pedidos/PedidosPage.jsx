@@ -38,6 +38,10 @@ export default function PedidosPage() {
   const [categorias, setCategorias] = useState([]);
   const [localidades, setLocalidades] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [cargandoMas, setCargandoMas] = useState(false);
+  const [hayMas, setHayMas] = useState(false);
+  const [totalPedidos, setTotalPedidos] = useState(0);
+  const [paginaActual, setPaginaActual] = useState(1);
   const [tab, setTab] = useState('pedidos');
   const [filtroPeriodo, setFiltroPeriodo] = useState('rango');
   const [mesSeleccionado, setMesSeleccionado] = useState(mesActualISO());
@@ -66,26 +70,37 @@ export default function PedidosPage() {
     }
   }, []);
 
-  const cargarPedidos = useCallback(async () => {
-    setCargando(true);
+  const paramsDelPeriodo = useCallback(() => {
+    if (filtroPeriodo === 'mensual') {
+      const { primero, ultimo } = primerYUltimoDiaDelMes(mesSeleccionado);
+      return { desde: primero, hasta: ultimo };
+    }
+    if (filtroPeriodo === 'dia') {
+      return { desde: diaSeleccionado, hasta: diaSeleccionado };
+    }
+    if (filtroPeriodo === 'rango') {
+      return { desde: desdeRango, hasta: hastaRango };
+    }
+    return {};
+  }, [filtroPeriodo, mesSeleccionado, diaSeleccionado, desdeRango, hastaRango]);
+
+  // La página 1 reemplaza la lista; las siguientes se suman abajo ("Cargar más").
+  const cargarPedidos = useCallback(async (pagina = 1) => {
+    if (pagina === 1) setCargando(true);
+    else setCargandoMas(true);
     try {
-      let params = {};
-      if (filtroPeriodo === 'mensual') {
-        const { primero, ultimo } = primerYUltimoDiaDelMes(mesSeleccionado);
-        params = { desde: primero, hasta: ultimo };
-      } else if (filtroPeriodo === 'dia') {
-        params = { desde: diaSeleccionado, hasta: diaSeleccionado };
-      } else if (filtroPeriodo === 'rango') {
-        params = { desde: desdeRango, hasta: hastaRango };
-      }
-      const { data } = await api.get('/pedidos/', { params });
-      setPedidos(data);
+      const { data } = await api.get('/pedidos/', { params: { ...paramsDelPeriodo(), page: pagina } });
+      setPedidos((prev) => (pagina === 1 ? data.results : [...prev, ...data.results]));
+      setTotalPedidos(data.count);
+      setHayMas(Boolean(data.next));
+      setPaginaActual(pagina);
     } catch (error) {
       console.error('Error al cargar los pedidos:', error);
     } finally {
       setCargando(false);
+      setCargandoMas(false);
     }
-  }, [filtroPeriodo, mesSeleccionado, diaSeleccionado, desdeRango, hastaRango]);
+  }, [paramsDelPeriodo]);
 
   useEffect(() => {
     cargarCatalogo();
@@ -271,6 +286,24 @@ export default function PedidosPage() {
               ))}
             </div>
           )
+        )}
+
+        {tab === 'pedidos' && !cargando && pedidos.length > 0 && (
+          <div className="pedidos-paginacion">
+            <span className="pedidos-paginacion-conteo">
+              Mostrando {pedidos.length} de {totalPedidos} pedidos
+            </span>
+            {hayMas && (
+              <button
+                type="button"
+                className="btn-secundario"
+                onClick={() => cargarPedidos(paginaActual + 1)}
+                disabled={cargandoMas}
+              >
+                {cargandoMas ? 'Cargando...' : 'Cargar más'}
+              </button>
+            )}
+          </div>
         )}
 
         {tab === 'localidades' && (
