@@ -76,6 +76,80 @@ function GraficoVentas({ datos }) {
   );
 }
 
+const formatearFechaCorta = (iso) =>
+  new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+// Lista de barras proporcionales (mismo formato visual que el ranking de productos),
+// donde cada fila se puede tocar para desplegar el detalle de esos gastos.
+function BarrasDesglose({ filas, total, detalleSecundario }) {
+  const [abierta, setAbierta] = useState(null);
+
+  if (filas.length === 0) return null;
+  const maximo = Math.max(...filas.map((f) => Number(f.total)));
+
+  return (
+    <div className="ranking-productos">
+      {filas.map((fila) => {
+        const monto = Number(fila.total);
+        const porcentajeDelTotal = total > 0 ? Math.round((monto / total) * 100) : 0;
+        const estaAbierta = abierta === fila.clave;
+        const detalle = fila.gastos || [];
+        const sePuedeAbrir = detalle.length > 0;
+
+        const contenido = (
+          <div className="ranking-info">
+            <div className="ranking-nombre-linea">
+              <strong>
+                {sePuedeAbrir && <span className="desglose-flecha">{estaAbierta ? '▾' : '▸'}</span>} {fila.etiqueta}
+              </strong>
+              <span>{formatearPrecio(monto)} · {porcentajeDelTotal}%</span>
+            </div>
+            <div className="ranking-barra-fondo">
+              <div className="ranking-barra" style={{ '--bar-width': `${Math.max((monto / maximo) * 100, 6)}%` }} />
+            </div>
+          </div>
+        );
+
+        return (
+          <div key={fila.clave} className="desglose-grupo">
+            {sePuedeAbrir ? (
+              <button
+                type="button"
+                className={`ranking-fila desglose-fila ${estaAbierta ? 'desglose-fila-abierta' : ''}`}
+                onClick={() => setAbierta(estaAbierta ? null : fila.clave)}
+                aria-expanded={estaAbierta}
+              >
+                {contenido}
+              </button>
+            ) : (
+              <div className="ranking-fila">{contenido}</div>
+            )}
+
+            {estaAbierta && (
+              <div className="desglose-detalle">
+                {detalle.map((g) => (
+                  <div key={g.id} className="desglose-detalle-fila">
+                    <div className="desglose-detalle-info">
+                      <strong>{g.descripcion}</strong>
+                      <span>
+                        {formatearFechaCorta(g.fecha)} ·{' '}
+                        {detalleSecundario === 'categoria'
+                          ? `🏷️ ${g.categoria_label}`
+                          : `💳 ${g.metodo_label}`}
+                      </span>
+                    </div>
+                    <span className="desglose-detalle-monto">{formatearPrecio(g.monto)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 const pad2 = (n) => String(n).padStart(2, '0');
 // OJO: no usar toISOString() acá — convierte a UTC y en Argentina (UTC-3) eso hace
 // que "hoy" salte al día siguiente a partir de las 21:00 hora local.
@@ -201,6 +275,62 @@ export default function EstadisticasPage() {
                 </div>
                 <GraficoVentas datos={datos.ventas_por_dia} />
               </>
+            )}
+
+            <div className="seccion-header">
+              <h3>Con qué te pagaron las ventas</h3>
+            </div>
+            {Number(datos.ventas_totales) === 0 ? (
+              <p className="estado-vacio-chico">No hay ventas registradas en este período.</p>
+            ) : (
+              <div className="gastos-desglose-grid">
+                <div>
+                  <BarrasDesglose
+                    filas={(datos.ventas_por_metodo || []).map((f) => ({
+                      clave: f.metodo,
+                      etiqueta: f.metodo_label,
+                      total: f.total,
+                    }))}
+                    total={Number(datos.ventas_totales)}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="seccion-header">
+              <h3>En qué se fue la plata</h3>
+            </div>
+            {Number(datos.gastos_totales) === 0 ? (
+              <p className="estado-vacio-chico">No hay gastos registrados en este período.</p>
+            ) : (
+              <div className="gastos-desglose-grid">
+                <div>
+                  <h4 className="gastos-desglose-titulo">Por rubro</h4>
+                  <BarrasDesglose
+                    filas={(datos.gastos_por_categoria || []).map((f) => ({
+                      clave: f.categoria,
+                      etiqueta: f.categoria_label,
+                      total: f.total,
+                      gastos: f.gastos,
+                    }))}
+                    total={Number(datos.gastos_totales)}
+                    detalleSecundario="metodo"
+                  />
+                </div>
+                <div>
+                  <h4 className="gastos-desglose-titulo">Con qué se pagó</h4>
+                  <BarrasDesglose
+                    filas={(datos.gastos_por_metodo || []).map((f) => ({
+                      clave: f.metodo,
+                      etiqueta: f.metodo_label,
+                      total: f.total,
+                      gastos: f.gastos,
+                    }))}
+                    total={Number(datos.gastos_totales)}
+                    detalleSecundario="categoria"
+                  />
+                </div>
+              </div>
             )}
 
             <div className="seccion-header">
