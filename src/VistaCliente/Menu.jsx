@@ -279,7 +279,9 @@ export default function Menu({ categorias, productos, onAgregar }) {
       }}
     >
       <span className="filtro-categoria-imagen">
-        {cat.imagen ? <img src={cat.imagen} alt="" /> : (cat.id === 'todas' ? '🍽️' : '🍔')}
+        {/* Sin foto va un ícono neutro: el 🍔 de antes le ponía una hamburguesa a
+            categorías que no lo son (ej. Gaseosa). */}
+        {cat.imagen ? <img src={cat.imagen} alt="" /> : '🍽️'}
       </span>
       <span className="filtro-categoria-nombre">{cat.nombre}</span>
       <span className="filtro-categoria-check">✓</span>
@@ -293,7 +295,6 @@ export default function Menu({ categorias, productos, onAgregar }) {
       {categorias.length > 0 && (
         <div className="menu-filtro-categorias">
           <div className="menu-filtro-header">
-            <span className="menu-filtro-icono" aria-hidden="true">🍔</span>
             <div className="menu-filtro-titulo-linea">
               <span className="menu-filtro-linea" />
               <span className="menu-filtro-titulo">Filtrar por categoría</span>

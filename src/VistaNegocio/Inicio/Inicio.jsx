@@ -38,6 +38,9 @@ export default function Inicio() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
 
+  const [gastosFijos, setGastosFijos] = useState([]);
+  const [totalGastosFijos, setTotalGastosFijos] = useState(0);
+
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [localidades, setLocalidades] = useState([]);
@@ -55,13 +58,16 @@ export default function Inicio() {
   const cargarInicio = async () => {
     setCargando(true);
     try {
-      const [resHoy, resPorConfirmar, resRecientes, resProductos, resCategorias, resLocalidades] = await Promise.all([
+      const [resHoy, resPorConfirmar, resRecientes, resProductos, resCategorias, resLocalidades, resFijos] = await Promise.all([
         api.get('/estadisticas/hoy/'),
-        api.get('/pedidos/', { params: { confirmado: 'false', origen: 'web' } }),
-        api.get('/pedidos/', { params: { ultimas_horas: 24, confirmado: 'true' } }),
+        // page_size alto: ambas listas se muestran enteras, no queremos que un día
+        // movido las recorte a los 20 por defecto de la paginación.
+        api.get('/pedidos/', { params: { confirmado: 'false', origen: 'web', page_size: 100 } }),
+        api.get('/pedidos/', { params: { ultimas_horas: 24, confirmado: 'true', page_size: 100 } }),
         api.get('/productos/'),
         api.get('/categorias/'),
         api.get('/localidades/'),
+        api.get('/gastos-fijos/alertas/'),
       ]);
       const data = resHoy.data;
       setVentasHoy(data.ventas_totales || 0);
@@ -69,11 +75,13 @@ export default function Inicio() {
       setTotalPedidosCaja(data.total_pedidos || 0);
       setCajaInfo(data.caja);
       setCajaAbierta(Boolean(data.caja_abierta));
-      setPorConfirmar((resPorConfirmar.data || []).filter((p) => p.estado !== 'cancelado'));
-      setPedidosRecientes(resRecientes.data || []);
+      setPorConfirmar((resPorConfirmar.data.results || []).filter((p) => p.estado !== 'cancelado'));
+      setPedidosRecientes(resRecientes.data.results || []);
       setProductos(resProductos.data);
       setCategorias(resCategorias.data);
       setLocalidades(resLocalidades.data);
+      setGastosFijos(resFijos.data.gastos || []);
+      setTotalGastosFijos(Number(resFijos.data.total_pendiente) || 0);
       setError(null);
     } catch (err) {
       console.error('Error cargando datos de Inicio:', err);
@@ -148,6 +156,10 @@ export default function Inicio() {
       alert('No se pudo eliminar el pedido.');
     }
   };
+
+  const porVencer = gastosFijos.filter((g) => g.esta_por_vencer);
+  const hayVencidos = gastosFijos.some((g) => g.dias_restantes < 0);
+  const faltaJuntar = Math.max(0, totalGastosFijos - Number(ventasHoy || 0));
 
   const horas = String(reloj.getHours()).padStart(2, '0');
   const minutos = String(reloj.getMinutes()).padStart(2, '0');
@@ -284,6 +296,55 @@ export default function Inicio() {
               </>
             )}
           </div>
+
+          {/* Tarjeta: Gastos fijos por pagar — solo si hay alguno cargado */}
+          {!cargando && !error && gastosFijos.length > 0 && (
+            <div className={`inicio-card inicio-card-gastos-fijos ${hayVencidos ? 'inicio-card-alerta' : ''}`}>
+              <div className="inicio-card-encabezado">
+                <span className="inicio-card-icono">📅</span>
+                <h3 className="inicio-card-titulo">Gastos fijos por pagar</h3>
+                {porVencer.length > 0 && (
+                  <span className="inicio-contador-pedidos inicio-contador-alerta">{porVencer.length}</span>
+                )}
+              </div>
+
+              <p className="inicio-monto-grande">{formatearPrecio(totalGastosFijos)}</p>
+
+              {faltaJuntar > 0 ? (
+                <p className="inicio-card-subtexto inicio-falta-juntar">
+                  Te faltan <strong>{formatearPrecio(faltaJuntar)}</strong> para cubrirlos con la caja de hoy.
+                </p>
+              ) : (
+                <p className="inicio-card-subtexto inicio-cubierto">
+                  ✅ La caja de hoy ya cubre todos los gastos fijos.
+                </p>
+              )}
+
+              <div className="inicio-gastos-fijos-lista">
+                {gastosFijos.slice(0, 4).map((fijo) => (
+                  <div key={fijo.id} className="inicio-gasto-fijo-item">
+                    <div className="inicio-gasto-fijo-info">
+                      <strong>{fijo.nombre}</strong>
+                      <span className={fijo.esta_por_vencer ? 'inicio-gasto-fijo-alerta' : ''}>
+                        {fijo.dias_restantes < 0
+                          ? `¡Vencido hace ${Math.abs(fijo.dias_restantes)} ${Math.abs(fijo.dias_restantes) === 1 ? 'día' : 'días'}!`
+                          : fijo.dias_restantes === 0
+                            ? '¡Vence hoy!'
+                            : fijo.dias_restantes === 1
+                              ? 'Vence mañana'
+                              : `Faltan ${fijo.dias_restantes} días`}
+                      </span>
+                    </div>
+                    <span className="inicio-gasto-fijo-monto">{formatearPrecio(fijo.monto)}</span>
+                  </div>
+                ))}
+              </div>
+
+              <p className="inicio-card-subtexto">
+                <Link to="/admin/gastos" className="inicio-link-caja">gestionar gastos fijos →</Link>
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="inicio-card inicio-card-pedidos">
@@ -650,6 +711,76 @@ export default function Inicio() {
             max-height: 420px;
             overflow-y: auto;
             padding-right: 4px;
+          }
+
+          .inicio-card-alerta {
+            border-color: rgba(239, 68, 68, 0.4);
+          }
+          .inicio-card-alerta::before {
+            background: linear-gradient(180deg, rgba(239,68,68,0.9), rgba(239,68,68,0.1));
+          }
+
+          .inicio-contador-alerta {
+            background: rgba(239, 68, 68, 0.18);
+            color: #f87171;
+            border-color: rgba(239, 68, 68, 0.4);
+          }
+
+          .inicio-falta-juntar {
+            color: #fbbf24;
+          }
+          .inicio-falta-juntar strong {
+            color: #fbbf24;
+          }
+
+          .inicio-cubierto {
+            color: #4ade80;
+          }
+
+          .inicio-gastos-fijos-lista {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+          }
+
+          .inicio-gasto-fijo-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+          }
+
+          .inicio-gasto-fijo-info {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            min-width: 0;
+          }
+
+          .inicio-gasto-fijo-info strong {
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+
+          .inicio-gasto-fijo-info span {
+            font-size: 0.76rem;
+            color: var(--text-muted, rgba(255,255,255,0.5));
+          }
+
+          .inicio-gasto-fijo-alerta {
+            color: #f87171 !important;
+            font-weight: 700;
+          }
+
+          .inicio-gasto-fijo-monto {
+            font-size: 0.9rem;
+            font-weight: 700;
+            white-space: nowrap;
           }
         `}
       </style>

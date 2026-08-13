@@ -43,16 +43,20 @@ export default function Hero({ configuracion }) {
       ) : (
         <div
           className="hero-fondo"
-          style={{ 
+          style={{
             backgroundImage: `url(${imageSrc})`,
-            position: 'absolute', 
-            top: 0, 
-            left: 0, 
-            width: '100%', 
-            height: '100%', 
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
             zIndex: 0,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center center'
+            // 'contain' y no 'cover': la portada es un logo bien apaisado y con cover
+            // quedaba recortado. El color de fondo continúa el verde de la imagen.
+            backgroundSize: 'contain',
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'center center',
+            backgroundColor: '#12301f',
           }}
         ></div>
       )}

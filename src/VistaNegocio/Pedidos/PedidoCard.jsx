@@ -41,8 +41,14 @@ export default function PedidoCard({ pedido, onCobrar, onDetalle, onImprimir, on
       </div>
 
       <div className="pedido-acciones-toolbar">
-        <button type="button" className="pedido-accion pedido-accion-cobrar" title="Cobrar pedido" onClick={() => onCobrar(pedido)}>
-          <span aria-hidden="true">💰</span>Cobrar
+        <button
+          type="button"
+          className={`pedido-accion pedido-accion-cobrar ${pedido.estado_cobro !== 'pagado' ? 'pedido-accion-cobrar-pendiente' : ''}`}
+          title={pedido.estado_cobro === 'pagado' ? 'Ver o corregir el cobro' : 'Cobrar pedido'}
+          onClick={() => onCobrar(pedido)}
+        >
+          <span aria-hidden="true">💰</span>
+          {pedido.estado_cobro === 'pagado' ? 'Cobrado' : 'Cobrar'}
         </button>
         <button type="button" className="pedido-accion pedido-accion-detalle" title="Ver detalles del pedido" onClick={() => onDetalle(pedido)}>
           <span aria-hidden="true">📝</span>Detalle
