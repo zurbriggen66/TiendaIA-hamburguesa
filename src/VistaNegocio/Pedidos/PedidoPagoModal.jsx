@@ -123,7 +123,7 @@ export default function PedidoPagoModal({ pedidoId, onClose, onSaved }) {
                 onChange={(e) => setMonto(e.target.value)}
               />
               <button type="submit" className="btn-vibrante" disabled={guardando}>
-                {guardando ? 'Agregando...' : '+ Agregar pago'}
+                {guardando ? 'Cobrando...' : monto && Number(monto) > 0 ? `💰 Cobrar ${formatearPrecio(monto)}` : '💰 Cobrar'}
               </button>
             </form>
 
