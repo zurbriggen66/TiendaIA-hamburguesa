@@ -368,6 +368,40 @@ body {
   color: var(--text);
 }
 
+.qr-carta-card {
+  margin-top: 24px;
+}
+
+.qr-carta-texto {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  margin-bottom: 20px;
+}
+
+.qr-carta-cuerpo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.qr-carta-imagen {
+  width: 220px;
+  height: 220px;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 12px;
+}
+
+.qr-carta-cargando {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bg);
+  font-size: 0.85rem;
+}
+
 /* === VISTA NEGOCIO - PRODUCTOS (ProductosPage.jsx) === */
 .productos-page {
   display: flex;

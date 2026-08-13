@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import QRCode from 'qrcode';
 import api from '../../services/api';
 
 export default function Dashboard() {
   const [logo, setLogo] = useState(null);
   const [portada, setPortada] = useState(null);
+  const [qrCarta, setQrCarta] = useState(null);
   
   // Guardamos el ID para saber si tenemos que actualizar (PATCH) o crear (POST)
   const [configId, setConfigId] = useState(null);
@@ -31,6 +33,26 @@ export default function Dashboard() {
     };
     obtenerDatos();
   }, []);
+
+  // El QR apunta a la tienda tal cual se ve desde afuera (mismo dominio donde
+  // se está viendo este panel), directo a la sección del menú.
+  useEffect(() => {
+    QRCode.toDataURL(`${window.location.origin}/#menu`, {
+      width: 480,
+      margin: 2,
+      color: { dark: '#1a120d', light: '#ffffff' },
+    })
+      .then(setQrCarta)
+      .catch((error) => console.error('Error al generar el QR de la carta:', error));
+  }, []);
+
+  const descargarQr = () => {
+    if (!qrCarta) return;
+    const enlace = document.createElement('a');
+    enlace.href = qrCarta;
+    enlace.download = 'carta-qr.png';
+    enlace.click();
+  };
 
   const prevenirNavegador = (e) => {
     e.preventDefault();
@@ -196,6 +218,24 @@ export default function Dashboard() {
                 </button>
               </div>
             </form>
+        </div>
+
+        <div className="form-card qr-carta-card">
+          <h3 className="form-card-title">Carta QR para el local</h3>
+          <p className="qr-carta-texto">
+            Imprimí este código y ponelo en las mesas: quien lo escanee entra directo al menú de la tienda,
+            sin buscar nada. Sirve para pedir sentado en el local o para llevarse la carta a casa.
+          </p>
+          <div className="qr-carta-cuerpo">
+            {qrCarta ? (
+              <img src={qrCarta} alt="Código QR de la carta" className="qr-carta-imagen" />
+            ) : (
+              <div className="qr-carta-imagen qr-carta-cargando">Generando...</div>
+            )}
+            <button type="button" className="btn-vibrante" onClick={descargarQr} disabled={!qrCarta}>
+              Descargar QR
+            </button>
+          </div>
         </div>
       </div>
     </>
