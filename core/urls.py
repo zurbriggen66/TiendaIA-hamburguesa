@@ -13,5 +13,7 @@ urlpatterns = [
     path('api/', include('antojo.urls')),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Server las imágenes subidas (categorías, productos, logo) por Django mismo como
+# respaldo. En PythonAnywhere lo ideal es servirlas directo con un mapeo de archivos
+# estáticos (ver panel Web -> Static files), que no depende de esta línea ni de DEBUG.
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
