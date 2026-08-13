@@ -13,26 +13,46 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 import os
 
+from dotenv import load_dotenv
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Variables de entorno: en local se leen de un archivo .env (no versionado) junto a
+# manage.py; en PythonAnywhere se configuran en el panel de la app (ver README/chat).
+load_dotenv(BASE_DIR / '.env')
 
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-ww(qv84a)bqrgav_fqesmg(yhod*hy*uhv32=%-spzeq1=#23z'
+# El valor de acá abajo es solo un respaldo para que el proyecto no se rompa si falta
+# el .env — en producción SIEMPRE tiene que estar seteado DJANGO_SECRET_KEY.
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-ww(qv84a)bqrgav_fqesmg(yhod*hy*uhv32=%-spzeq1=#23z',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Por defecto queda APAGADO (seguro) a menos que el .env diga explícitamente lo contrario.
+DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = ['www.odettiautomotores.online', 'odettiautomotores.online', 'webapp-3159337.pythonanywhere.com', 'localhost', '127.0.0.1']
+
+# Endurecimiento de seguridad que solo aplica cuando DEBUG está apagado (producción) —
+# en local (DEBUG=True) se dejan desactivados para no romper el runserver por http.
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 año
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+SECURE_CONTENT_TYPE_NOSNIFF = True
 
 
 # Application definition
@@ -133,6 +153,16 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-CORS_ALLOW_ALL_ORIGINS = True
+# Solo el frontend conocido puede llamar a la API (antes cualquier sitio podía).
+CORS_ALLOWED_ORIGINS = [
+    'https://tienda-ia-hamburguesa.vercel.app',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+]
+# Cubre además los deploys de preview que arma Vercel automáticamente para este proyecto
+# (ej. tienda-ia-hamburguesa-git-alguna-rama.vercel.app).
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r'^https://tienda-ia-hamburguesa.*\.vercel\.app$',
+]
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
