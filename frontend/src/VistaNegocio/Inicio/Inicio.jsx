@@ -4,6 +4,10 @@ import api from '../../services/api';
 import AbrirCajaModal from '../Cajas/AbrirCajaModal';
 import CerrarCajaModal from '../Cajas/CerrarCajaModal';
 import PedidoModal from '../Pedidos/PedidoModal';
+import PedidoCard from '../Pedidos/PedidoCard';
+import PedidoPagoModal from '../Pedidos/PedidoPagoModal';
+import PedidoEnvioDescuentoModal from '../Pedidos/PedidoEnvioDescuentoModal';
+import { imprimirPedido } from '../../utils/impresion';
 
 const formatearPrecio = (valor) =>
   new Intl.NumberFormat('es-AR', {
@@ -19,21 +23,7 @@ const formatearHora = (fecha) =>
     hour12: false,
   });
 
-const ETIQUETA_ESTADO = {
-  pendiente: 'Pendiente',
-  en_preparacion: 'En preparación',
-  listo: 'Listo',
-  entregado: 'Entregado',
-  cancelado: 'Cancelado',
-};
-
 const ORDEN_ESTADOS = ['pendiente', 'en_preparacion', 'listo', 'entregado'];
-
-const ETIQUETA_SIGUIENTE = {
-  pendiente: 'Marcar en preparación',
-  en_preparacion: 'Marcar listo',
-  listo: 'Marcar entregado',
-};
 
 export default function Inicio() {
   const [reloj, setReloj] = useState(new Date());
@@ -45,7 +35,6 @@ export default function Inicio() {
   const [cajaAbierta, setCajaAbierta] = useState(true);
   const [porConfirmar, setPorConfirmar] = useState([]);
   const [confirmando, setConfirmando] = useState(null);
-  const [cambiandoEstado, setCambiandoEstado] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
 
@@ -55,6 +44,8 @@ export default function Inicio() {
   const [mostrarAbrirCaja, setMostrarAbrirCaja] = useState(false);
   const [mostrarCerrarCaja, setMostrarCerrarCaja] = useState(false);
   const [mostrarNuevoPedido, setMostrarNuevoPedido] = useState(false);
+  const [modalPago, setModalPago] = useState(null);
+  const [modalEnvio, setModalEnvio] = useState(null);
 
   useEffect(() => {
     const interval = setInterval(() => setReloj(new Date()), 1000);
@@ -127,29 +118,34 @@ export default function Inicio() {
   const avanzarEstadoReciente = async (pedido) => {
     const siguiente = ORDEN_ESTADOS[ORDEN_ESTADOS.indexOf(pedido.estado) + 1];
     if (!siguiente) return;
-    setCambiandoEstado(pedido.id);
     try {
       const { data } = await api.patch(`/pedidos/${pedido.id}/`, { estado: siguiente });
       setPedidosRecientes((prev) => prev.map((p) => (p.id === pedido.id ? data : p)));
     } catch (err) {
       console.error('Error al cambiar el estado del pedido:', err);
       alert('No se pudo cambiar el estado del pedido.');
-    } finally {
-      setCambiandoEstado(null);
     }
   };
 
   const cancelarPedidoReciente = async (pedido) => {
     if (!window.confirm('¿Cancelar este pedido?')) return;
-    setCambiandoEstado(pedido.id);
     try {
       const { data } = await api.patch(`/pedidos/${pedido.id}/`, { estado: 'cancelado' });
       setPedidosRecientes((prev) => prev.map((p) => (p.id === pedido.id ? data : p)));
     } catch (err) {
       console.error('Error al cancelar el pedido:', err);
       alert('No se pudo cancelar el pedido.');
-    } finally {
-      setCambiandoEstado(null);
+    }
+  };
+
+  const eliminarPedidoReciente = async (pedido) => {
+    if (!window.confirm(`¿Eliminar definitivamente el pedido de "${pedido.cliente || `Pedido #${pedido.id}`}"? Esta acción no se puede deshacer.`)) return;
+    try {
+      await api.delete(`/pedidos/${pedido.id}/`);
+      setPedidosRecientes((prev) => prev.filter((p) => p.id !== pedido.id));
+    } catch (err) {
+      console.error('Error al eliminar el pedido:', err);
+      alert('No se pudo eliminar el pedido.');
     }
   };
 
@@ -172,21 +168,69 @@ export default function Inicio() {
 
       <div className="scroll-area">
         <div className="inicio-resumen-grid">
-          {/* Tarjeta: Reloj en vivo */}
-          <div className="inicio-card inicio-card-reloj">
-            <div className="inicio-card-encabezado">
-              <span className="inicio-card-icono">🕐</span>
-              <h3 className="inicio-card-titulo">Reloj en vivo</h3>
+          {/* Tarjeta: Reloj en vivo, o Pedidos por confirmar cuando hay alguno esperando */}
+          {!cargando && !error && porConfirmar.length > 0 ? (
+            <div className="inicio-card inicio-card-confirmar">
+              <div className="inicio-card-encabezado">
+                <span className="inicio-card-icono">📥</span>
+                <h3 className="inicio-card-titulo">Pedidos por confirmar</h3>
+                <span className="inicio-contador-pedidos inicio-contador-confirmar">{porConfirmar.length}</span>
+              </div>
+              <p className="inicio-card-subtexto inicio-confirmar-aviso">
+                Llegaron desde la tienda web. Confirmalos cuando el cliente te haya mandado el WhatsApp — recién ahí se suman a la caja.
+              </p>
+
+              <div className="inicio-pedidos-lista inicio-confirmar-lista">
+                {porConfirmar.map((pedido) => (
+                  <div key={pedido.id} className="inicio-pedido-confirmar-item">
+                    <div className="inicio-pedido-info">
+                      <div className="inicio-pedido-info-top">
+                        <h4>{pedido.cliente || `Pedido #${pedido.id}`}</h4>
+                      </div>
+                      <div className="inicio-pedido-info-bottom">
+                        <span>🕐 {formatearHora(pedido.creado)}</span>
+                        <span>{pedido.tipo_entrega === 'delivery' ? '🛵 Delivery' : '🏠 Retiro'}</span>
+                        <span>{formatearPrecio(pedido.total)}</span>
+                      </div>
+                    </div>
+                    <div className="inicio-pedido-confirmar-acciones">
+                      <button
+                        type="button"
+                        className="inicio-btn-cancelar"
+                        onClick={() => cancelarPedido(pedido)}
+                        disabled={confirmando === pedido.id}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-vibrante inicio-btn-confirmar"
+                        onClick={() => confirmarPedido(pedido)}
+                        disabled={confirmando === pedido.id}
+                      >
+                        {confirmando === pedido.id ? 'Confirmando...' : '✓ Confirmar pedido'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="inicio-reloj-numeros">
-              <span>{horas}</span>
-              <span className="inicio-reloj-separador">:</span>
-              <span>{minutos}</span>
-              <span className="inicio-reloj-separador">:</span>
-              <span className="inicio-reloj-segundos">{segundos}</span>
+          ) : (
+            <div className="inicio-card inicio-card-reloj">
+              <div className="inicio-card-encabezado">
+                <span className="inicio-card-icono">🕐</span>
+                <h3 className="inicio-card-titulo">Reloj en vivo</h3>
+              </div>
+              <div className="inicio-reloj-numeros">
+                <span>{horas}</span>
+                <span className="inicio-reloj-separador">:</span>
+                <span>{minutos}</span>
+                <span className="inicio-reloj-separador">:</span>
+                <span className="inicio-reloj-segundos">{segundos}</span>
+              </div>
+              <p className="inicio-card-subtexto inicio-fecha-capitalizada">{fechaLegible}</p>
             </div>
-            <p className="inicio-card-subtexto inicio-fecha-capitalizada">{fechaLegible}</p>
-          </div>
+          )}
 
           {/* Tarjeta: Caja actual */}
           <div className="inicio-card inicio-card-ventas">
@@ -242,54 +286,6 @@ export default function Inicio() {
           </div>
         </div>
 
-        {!cargando && !error && porConfirmar.length > 0 && (
-          <div className="inicio-card inicio-card-confirmar">
-            <div className="inicio-card-encabezado">
-              <span className="inicio-card-icono">📥</span>
-              <h3 className="inicio-card-titulo">Pedidos por confirmar</h3>
-              <span className="inicio-contador-pedidos inicio-contador-confirmar">{porConfirmar.length}</span>
-            </div>
-            <p className="inicio-card-subtexto inicio-confirmar-aviso">
-              Llegaron desde la tienda web. Confirmalos cuando el cliente te haya mandado el WhatsApp — recién ahí se suman a la caja.
-            </p>
-
-            <div className="inicio-pedidos-lista">
-              {porConfirmar.map((pedido) => (
-                <div key={pedido.id} className="inicio-pedido-confirmar-item">
-                  <div className="inicio-pedido-info">
-                    <div className="inicio-pedido-info-top">
-                      <h4>{pedido.cliente || `Pedido #${pedido.id}`}</h4>
-                    </div>
-                    <div className="inicio-pedido-info-bottom">
-                      <span>🕐 {formatearHora(pedido.creado)}</span>
-                      <span>{pedido.tipo_entrega === 'delivery' ? '🛵 Delivery' : '🏠 Retiro'}</span>
-                      <span>{formatearPrecio(pedido.total)}</span>
-                    </div>
-                  </div>
-                  <div className="inicio-pedido-confirmar-acciones">
-                    <button
-                      type="button"
-                      className="inicio-btn-cancelar"
-                      onClick={() => cancelarPedido(pedido)}
-                      disabled={confirmando === pedido.id}
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-vibrante inicio-btn-confirmar"
-                      onClick={() => confirmarPedido(pedido)}
-                      disabled={confirmando === pedido.id}
-                    >
-                      {confirmando === pedido.id ? 'Confirmando...' : '✓ Confirmar pedido'}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         <div className="inicio-card inicio-card-pedidos">
           <div className="inicio-card-encabezado">
             <span className="inicio-card-icono">🧾</span>
@@ -308,51 +304,18 @@ export default function Inicio() {
               <p>Todavía no entró ningún pedido en las últimas 24 horas.</p>
             </div>
           ) : (
-            <div className="inicio-pedidos-lista">
+            <div className="pedidos-grid inicio-pedidos-grid">
               {pedidosRecientes.map((pedido) => (
-                <div key={pedido.id} className="inicio-pedido-item">
-                  <div className="inicio-pedido-avatar">
-                    {(pedido.cliente || '?').charAt(0).toUpperCase()}
-                  </div>
-
-                  <div className="inicio-pedido-info">
-                    <div className="inicio-pedido-info-top">
-                      <h4>{pedido.cliente || `Pedido #${pedido.id}`}</h4>
-                      <span className={`badge-estado estado-${pedido.estado}`}>
-                        {ETIQUETA_ESTADO[pedido.estado] || pedido.estado}
-                      </span>
-                    </div>
-                    <div className="inicio-pedido-info-bottom">
-                      <span>🕐 {pedido.hora_salida ? pedido.hora_salida.slice(0, 5) : formatearHora(pedido.creado)}</span>
-                      <span>{pedido.tipo_entrega === 'delivery' ? '🛵 Delivery' : '🏠 Retiro'}</span>
-                    </div>
-                  </div>
-
-                  <span className="inicio-pedido-monto">{formatearPrecio(pedido.total)}</span>
-
-                  {pedido.estado !== 'entregado' && pedido.estado !== 'cancelado' && (
-                    <div className="inicio-pedido-acciones">
-                      {ETIQUETA_SIGUIENTE[pedido.estado] && (
-                        <button
-                          type="button"
-                          className="btn-vibrante inicio-btn-avanzar"
-                          onClick={() => avanzarEstadoReciente(pedido)}
-                          disabled={cambiandoEstado === pedido.id}
-                        >
-                          {cambiandoEstado === pedido.id ? '...' : ETIQUETA_SIGUIENTE[pedido.estado]}
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className="inicio-btn-cancelar"
-                        onClick={() => cancelarPedidoReciente(pedido)}
-                        disabled={cambiandoEstado === pedido.id}
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <PedidoCard
+                  key={pedido.id}
+                  pedido={pedido}
+                  onCobrar={(p) => setModalPago(p.id)}
+                  onDetalle={setModalEnvio}
+                  onImprimir={imprimirPedido}
+                  onEliminar={eliminarPedidoReciente}
+                  onAvanzarEstado={avanzarEstadoReciente}
+                  onCancelar={cancelarPedidoReciente}
+                />
               ))}
             </div>
           )}
@@ -381,6 +344,23 @@ export default function Inicio() {
           localidades={localidades}
           onClose={() => setMostrarNuevoPedido(false)}
           onSaved={() => { setMostrarNuevoPedido(false); cargarInicio(); }}
+        />
+      )}
+
+      {modalPago && (
+        <PedidoPagoModal
+          pedidoId={modalPago}
+          onClose={() => setModalPago(null)}
+          onSaved={cargarInicio}
+        />
+      )}
+
+      {modalEnvio && (
+        <PedidoEnvioDescuentoModal
+          pedido={modalEnvio}
+          localidades={localidades}
+          onClose={() => setModalEnvio(null)}
+          onSaved={() => { setModalEnvio(null); cargarInicio(); }}
         />
       )}
 
@@ -556,7 +536,6 @@ export default function Inicio() {
 
           .inicio-card-confirmar {
             border-color: rgba(251, 191, 36, 0.35);
-            margin-bottom: 20px;
           }
 
           .inicio-contador-confirmar {
@@ -635,36 +614,6 @@ export default function Inicio() {
             gap: 12px;
           }
 
-          .inicio-pedido-item {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
-            padding: 14px 18px;
-            transition: background 0.2s ease, border-color 0.2s ease;
-          }
-
-          .inicio-pedido-item:hover {
-            background: rgba(255, 158, 0, 0.05);
-            border-color: rgba(255, 158, 0, 0.2);
-          }
-
-          .inicio-pedido-avatar {
-            flex-shrink: 0;
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #ff9e00, #cc5500);
-            color: #fff;
-            font-weight: 700;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-
           .inicio-pedido-info {
             flex: 1;
             min-width: 0;
@@ -693,37 +642,14 @@ export default function Inicio() {
             color: var(--text-muted, rgba(255,255,255,0.5));
           }
 
-          .inicio-pedido-monto {
-            flex-shrink: 0;
-            font-weight: 700;
-            font-size: 1rem;
-            color: #ff9e00;
+          .inicio-pedidos-grid {
+            margin-top: 4px;
           }
 
-          .inicio-pedido-acciones {
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-          }
-
-          .inicio-btn-avanzar {
-            font-size: 0.78rem;
-            padding: 8px 14px;
-            white-space: nowrap;
-          }
-
-          @media (max-width: 560px) {
-            .inicio-pedido-item {
-              flex-wrap: wrap;
-            }
-            .inicio-pedido-monto {
-              margin-left: 58px;
-            }
-            .inicio-pedido-acciones {
-              width: 100%;
-              margin-left: 58px;
-            }
+          .inicio-confirmar-lista {
+            max-height: 420px;
+            overflow-y: auto;
+            padding-right: 4px;
           }
         `}
       </style>

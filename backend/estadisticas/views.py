@@ -8,7 +8,7 @@ from django.utils.dateparse import parse_date
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from pedidos.models import Pedido, DetallePedido, Pago, Caja
+from pedidos.models import Pedido, DetallePedido, DetalleExtra, Pago, Caja
 from gastos.models import Gasto
 
 MONTO = DecimalField(max_digits=12, decimal_places=2)
@@ -22,7 +22,7 @@ class EstadisticasView(APIView):
         # Un pedido de la tienda web que todavía no fue confirmado por el dueño no es una
         # venta real todavía (puede que el cliente nunca haya mandado el WhatsApp) — no
         # cuenta acá, igual que no cuenta en la caja ni en el dashboard de "Inicio".
-        pedidos_validos = Pedido.objects.filter(confirmado=True).exclude(estado='cancelado').prefetch_related('items__extras')
+        pedidos_validos = Pedido.objects.filter(confirmado=True).exclude(estado='cancelado')
         items_validos = DetallePedido.objects.filter(pedido__confirmado=True).exclude(pedido__estado='cancelado')
         gastos_qs = Gasto.objects.all()
 
@@ -35,27 +35,48 @@ class EstadisticasView(APIView):
             items_validos = items_validos.filter(pedido__creado__date__lte=hasta_periodo)
             gastos_qs = gastos_qs.filter(fecha__date__lte=hasta_periodo)
 
-        # El total real de cada pedido (items + envío - descuento) vive en Pedido.calcular_total(),
-        # la misma cuenta que ya usa PedidoSerializer — la reusamos para que "ventas totales" no
-        # ignore el envío ni el descuento como pasaba sumando solo los items.
-        pedidos_lista = list(pedidos_validos)
-        totales_por_pedido = {p.id: p.calcular_total() for p in pedidos_lista}
+        # El total real de cada pedido (items + extras + envío - descuento) es la misma cuenta
+        # que Pedido.calcular_total(), pero acá la hacemos a mano sobre filas livianas
+        # (values()) en vez de instanciar objetos completos de Pedido/DetallePedido/
+        # DetalleExtra con prefetch_related — con años de historial, traer y armar esos
+        # objetos completos es lo que hace lenta a "General" (que no tiene rango de fecha
+        # y por eso no se puede acotar). Así, "General" crece mucho más lento con el tiempo,
+        # y el resultado es matemáticamente idéntico al de antes.
+        pedidos_datos = list(pedidos_validos.values('id', 'creado', 'costo_envio', 'descuento_pct'))
+
+        extras_por_item = defaultdict(lambda: Decimal('0'))
+        for fila in DetalleExtra.objects.filter(detalle_pedido__pedido__in=pedidos_validos).values('detalle_pedido_id', 'precio_unitario', 'cantidad'):
+            extras_por_item[fila['detalle_pedido_id']] += fila['precio_unitario'] * fila['cantidad']
+
+        subtotal_por_pedido = defaultdict(lambda: Decimal('0'))
+        for fila in DetallePedido.objects.filter(pedido__in=pedidos_validos).values('id', 'pedido_id', 'precio_unitario', 'cantidad'):
+            precio_por_unidad = fila['precio_unitario'] + extras_por_item[fila['id']]
+            subtotal_por_pedido[fila['pedido_id']] += fila['cantidad'] * precio_por_unidad
+
+        def calcular_total(pedido):
+            con_envio = subtotal_por_pedido[pedido['id']] + pedido['costo_envio']
+            if pedido['descuento_pct']:
+                descuento = con_envio * Decimal(pedido['descuento_pct']) / Decimal(100)
+                return (con_envio - descuento).quantize(Decimal('1'))
+            return con_envio
+
+        totales_por_pedido = {p['id']: calcular_total(p) for p in pedidos_datos}
 
         ventas_totales = sum(totales_por_pedido.values(), Decimal('0'))
         gastos_totales = gastos_qs.aggregate(total=Sum('monto'))['total'] or 0
-        total_pedidos = len(pedidos_lista)
+        total_pedidos = len(pedidos_datos)
         ticket_promedio = (ventas_totales / total_pedidos) if total_pedidos else 0
 
         if desde_periodo and hasta_periodo:
-            pedidos_para_grafico = pedidos_lista
+            pedidos_para_grafico = pedidos_datos
         else:
             desde_grafico = (timezone.now() - timedelta(days=14)).date()
-            pedidos_para_grafico = [p for p in pedidos_lista if timezone.localtime(p.creado).date() >= desde_grafico]
+            pedidos_para_grafico = [p for p in pedidos_datos if timezone.localtime(p['creado']).date() >= desde_grafico]
 
         por_dia = defaultdict(lambda: Decimal('0'))
         for p in pedidos_para_grafico:
-            dia = timezone.localtime(p.creado).date()
-            por_dia[dia] += totales_por_pedido[p.id]
+            dia = timezone.localtime(p['creado']).date()
+            por_dia[dia] += totales_por_pedido[p['id']]
 
         productos_mas_vendidos_qs = (
             items_validos.filter(producto__isnull=False)
