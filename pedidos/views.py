@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.http import JsonResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
-from rest_framework import viewsets, status
+from rest_framework import mixins, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
@@ -95,9 +95,18 @@ class PagoViewSet(viewsets.ModelViewSet):
     serializer_class = PagoSerializer
 
 
-class CajaViewSet(viewsets.ReadOnlyModelViewSet):
+class CajaViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSet):
     queryset = Caja.objects.all()
     serializer_class = CajaSerializer
+
+    def destroy(self, request, *args, **kwargs):
+        caja = self.get_object()
+        if caja.esta_abierta:
+            return Response(
+                {'detail': 'No se puede eliminar la caja abierta. Cerrala primero.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().destroy(request, *args, **kwargs)
 
     @action(detail=False, methods=['get'])
     def actual(self, request):

@@ -18,6 +18,7 @@ class EstadisticasView(APIView):
     def get(self, request):
         desde_periodo = parse_date(request.query_params.get('desde') or '')
         hasta_periodo = parse_date(request.query_params.get('hasta') or '')
+        caja_id = request.query_params.get('caja')
 
         # Un pedido de la tienda web que todavía no fue confirmado por el dueño no es una
         # venta real todavía (puede que el cliente nunca haya mandado el WhatsApp) — no
@@ -26,14 +27,22 @@ class EstadisticasView(APIView):
         items_validos = DetallePedido.objects.filter(pedido__confirmado=True).exclude(pedido__estado='cancelado')
         gastos_qs = Gasto.objects.all()
 
-        if desde_periodo:
-            pedidos_validos = pedidos_validos.filter(creado__date__gte=desde_periodo)
-            items_validos = items_validos.filter(pedido__creado__date__gte=desde_periodo)
-            gastos_qs = gastos_qs.filter(fecha__date__gte=desde_periodo)
-        if hasta_periodo:
-            pedidos_validos = pedidos_validos.filter(creado__date__lte=hasta_periodo)
-            items_validos = items_validos.filter(pedido__creado__date__lte=hasta_periodo)
-            gastos_qs = gastos_qs.filter(fecha__date__lte=hasta_periodo)
+        if caja_id:
+            # Estadísticas de un turno de caja puntual: los pedidos ya están asociados a
+            # su caja por FK (se asigna al crear/confirmar), así que alcanza con filtrar
+            # por ahí en vez de por rango de fecha. Los gastos no están ligados a una
+            # caja, así que no se filtran acá (la vista de caja no los muestra).
+            pedidos_validos = pedidos_validos.filter(caja_id=caja_id)
+            items_validos = items_validos.filter(pedido__caja_id=caja_id)
+        else:
+            if desde_periodo:
+                pedidos_validos = pedidos_validos.filter(creado__date__gte=desde_periodo)
+                items_validos = items_validos.filter(pedido__creado__date__gte=desde_periodo)
+                gastos_qs = gastos_qs.filter(fecha__date__gte=desde_periodo)
+            if hasta_periodo:
+                pedidos_validos = pedidos_validos.filter(creado__date__lte=hasta_periodo)
+                items_validos = items_validos.filter(pedido__creado__date__lte=hasta_periodo)
+                gastos_qs = gastos_qs.filter(fecha__date__lte=hasta_periodo)
 
         # El total real de cada pedido (items + extras + envío - descuento) es la misma cuenta
         # que Pedido.calcular_total(), pero acá la hacemos a mano sobre filas livianas
