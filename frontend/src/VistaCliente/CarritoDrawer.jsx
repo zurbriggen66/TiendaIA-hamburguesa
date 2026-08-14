@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 
 const formatearPrecio = (precio) =>
@@ -43,6 +43,32 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
   const [exito, setExito] = useState(false);
   const [errores, setErrores] = useState({});
   const [linkWhatsapp, setLinkWhatsapp] = useState(null);
+
+  // Bloquea el scroll de la página de fondo mientras el drawer está abierto. En mobile
+  // (sobre todo iOS Safari) un simple `overflow: hidden` en el body no alcanza: el fondo
+  // igual rebota/se desplaza al tocar. Fijar el body en su posición actual es lo único
+  // que lo inmoviliza de forma confiable en todos los navegadores; al cerrar, se restaura
+  // el scroll exactamente donde estaba.
+  useEffect(() => {
+    const scrollY = window.scrollY;
+    const { body } = document;
+    const html = document.documentElement;
+    const previoBody = { position: body.style.position, top: body.style.top, width: body.style.width };
+    const previoOverflowHtml = html.style.overflow;
+
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.width = '100%';
+    html.style.overflow = 'hidden';
+
+    return () => {
+      body.style.position = previoBody.position;
+      body.style.top = previoBody.top;
+      body.style.width = previoBody.width;
+      html.style.overflow = previoOverflowHtml;
+      window.scrollTo(0, scrollY);
+    };
+  }, []);
 
   const total = items.reduce((acc, linea) => acc + precioUnitarioLinea(linea) * linea.cantidad, 0);
 
@@ -304,6 +330,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           display: flex;
           justify-content: flex-end;
           animation: pedidoFondoAparece 0.2s ease-out;
+          overscroll-behavior: contain;
         }
 
         @keyframes pedidoFondoAparece {
@@ -320,6 +347,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           padding: 22px;
           overflow-y: auto;
           -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
           box-shadow: -20px 0 40px -10px rgba(0, 0, 0, 0.5);
           animation: pedidoDrawerAparece 0.28s cubic-bezier(0.22, 1, 0.36, 1);
         }
@@ -572,6 +600,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
         .pedido-sugerido-imagen {
           width: 64px;
           height: 64px;
+          flex-shrink: 0;
           border-radius: 12px;
           overflow: hidden;
           background: #f4ede6;
@@ -588,6 +617,11 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
         }
 
         .pedido-sugerido-nombre {
+          width: 100%;
+          /* Reserva siempre el alto de 2 líneas (aunque el nombre entre en 1) para que
+             el precio y el botón queden a la misma altura en todas las tarjetas, sin
+             importar cuán largo sea el nombre del producto. */
+          min-height: 1.88rem;
           font-size: 0.78rem;
           font-weight: 700;
           color: #1c1410;
@@ -599,14 +633,18 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
         }
 
         .pedido-sugerido-precios {
+          width: 100%;
           font-size: 0.76rem;
           font-weight: 700;
           color: #e8630c;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .pedido-sugerido-agregar {
           width: 100%;
-          margin-top: 2px;
+          margin-top: auto;
           background: linear-gradient(135deg, #25d366, #128c7e);
           color: #ffffff;
           border: none;
@@ -623,7 +661,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           align-items: center;
           justify-content: center;
           gap: 8px;
-          margin-top: 2px;
+          margin-top: auto;
           border: 1px solid #ece1d6;
           border-radius: 999px;
           padding: 3px 6px;
