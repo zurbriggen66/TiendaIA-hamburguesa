@@ -311,7 +311,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
             )}
 
             <button type="submit" className="pedido-btn-finalizar" disabled={enviando}>
-              {enviando ? 'Enviando...' : 'Finalizar Pedido'}
+              {enviando ? 'Enviando...' : '📲 Enviar pedido por WhatsApp'}
             </button>
 
         
