@@ -131,22 +131,35 @@ export default function Inicio() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const armarLineaId = (tipo, id, extras) =>
-    `${tipo}-${id}-${(extras || []).map((e) => `${e.id}x${e.cantidad}`).sort().join('_')}`;
+  const armarLineaId = (tipo, id, extras, sugerido) =>
+    `${tipo}-${id}-${(extras || []).map((e) => `${e.id}x${e.cantidad}`).sort().join('_')}${sugerido ? '-carrito' : ''}`;
 
-  const agregarAlCarritoGenerico = (tipo, item, cantidad, extras = []) => {
-    const lineaId = armarLineaId(tipo, item.id, extras);
+  // `sugerido` distingue una línea agregada desde la sugerencia de venta cruzada del
+  // carrito (precio con descuento_carrito_pct) de una agregada normalmente desde el
+  // menú (precio de lista): así nunca se mezclan en la misma línea con precios distintos.
+  const agregarAlCarritoGenerico = (tipo, item, cantidad, extras = [], sugerido = false) => {
+    const lineaId = armarLineaId(tipo, item.id, extras, sugerido);
     setItems((prev) => {
       const existente = prev.find((i) => i.lineaId === lineaId);
       if (existente) {
         return prev.map((i) => (i.lineaId === lineaId ? { ...i, cantidad: i.cantidad + cantidad } : i));
       }
-      return [...prev, { lineaId, tipo, item, cantidad, extras }];
+      return [...prev, { lineaId, tipo, item, cantidad, extras, sugerido }];
     });
   };
 
   const agregarAlCarrito = (producto, cantidad, extras) => agregarAlCarritoGenerico('producto', producto, cantidad, extras);
   const agregarComboAlCarrito = (combo, cantidad) => agregarAlCarritoGenerico('combo', combo, cantidad);
+  const agregarSugeridoAlCarrito = (producto) => {
+    const precioConDescuento = producto.sugerido_carrito && Number(producto.descuento_carrito_pct) > 0
+      ? Number(producto.precio_sugerido_carrito)
+      : Number(producto.precio);
+    agregarAlCarritoGenerico('producto', { ...producto, precio: precioConDescuento }, 1, [], true);
+  };
+
+  const sugeridosCarrito = productos.filter(
+    (p) => p.sugerido_carrito && Number(p.descuento_carrito_pct) > 0 && !p.es_extra
+  );
 
   const cambiarCantidad = (lineaId, cantidad) => {
     if (cantidad <= 0) {
@@ -251,9 +264,11 @@ export default function Inicio() {
         <CarritoDrawer
           items={items}
           whatsapp={configuracion.whatsapp}
+          sugeridos={sugeridosCarrito}
           onClose={() => setCarritoAbierto(false)}
           onCambiarCantidad={cambiarCantidad}
           onQuitar={quitarDelCarrito}
+          onAgregarSugerido={agregarSugeridoAlCarrito}
           onVaciar={() => setItems([])}
         />
       )}

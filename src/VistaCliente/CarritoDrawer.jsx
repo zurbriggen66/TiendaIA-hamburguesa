@@ -27,13 +27,14 @@ function armarMensajeWhatsapp({ nombre, telefono, tipoEntrega, direccion, items,
     const extrasTexto = linea.extras && linea.extras.length > 0
       ? ` (+ ${textoExtras(linea.extras)})`
       : '';
-    lineas.push(`${linea.cantidad}x ${linea.item.nombre}${extrasTexto} - ${formatearPrecio(precioUnitarioLinea(linea) * linea.cantidad)}`);
+    const etiquetaSugerido = linea.sugerido ? ' 🛒(oferta carrito)' : '';
+    lineas.push(`${linea.cantidad}x ${linea.item.nombre}${extrasTexto}${etiquetaSugerido} - ${formatearPrecio(precioUnitarioLinea(linea) * linea.cantidad)}`);
   });
   lineas.push('', `*Total: ${formatearPrecio(total)}*`);
   return lineas.join('\n');
 }
 
-export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCantidad, onQuitar, onVaciar }) {
+export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onCambiarCantidad, onQuitar, onAgregarSugerido, onVaciar }) {
   const [nombre, setNombre] = useState('');
   const [telefono, setTelefono] = useState('');
   const [tipoEntrega, setTipoEntrega] = useState('retiro');
@@ -41,8 +42,12 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
   const [enviando, setEnviando] = useState(false);
   const [exito, setExito] = useState(false);
   const [errores, setErrores] = useState({});
+  const [linkWhatsapp, setLinkWhatsapp] = useState(null);
 
   const total = items.reduce((acc, linea) => acc + precioUnitarioLinea(linea) * linea.cantidad, 0);
+
+  const lineaSugerido = (productoId) =>
+    items.find((l) => l.tipo === 'producto' && l.sugerido && l.item.id === productoId);
 
   const enviarPedido = async (e) => {
     e.preventDefault();
@@ -58,8 +63,18 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
       return;
     }
     setErrores({});
-
     setEnviando(true);
+
+    // Abrimos WhatsApp de forma SÍNCRONA, en la misma tarea que el submit del
+    // formulario. Si se abre después de un `await` (ej. la llamada a la API),
+    // los navegadores (sobre todo Safari/iOS) pierden el "gesto de usuario" y
+    // bloquean la ventana en silencio, sin ningún error visible.
+    const mensaje = armarMensajeWhatsapp({ nombre, telefono, tipoEntrega, direccion, items, total });
+    const url = `https://wa.me/${whatsapp}?text=${encodeURIComponent(mensaje)}`;
+    const ventana = window.open(url, '_blank', 'noopener,noreferrer');
+    // Si el navegador igual bloqueó la ventana, dejamos un enlace visible como respaldo.
+    setLinkWhatsapp(!ventana || ventana.closed ? url : null);
+
     try {
       await api.post('/pedidos/', {
         cliente: nombre.trim(),
@@ -74,6 +89,7 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
                 producto: linea.item.id,
                 cantidad: linea.cantidad,
                 extras: (linea.extras || []).map((e) => ({ producto: e.id, cantidad: e.cantidad })),
+                sugerido_carrito: !!linea.sugerido,
               }
         ),
       });
@@ -81,9 +97,6 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
       // No bloqueamos el envío por WhatsApp aunque falle el guardado en el sistema.
       console.error('Error al registrar el pedido:', error);
     }
-
-    const mensaje = armarMensajeWhatsapp({ nombre, telefono, tipoEntrega, direccion, items, total });
-    window.open(`https://wa.me/${whatsapp}?text=${encodeURIComponent(mensaje)}`, '_blank');
 
     setEnviando(false);
     setExito(true);
@@ -105,6 +118,16 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
           <div className="pedido-exito">
             <span className="pedido-exito-icono">✅</span>
             <p>¡Pedido enviado! Te vamos a contactar por WhatsApp para confirmarlo.</p>
+            {linkWhatsapp && (
+              <a
+                href={linkWhatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="pedido-btn-whatsapp pedido-link-whatsapp"
+              >
+                📲 Tu navegador bloqueó la ventana, tocá acá para abrir WhatsApp
+              </a>
+            )}
             <button type="button" className="pedido-btn-primario" onClick={onClose}>Cerrar</button>
           </div>
         ) : items.length === 0 ? (
@@ -151,6 +174,43 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
               <span>Total</span>
               <strong>{formatearPrecio(total)}</strong>
             </div>
+
+            {sugeridos && sugeridos.length > 0 && (
+              <div className="pedido-sugeridos">
+                <div className="pedido-seccion-titulo">
+                  <span className="pedido-seccion-icono">🛒</span>
+                  <span>Sumá con descuento</span>
+                </div>
+                <div className="pedido-sugeridos-scroll">
+                  {sugeridos.map((prod) => {
+                    const linea = lineaSugerido(prod.id);
+                    return (
+                      <div key={prod.id} className="pedido-sugerido-card">
+                        <div className="pedido-sugerido-imagen">
+                          {prod.imagen ? <img src={prod.imagen} alt={prod.nombre} /> : <span>🍔</span>}
+                        </div>
+                        <span className="pedido-sugerido-nombre">{prod.nombre}</span>
+                        <span className="pedido-sugerido-precios">
+                          <span className="precio-tachado">{formatearPrecio(prod.precio)}</span>
+                          {' '}{formatearPrecio(Number(prod.precio_sugerido_carrito))}
+                        </span>
+                        {linea ? (
+                          <div className="pedido-sugerido-stepper">
+                            <button type="button" onClick={() => onCambiarCantidad(linea.lineaId, linea.cantidad - 1)} aria-label="Restar">−</button>
+                            <span>{linea.cantidad}</span>
+                            <button type="button" onClick={() => onCambiarCantidad(linea.lineaId, linea.cantidad + 1)} aria-label="Sumar">+</button>
+                          </div>
+                        ) : (
+                          <button type="button" className="pedido-sugerido-agregar" onClick={() => onAgregarSugerido(prod)}>
+                            + Agregar
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="pedido-seccion">
               <div className="pedido-seccion-titulo">
@@ -478,6 +538,119 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
           color: #e8630c;
         }
 
+        .pedido-sugeridos {
+          margin-bottom: 22px;
+        }
+
+        .pedido-sugeridos .pedido-seccion-titulo {
+          margin-bottom: 10px;
+        }
+
+        .pedido-sugeridos-scroll {
+          display: flex;
+          gap: 10px;
+          overflow-x: auto;
+          padding-bottom: 4px;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: thin;
+        }
+
+        .pedido-sugerido-card {
+          flex: 0 0 auto;
+          width: 128px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+          text-align: center;
+          padding: 10px;
+          border-radius: 14px;
+          border: 1.5px solid #ece1d6;
+          background: #fdfbf9;
+        }
+
+        .pedido-sugerido-imagen {
+          width: 64px;
+          height: 64px;
+          border-radius: 12px;
+          overflow: hidden;
+          background: #f4ede6;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.6rem;
+        }
+
+        .pedido-sugerido-imagen img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .pedido-sugerido-nombre {
+          font-size: 0.78rem;
+          font-weight: 700;
+          color: #1c1410;
+          line-height: 1.2;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
+        .pedido-sugerido-precios {
+          font-size: 0.76rem;
+          font-weight: 700;
+          color: #e8630c;
+        }
+
+        .pedido-sugerido-agregar {
+          width: 100%;
+          margin-top: 2px;
+          background: linear-gradient(135deg, #25d366, #128c7e);
+          color: #ffffff;
+          border: none;
+          padding: 7px 10px;
+          border-radius: 999px;
+          font-weight: 700;
+          font-size: 0.72rem;
+          font-family: inherit;
+          cursor: pointer;
+        }
+
+        .pedido-sugerido-stepper {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          margin-top: 2px;
+          border: 1px solid #ece1d6;
+          border-radius: 999px;
+          padding: 3px 6px;
+          width: 100%;
+        }
+        .pedido-sugerido-stepper button {
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          border: none;
+          background: #f4ede6;
+          color: #1c1410;
+          font-size: 0.8rem;
+          font-weight: 700;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .pedido-sugerido-stepper span {
+          font-size: 0.78rem;
+          font-weight: 700;
+          color: #1c1410;
+          min-width: 12px;
+          text-align: center;
+        }
+
         .pedido-seccion {
           margin-bottom: 20px;
         }
@@ -664,6 +837,13 @@ export default function CarritoDrawer({ items, whatsapp, onClose, onCambiarCanti
 
         .pedido-exito-icono {
           font-size: 3rem;
+        }
+
+        .pedido-link-whatsapp {
+          display: inline-block;
+          width: auto;
+          text-decoration: none;
+          text-align: center;
         }
       `}</style>
     </div>

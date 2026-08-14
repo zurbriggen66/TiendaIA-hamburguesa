@@ -610,6 +610,19 @@ body {
   white-space: nowrap;
 }
 
+.badge-carrito {
+  display: inline-flex;
+  align-self: flex-start;
+  background: linear-gradient(135deg, #25d366, #128c7e);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.7rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin-bottom: 6px;
+  white-space: nowrap;
+}
+
 .badge-descuento-chica {
   font-size: 0.65rem;
   padding: 2px 7px;
