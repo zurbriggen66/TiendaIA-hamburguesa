@@ -2379,6 +2379,26 @@ body {
   font-size: 0.9rem;
 }
 
+.menu-tarjeta-toppings {
+  width: 100%;
+  margin-top: auto;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  background: #ffc700;
+  color: #1a1410;
+  font-weight: 800;
+  font-size: 0.9rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.menu-tarjeta-toppings:hover {
+  background: #ffb800;
+  transform: translateY(-1px);
+}
+
 /* Extras enganchados a un producto, con cantidad propia (Menu.jsx: SelectorExtras,
    VistaNegocio/Pedidos/PedidoModal.jsx: filas de extras) */
 .menu-tarjeta-extras {
