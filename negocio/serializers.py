@@ -7,6 +7,7 @@ class ConfiguracionSitioSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'logo',
+            'logo_precarga',
             'imagen_principal',
             'video_principal',
             'whatsapp',
