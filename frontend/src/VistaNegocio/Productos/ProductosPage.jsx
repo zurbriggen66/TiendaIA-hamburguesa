@@ -121,6 +121,9 @@ export default function ProductosPage() {
                 {prod.destacado && <span className="badge-destacado">⭐ Destacado</span>}
                 {prod.es_extra && <span className="badge-extra">🍟 Extra</span>}
                 {prod.descuento_activo && <span className="badge-descuento">🏷️ -{prod.descuento_pct}%</span>}
+                {prod.sugerido_carrito && Number(prod.descuento_carrito_pct) > 0 && (
+                  <span className="badge-carrito">🛒 Carrito -{prod.descuento_carrito_pct}%</span>
+                )}
                 <div className="producto-imagen-wrap">
                   {prod.imagen ? (
                     <img src={prod.imagen} alt={prod.nombre} className="producto-imagen" />

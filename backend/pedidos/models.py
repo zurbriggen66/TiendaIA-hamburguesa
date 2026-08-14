@@ -136,6 +136,9 @@ class DetallePedido(models.Model):
     cantidad = models.PositiveIntegerField()
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
     descuento_pct = models.PositiveIntegerField(default=0)
+    # Marca si esta línea se agregó desde la sugerencia de venta cruzada en el carrito:
+    # solo ahí se le respeta el precio con descuento_carrito_pct del producto.
+    sugerido_carrito = models.BooleanField(default=False)
 
     def __str__(self):
         nombre = self.producto.nombre if self.producto else self.combo.nombre

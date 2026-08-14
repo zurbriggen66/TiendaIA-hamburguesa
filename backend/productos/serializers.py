@@ -16,13 +16,15 @@ class ProductoSerializer(serializers.ModelSerializer):
     insumos_json = serializers.CharField(write_only=True, required=False, allow_blank=True)
     descuento_activo = serializers.SerializerMethodField()
     precio_actual = serializers.SerializerMethodField()
+    precio_sugerido_carrito = serializers.SerializerMethodField()
 
     class Meta:
         model = Producto
         fields = [
             'id', 'categoria', 'categoria_nombre', 'nombre', 'descripcion', 'precio',
             'imagen', 'destacado', 'es_extra', 'insumos_detalle', 'insumos_json',
-            'descuento_pct', 'descuento_hasta', 'descuento_activo', 'precio_actual', 'creado',
+            'descuento_pct', 'descuento_hasta', 'descuento_activo', 'precio_actual',
+            'sugerido_carrito', 'descuento_carrito_pct', 'precio_sugerido_carrito', 'creado',
         ]
 
     def get_descuento_activo(self, obj):
@@ -30,6 +32,9 @@ class ProductoSerializer(serializers.ModelSerializer):
 
     def get_precio_actual(self, obj):
         return obj.precio_actual()
+
+    def get_precio_sugerido_carrito(self, obj):
+        return obj.precio_sugerido_carrito()
 
     def get_insumos_detalle(self, obj):
         return [

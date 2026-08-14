@@ -13,6 +13,10 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
   );
   const [destacado, setDestacado] = useState(producto ? producto.destacado : false);
   const [esExtra, setEsExtra] = useState(producto ? producto.es_extra : false);
+  const [sugeridoCarrito, setSugeridoCarrito] = useState(producto ? producto.sugerido_carrito : false);
+  const [descuentoCarritoPct, setDescuentoCarritoPct] = useState(
+    producto && producto.descuento_carrito_pct ? producto.descuento_carrito_pct : ''
+  );
   const [imagen, setImagen] = useState(null);
   const [guardando, setGuardando] = useState(false);
   const [insumosDisponibles, setInsumosDisponibles] = useState([]);
@@ -56,6 +60,10 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
       alert('Completá al menos el nombre, el precio y la categoría.');
       return;
     }
+    if (sugeridoCarrito && !(Number(descuentoCarritoPct) > 0)) {
+      alert('Definí un porcentaje de descuento mayor a 0 para sugerir este producto en el carrito.');
+      return;
+    }
 
     const formData = new FormData();
     formData.append('nombre', nombre.trim());
@@ -64,6 +72,8 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
     formData.append('categoria', categoriaId);
     formData.append('destacado', destacado);
     formData.append('es_extra', esExtra);
+    formData.append('sugerido_carrito', sugeridoCarrito);
+    formData.append('descuento_carrito_pct', sugeridoCarrito ? descuentoCarritoPct : 0);
     if (imagen) formData.append('imagen', imagen);
 
     const filasValidas = filasInsumos.filter((f) => f.insumo && Number(f.cantidad) > 0);
@@ -175,6 +185,29 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
               />
               <span>🍟 Es un extra / topping (se vende por separado)</span>
             </label>
+          </div>
+
+          <div className="form-group">
+            <label className="checkbox-vibrante">
+              <input
+                type="checkbox"
+                checked={sugeridoCarrito}
+                onChange={(e) => setSugeridoCarrito(e.target.checked)}
+              />
+              <span>🛒 Sugerir en el carrito (venta cruzada con descuento)</span>
+            </label>
+            {sugeridoCarrito && (
+              <input
+                type="number"
+                min="1"
+                max="99"
+                className="input-vibrante"
+                placeholder="Descuento % solo al agregarlo desde el carrito"
+                value={descuentoCarritoPct}
+                onChange={(e) => setDescuentoCarritoPct(e.target.value)}
+                style={{ marginTop: 8 }}
+              />
+            )}
           </div>
 
           {insumosDisponibles.length > 0 && (
