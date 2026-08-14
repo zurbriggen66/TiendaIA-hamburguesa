@@ -36,6 +36,13 @@ const precargarVideo = (src) =>
 const conLimiteDeTiempo = (promesa, ms) =>
   Promise.race([promesa, new Promise((resolve) => setTimeout(resolve, ms))]);
 
+// Piso mínimo de tiempo que se muestra la pantalla de precarga: con una conexión rápida
+// (o en desarrollo, contra un servidor local) todo puede resolver casi al instante, y la
+// barra se llena antes de que el logo llegue a verse. Forzamos esta espera mínima para
+// que el logo siempre alcance a mostrarse aunque el resto cargue de inmediato.
+const TIEMPO_MINIMO_PRECARGA_MS = 1200;
+const esperar = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
 
@@ -116,11 +123,17 @@ export default function Inicio() {
       // Con límite de tiempo: si la precarga no resuelve rápido (típico en iOS con
       // video), seguimos igual — el video/imagen termina de cargar solo cuando el
       // Hero lo renderice, en vez de dejar al usuario mirando el logo para siempre.
-      if (configFinal.video_principal) {
-        await conLimiteDeTiempo(precargarVideo(configFinal.video_principal), 4000);
-      } else {
-        await conLimiteDeTiempo(precargarImagen(configFinal.imagen_principal), 4000);
-      }
+      const precargaAssetPesado = configFinal.video_principal
+        ? conLimiteDeTiempo(precargarVideo(configFinal.video_principal), 4000)
+        : conLimiteDeTiempo(precargarImagen(configFinal.imagen_principal), 4000);
+
+      // Esperamos también el logo de precarga y el piso mínimo de tiempo: así el logo
+      // siempre llega a mostrarse, aunque el servidor responda casi al instante.
+      await Promise.all([
+        precargaAssetPesado,
+        precargarImagen(configFinal.logo_precarga),
+        esperar(TIEMPO_MINIMO_PRECARGA_MS),
+      ]);
 
       if (activo) setCargando(false);
     };
