@@ -31,6 +31,14 @@ export default function PedidoModal({ productos, categorias, localidades, onClos
   const extrasTodos = productos.filter((p) => p.es_extra);
   const extrasParaProducto = (producto) => (producto ? extrasTodos.filter((e) => e.categoria === producto.categoria) : []);
 
+  // El dueño quiere ver primero la categoría de hamburguesas al cargar un pedido, para no
+  // tener que buscarla entre el resto (que se ordenan alfabéticamente).
+  const categoriasOrdenadas = [...(categorias || [])].sort((a, b) => {
+    const esBurguerA = a.nombre.trim().toLowerCase() === 'burguers' ? 0 : 1;
+    const esBurguerB = b.nombre.trim().toLowerCase() === 'burguers' ? 0 : 1;
+    return esBurguerA - esBurguerB;
+  });
+
   const productosFiltrados = categoriaActiva === 'todas'
     ? productosPrincipales
     : productosPrincipales.filter((p) => p.categoria === categoriaActiva);
@@ -258,7 +266,7 @@ export default function PedidoModal({ productos, categorias, localidades, onClos
                 >
                   Todas
                 </button>
-                {categorias.map((cat, i) => (
+                {categoriasOrdenadas.map((cat, i) => (
                   <button
                     key={cat.id}
                     type="button"
