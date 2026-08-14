@@ -28,6 +28,8 @@ class Producto(models.Model):
     insumos = models.ManyToManyField('gastos.Insumo', through='ProductoInsumo', blank=True, related_name='productos')
     descuento_pct = models.PositiveIntegerField(default=0)
     descuento_hasta = models.DateTimeField(null=True, blank=True)
+    sugerido_carrito = models.BooleanField(default=False)
+    descuento_carrito_pct = models.PositiveIntegerField(default=0)
     creado = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -42,6 +44,15 @@ class Producto(models.Model):
     def precio_actual(self):
         if self.tiene_descuento_activo():
             descuento = Decimal(self.descuento_pct) / Decimal(100)
+            return (self.precio * (Decimal(1) - descuento)).quantize(Decimal('1'))
+        return self.precio
+
+    def tiene_descuento_carrito_activo(self):
+        return self.sugerido_carrito and bool(self.descuento_carrito_pct)
+
+    def precio_sugerido_carrito(self):
+        if self.tiene_descuento_carrito_activo():
+            descuento = Decimal(self.descuento_carrito_pct) / Decimal(100)
             return (self.precio * (Decimal(1) - descuento)).quantize(Decimal('1'))
         return self.precio
 
