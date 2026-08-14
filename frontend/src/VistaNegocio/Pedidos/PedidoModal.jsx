@@ -23,7 +23,12 @@ export default function PedidoModal({ productos, categorias, localidades, onClos
   const [descuentoPct, setDescuentoPct] = useState('');
   const [horaSalida, setHoraSalida] = useState('');
   const [nota, setNota] = useState('');
-  const [categoriaActiva, setCategoriaActiva] = useState('todas');
+  // Arranca en "Burguers" (la categoría más pedida) para no obligar a tocar el filtro
+  // en cada pedido nuevo; el resto de categorías se sigue pudiendo elegir a mano.
+  const [categoriaActiva, setCategoriaActiva] = useState(() => {
+    const burguers = (categorias || []).find((c) => c.nombre.trim().toLowerCase() === 'burguers');
+    return burguers ? burguers.id : 'todas';
+  });
   const [filas, setFilas] = useState([]);
   const [guardando, setGuardando] = useState(false);
 
