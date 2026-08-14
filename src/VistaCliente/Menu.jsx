@@ -56,7 +56,7 @@ function TarjetaProducto({ producto, onVerDetalle }) {
         {producto.descripcion && <p className="menu-tarjeta-descripcion">{producto.descripcion}</p>}
 
         <button type="button" className="menu-tarjeta-toppings" onClick={() => onVerDetalle(producto)}>
-          Agregar toppings
+          Agregar al pedido
         </button>
       </div>
     </div>
