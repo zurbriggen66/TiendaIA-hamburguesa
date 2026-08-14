@@ -45,6 +45,7 @@ const precioUnitarioLinea = (linea) =>
 export default function Inicio() {
   const [configuracion, setConfiguracion] = useState({
     logo: "https://cdn-icons-png.flaticon.com/512/3075/3075977.png",
+    logo_precarga: null,
     imagen_principal: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=1200&q=80",
     video_principal: null,
     whatsapp: '5493544400993',
@@ -67,6 +68,7 @@ export default function Inicio() {
           const ultimaConfig = respuesta.data[respuesta.data.length - 1];
           return {
             logo: ultimaConfig.logo || configuracion.logo,
+            logo_precarga: ultimaConfig.logo_precarga || configuracion.logo_precarga,
             imagen_principal: ultimaConfig.imagen_principal || configuracion.imagen_principal,
             video_principal: ultimaConfig.video_principal || configuracion.video_principal,
             whatsapp: ultimaConfig.whatsapp || configuracion.whatsapp,
@@ -187,7 +189,15 @@ export default function Inicio() {
   if (cargando) {
     return (
       <div className="preloader-pantalla">
-        <img src={configuracion.logo} alt="Cargando" className="preloader-logo" />
+        {configuracion.logo_precarga && (
+          <img
+            src={configuracion.logo_precarga}
+            alt="Cargando"
+            className="preloader-logo"
+            fetchPriority="high"
+            decoding="async"
+          />
+        )}
         <div className="preloader-barra">
           <div className="preloader-barra-relleno" />
         </div>

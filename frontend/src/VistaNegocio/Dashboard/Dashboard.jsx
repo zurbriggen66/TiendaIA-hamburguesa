@@ -4,12 +4,14 @@ import api from '../../services/api';
 
 export default function Dashboard() {
   const [logo, setLogo] = useState(null);
+  const [logoPrecarga, setLogoPrecarga] = useState(null);
   const [portada, setPortada] = useState(null);
   const [qrCarta, setQrCarta] = useState(null);
-  
+
   // Guardamos el ID para saber si tenemos que actualizar (PATCH) o crear (POST)
   const [configId, setConfigId] = useState(null);
   const [logoActivo, setLogoActivo] = useState(null);
+  const [logoPrecargaActivo, setLogoPrecargaActivo] = useState(null);
   const [portadaActiva, setPortadaActiva] = useState(null);
   const [whatsapp, setWhatsapp] = useState('');
   const [instagram, setInstagram] = useState('');
@@ -23,6 +25,7 @@ export default function Dashboard() {
           const ultimaConfig = respuesta.data[respuesta.data.length - 1];
           setConfigId(ultimaConfig.id); // ¡Guardamos el ID del registro!
           setLogoActivo(ultimaConfig.logo);
+          setLogoPrecargaActivo(ultimaConfig.logo_precarga);
           setPortadaActiva(ultimaConfig.imagen_principal);
           setWhatsapp(ultimaConfig.whatsapp || '');
           setInstagram(ultimaConfig.instagram || '');
@@ -64,6 +67,11 @@ export default function Dashboard() {
     if (e.dataTransfer.files && e.dataTransfer.files[0]) setLogo(e.dataTransfer.files[0]);
   };
 
+  const handleDropLogoPrecarga = (e) => {
+    prevenirNavegador(e);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) setLogoPrecarga(e.dataTransfer.files[0]);
+  };
+
   const handleDropPortada = (e) => {
     prevenirNavegador(e);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) setPortada(e.dataTransfer.files[0]);
@@ -71,13 +79,14 @@ export default function Dashboard() {
 
   const guardarCambios = async (e) => {
     e.preventDefault();
-    if (!logo && !portada && !configId) {
+    if (!logo && !logoPrecarga && !portada && !configId) {
       alert("Por favor, selecciona al menos una imagen antes de guardar.");
       return;
     }
 
     const formData = new FormData();
     if (logo) formData.append('logo', logo);
+    if (logoPrecarga) formData.append('logo_precarga', logoPrecarga);
     if (portada) formData.append('imagen_principal', portada);
     formData.append('whatsapp', whatsapp);
     formData.append('instagram', instagram);
@@ -104,6 +113,7 @@ export default function Dashboard() {
 
   // Lógica para previsualizar: si recién cargó un archivo, muestra ese. Si no, muestra el de la base de datos.
   const previewLogo = logo ? URL.createObjectURL(logo) : logoActivo;
+  const previewLogoPrecarga = logoPrecarga ? URL.createObjectURL(logoPrecarga) : logoPrecargaActivo;
   const previewPortada = portada ? URL.createObjectURL(portada) : portadaActiva;
 
   return (
@@ -143,12 +153,48 @@ export default function Dashboard() {
                   </p>
                   <p className="upload-hint">PNG o JPG (500x500px)</p>
                   
-                  <input 
-                    type="file" 
-                    accept="image/png, image/jpeg" 
+                  <input
+                    type="file"
+                    accept="image/png, image/jpeg"
                     className="input-file-hidden"
                     onChange={(e) => {
                       if(e.target.files && e.target.files[0]) setLogo(e.target.files[0]);
+                    }}
+                  />
+                </label>
+              </div>
+
+              {/* Input de Logo de la pantalla de carga */}
+              <div className="form-group">
+                <label className="form-label">Imagen de la pantalla de carga</label>
+                <label
+                  className="upload-box upload-box-vibrante"
+                  onDragOver={prevenirNavegador}
+                  onDrop={handleDropLogoPrecarga}
+                >
+                  {previewLogoPrecarga ? (
+                    <img src={previewLogoPrecarga} alt="Preview logo de carga" className="upload-preview" />
+                  ) : (
+                    <div className="upload-icon">📁</div>
+                  )}
+
+                  <p className="upload-text">
+                    {logoPrecarga ? (
+                      <span className="upload-file-name">{logoPrecarga.name}</span>
+                    ) : (
+                      <><span className="upload-link">Cargar archivo</span> o arrastrar y soltar</>
+                    )}
+                  </p>
+                  <p className="upload-hint">
+                    PNG sin fondo recomendado. Es lo primero que ve el cliente al entrar a la tienda.
+                  </p>
+
+                  <input
+                    type="file"
+                    accept="image/png, image/jpeg"
+                    className="input-file-hidden"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) setLogoPrecarga(e.target.files[0]);
                     }}
                   />
                 </label>
