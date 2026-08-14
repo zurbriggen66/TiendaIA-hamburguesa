@@ -3569,8 +3569,9 @@ body {
 
 .caja-historial-fila-link {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
+  gap: 8px 16px;
   flex: 1;
   min-width: 0;
   background: none;
@@ -3596,19 +3597,6 @@ body {
 .btn-eliminar-caja:hover {
   opacity: 1;
   border-color: #ef4444;
-}
-
-.link-volver {
-  display: inline-block;
-  color: #e8630c;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 0.9rem;
-  margin-bottom: 16px;
-}
-
-.link-volver:hover {
-  text-decoration: underline;
 }
 
 .badge-caja {
@@ -3670,7 +3658,17 @@ body {
     align-items: stretch;
   }
 
+  .caja-banner-stats {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
   .caja-historial-fila {
     flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .caja-historial-horario {
+    flex-basis: 100%;
   }
 }
