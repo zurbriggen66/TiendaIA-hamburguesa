@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import api from '../../services/api';
 import AbrirCajaModal from './AbrirCajaModal';
 import CerrarCajaModal from './CerrarCajaModal';
+import CajaDetalleModal from './CajaDetalleModal';
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
@@ -18,6 +19,7 @@ export default function CajasPage() {
   const [cargando, setCargando] = useState(true);
   const [mostrarAbrir, setMostrarAbrir] = useState(false);
   const [mostrarCerrar, setMostrarCerrar] = useState(false);
+  const [cajaDetalleId, setCajaDetalleId] = useState(null);
 
   const cargarDatos = useCallback(async () => {
     setCargando(true);
@@ -40,6 +42,17 @@ export default function CajasPage() {
   }, [cargarDatos]);
 
   const historialSinActual = historial.filter((c) => c.id !== cajaActual?.id);
+
+  const eliminarCaja = async (caja) => {
+    if (!window.confirm(`¿Eliminar la caja del ${formatearDia(caja.dia)}? Esta acción no se puede deshacer.`)) return;
+    try {
+      await api.delete(`/cajas/${caja.id}/`);
+      cargarDatos();
+    } catch (error) {
+      console.error('Error al eliminar la caja:', error);
+      window.alert('No se pudo eliminar la caja.');
+    }
+  };
 
   return (
     <div className="cajas-page">
@@ -95,18 +108,32 @@ export default function CajasPage() {
           <div className="cajas-historial">
             {historialSinActual.map((caja) => (
               <div key={caja.id} className="caja-historial-fila">
-                <span className={`badge-caja ${caja.esta_abierta ? 'badge-caja-abierta' : 'badge-caja-cerrada'}`}>
-                  {caja.esta_abierta ? 'Abierta' : 'Cerrada'}
-                </span>
-                <div className="caja-historial-horario">
-                  <strong>{formatearDia(caja.dia)}</strong>
-                  <span className="caja-historial-horario-detalle">
-                    {' '}· {formatearFechaHora(caja.abierta_en)}
-                    {caja.cerrada_en && <> → {formatearFechaHora(caja.cerrada_en)}</>}
+                <button
+                  type="button"
+                  className="caja-historial-fila-link"
+                  onClick={() => setCajaDetalleId(caja.id)}
+                >
+                  <span className={`badge-caja ${caja.esta_abierta ? 'badge-caja-abierta' : 'badge-caja-cerrada'}`}>
+                    {caja.esta_abierta ? 'Abierta' : 'Cerrada'}
                   </span>
-                </div>
-                <span className="caja-historial-pedidos">{caja.total_pedidos} pedidos</span>
-                <span className="caja-historial-total">{formatearPrecio(caja.total_ventas)}</span>
+                  <div className="caja-historial-horario">
+                    <strong>{formatearDia(caja.dia)}</strong>
+                    <span className="caja-historial-horario-detalle">
+                      {' '}· {formatearFechaHora(caja.abierta_en)}
+                      {caja.cerrada_en && <> → {formatearFechaHora(caja.cerrada_en)}</>}
+                    </span>
+                  </div>
+                  <span className="caja-historial-pedidos">{caja.total_pedidos} pedidos</span>
+                  <span className="caja-historial-total">{formatearPrecio(caja.total_ventas)}</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn-eliminar-caja"
+                  title="Eliminar caja"
+                  onClick={() => eliminarCaja(caja)}
+                >
+                  🗑
+                </button>
               </div>
             ))}
           </div>
@@ -126,6 +153,10 @@ export default function CajasPage() {
           onClose={() => setMostrarCerrar(false)}
           onSaved={() => { setMostrarCerrar(false); cargarDatos(); }}
         />
+      )}
+
+      {cajaDetalleId && (
+        <CajaDetalleModal cajaId={cajaDetalleId} onClose={() => setCajaDetalleId(null)} />
       )}
     </div>
   );
