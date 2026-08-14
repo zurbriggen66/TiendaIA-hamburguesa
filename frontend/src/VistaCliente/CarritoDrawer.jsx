@@ -240,7 +240,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
 
             <div className="pedido-seccion">
               <div className="pedido-seccion-titulo">
-                <span className="pedido-seccion-icono">👤</span>
+                <span className="pedido-seccion-icono pedido-seccion-icono-contacto">👤</span>
                 <span>Datos de contacto</span>
               </div>
               <div className="pedido-campo">
@@ -310,8 +310,8 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
               </>
             )}
 
-            <button type="submit" className="pedido-btn-whatsapp" disabled={enviando}>
-              {enviando ? 'Enviando...' : '📲 Enviar pedido por WhatsApp'}
+            <button type="submit" className="pedido-btn-finalizar" disabled={enviando}>
+              {enviando ? 'Enviando...' : 'Finalizar Pedido'}
             </button>
 
         
@@ -390,7 +390,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
 
         .pedido-header h3 {
           margin: 0;
-          color: #1c1410;
+          color: #1a2333;
           font-size: 1.15rem;
         }
 
@@ -399,15 +399,15 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           height: 32px;
           border-radius: 50%;
           border: none;
-          background: #f4ede6;
-          color: #6b5d52;
+          background: #eef0f3;
+          color: #94a3b8;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
         }
         .pedido-cerrar:hover {
-          background: #ece1d6;
+          background: #e4e7ec;
         }
 
         .pedido-vacio {
@@ -467,7 +467,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
 
         .pedido-item-titulo strong {
           font-size: 0.92rem;
-          color: #1c1410;
+          color: #1a2333;
         }
 
         .pedido-item-badge-combo {
@@ -487,7 +487,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
 
         .pedido-item-precio {
           font-size: 0.78rem;
-          color: #a89a8f;
+          color: #64748b;
         }
 
         .pedido-item-acciones {
@@ -520,7 +520,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           display: flex;
           align-items: center;
           gap: 8px;
-          border: 1px solid #ece1d6;
+          border: 1px solid #e2e6eb;
           border-radius: 999px;
           padding: 3px 4px;
         }
@@ -529,8 +529,8 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           height: 22px;
           border-radius: 50%;
           border: none;
-          background: #f4ede6;
-          color: #1c1410;
+          background: #f1f3f6;
+          color: #1a2333;
           font-size: 0.85rem;
           font-weight: 700;
           cursor: pointer;
@@ -539,26 +539,26 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           justify-content: center;
         }
         .pedido-item-cantidad button:hover {
-          background: #ece1d6;
+          background: #e4e7ec;
         }
         .pedido-item-cantidad span {
           min-width: 14px;
           text-align: center;
           font-size: 0.82rem;
           font-weight: 700;
-          color: #1c1410;
+          color: #1a2333;
         }
 
         .pedido-total {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          background: #f7f2ec;
+          background: #fde8d3;
           border-radius: 12px;
           padding: 14px 16px;
           margin-bottom: 22px;
           font-weight: 700;
-          color: #1c1410;
+          color: #1a2333;
         }
 
         .pedido-total strong {
@@ -593,8 +593,8 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           text-align: center;
           padding: 10px;
           border-radius: 14px;
-          border: 1.5px solid #ece1d6;
-          background: #fdfbf9;
+          border: 1.5px solid #eef0f3;
+          background: #ffffff;
         }
 
         .pedido-sugerido-imagen {
@@ -624,7 +624,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           min-height: 1.88rem;
           font-size: 0.78rem;
           font-weight: 700;
-          color: #1c1410;
+          color: #1a2333;
           line-height: 1.2;
           display: -webkit-box;
           -webkit-line-clamp: 2;
@@ -645,8 +645,8 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
         .pedido-sugerido-agregar {
           width: 100%;
           margin-top: auto;
-          background: linear-gradient(135deg, #25d366, #128c7e);
-          color: #ffffff;
+          background: #dcfce7;
+          color: #16a34a;
           border: none;
           padding: 7px 10px;
           border-radius: 999px;
@@ -654,6 +654,10 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           font-size: 0.72rem;
           font-family: inherit;
           cursor: pointer;
+          transition: background 0.15s ease;
+        }
+        .pedido-sugerido-agregar:hover {
+          background: #bbf7d0;
         }
 
         .pedido-sugerido-stepper {
@@ -673,7 +677,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           border-radius: 50%;
           border: none;
           background: #f4ede6;
-          color: #1c1410;
+          color: #1a2333;
           font-size: 0.8rem;
           font-weight: 700;
           cursor: pointer;
@@ -684,7 +688,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
         .pedido-sugerido-stepper span {
           font-size: 0.78rem;
           font-weight: 700;
-          color: #1c1410;
+          color: #1a2333;
           min-width: 12px;
           text-align: center;
         }
@@ -700,7 +704,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           margin-bottom: 12px;
           font-weight: 700;
           font-size: 0.92rem;
-          color: #1c1410;
+          color: #1a2333;
         }
 
         .pedido-seccion-icono {
@@ -714,6 +718,14 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           font-size: 0.9rem;
         }
 
+        .pedido-sugeridos .pedido-seccion-icono {
+          background: #dbeafe;
+        }
+
+        .pedido-seccion-icono-contacto {
+          background: #ede9fe;
+        }
+
         .pedido-campo {
           margin-bottom: 10px;
         }
@@ -722,15 +734,15 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           width: 100%;
           padding: 12px 14px;
           border-radius: 12px;
-          border: 1.5px solid #ece1d6;
-          background: #fdfbf9;
+          border: 1.5px solid #eef0f3;
+          background: #f8f9fb;
           font-size: 0.9rem;
           font-family: inherit;
-          color: #1c1410;
+          color: #1a2333;
           transition: border-color 0.15s ease;
         }
         .pedido-input::placeholder {
-          color: #a89a8f;
+          color: #9aa4b2;
         }
         .pedido-input:focus {
           outline: none;
@@ -802,7 +814,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
         .pedido-entrega-nombre {
           font-weight: 700;
           font-size: 0.85rem;
-          color: #1c1410;
+          color: #1a2333;
         }
 
         .pedido-entrega-desc {
@@ -845,6 +857,30 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           box-shadow: none;
         }
 
+        .pedido-btn-finalizar {
+          width: 100%;
+          background: #14181f;
+          color: #ffffff;
+          border: none;
+          padding: 14px 24px;
+          border-radius: 999px;
+          font-weight: 700;
+          font-size: 0.95rem;
+          font-family: inherit;
+          cursor: pointer;
+          transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .pedido-btn-finalizar:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 8px 16px -6px rgba(20, 24, 31, 0.4);
+        }
+        .pedido-btn-finalizar:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
+        }
+
         .pedido-btn-primario {
           background: linear-gradient(135deg, #f4854a, #e8630c);
           color: #ffffff;
@@ -870,7 +906,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           flex-direction: column;
           align-items: center;
           gap: 16px;
-          color: #1c1410;
+          color: #1a2333;
         }
 
         .pedido-exito-icono {
