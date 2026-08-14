@@ -31,24 +31,7 @@ function SelectorExtras({ extrasDisponibles, cantidadesExtras, onCambiarCantidad
   );
 }
 
-function TarjetaProducto({ producto, extrasDisponibles, onAgregar, onVerDetalle }) {
-  const [cantidad, setCantidad] = useState(1);
-  const [cantidadesExtras, setCantidadesExtras] = useState({});
-
-  const cambiarCantidadExtra = (id, nuevaCantidad) => {
-    setCantidadesExtras((prev) => ({ ...prev, [id]: nuevaCantidad }));
-  };
-
-  const agregar = () => {
-    const extras = extrasDisponibles
-      .filter((e) => (cantidadesExtras[e.id] || 0) > 0)
-      .map((e) => ({ ...e, cantidad: cantidadesExtras[e.id] }));
-    const precioBase = producto.descuento_activo ? Number(producto.precio_actual) : Number(producto.precio);
-    onAgregar({ ...producto, precio: precioBase }, cantidad, extras);
-    setCantidad(1);
-    setCantidadesExtras({});
-  };
-
+function TarjetaProducto({ producto, onVerDetalle }) {
   return (
     <div className="menu-tarjeta">
       {producto.destacado && <span className="badge-destacado">⭐ Destacado</span>}
@@ -72,23 +55,8 @@ function TarjetaProducto({ producto, extrasDisponibles, onAgregar, onVerDetalle 
         <h3 className="menu-tarjeta-titulo-clickeable" onClick={() => onVerDetalle(producto)}>{producto.nombre}</h3>
         {producto.descripcion && <p className="menu-tarjeta-descripcion">{producto.descripcion}</p>}
 
-        <SelectorExtras extrasDisponibles={extrasDisponibles} cantidadesExtras={cantidadesExtras} onCambiarCantidad={cambiarCantidadExtra} />
-
-        <div className="menu-tarjeta-footer">
-          <span className="menu-tarjeta-precio">
-            {producto.descuento_activo && (
-              <span className="precio-tachado">{formatearPrecio(calcularPrecioTotal(producto, extrasDisponibles, cantidadesExtras, cantidad, false))}</span>
-            )}
-            {formatearPrecio(calcularPrecioTotal(producto, extrasDisponibles, cantidadesExtras, cantidad))}
-          </span>
-          <div className="menu-tarjeta-cantidad">
-            <button type="button" onClick={() => setCantidad((c) => Math.max(1, c - 1))}>−</button>
-            <span>{cantidad}</span>
-            <button type="button" onClick={() => setCantidad((c) => c + 1)}>+</button>
-          </div>
-        </div>
-        <button type="button" className="btn-vibrante menu-tarjeta-agregar" onClick={agregar}>
-          Agregar al pedido
+        <button type="button" className="menu-tarjeta-toppings" onClick={() => onVerDetalle(producto)}>
+          Agregar toppings
         </button>
       </div>
     </div>
@@ -338,8 +306,6 @@ export default function Menu({ categorias, productos, onAgregar }) {
             <TarjetaProducto
               key={producto.id}
               producto={producto}
-              extrasDisponibles={extrasParaProducto(producto)}
-              onAgregar={onAgregar}
               onVerDetalle={setProductoDetalle}
             />
           ))}
