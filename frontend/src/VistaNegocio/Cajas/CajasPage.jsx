@@ -71,6 +71,12 @@ export default function CajasPage() {
               <span className="caja-banner-detalle">abierta desde las {formatearFechaHora(cajaActual.abierta_en)}</span>
             </div>
             <div className="caja-banner-stats">
+              {Number(cajaActual.monto_inicial) > 0 && (
+                <div>
+                  <span>Inicial · {cajaActual.metodo_inicial_label}</span>
+                  <strong>{formatearPrecio(cajaActual.monto_inicial)}</strong>
+                </div>
+              )}
               <div>
                 <span>Ventas</span>
                 <strong>{formatearPrecio(cajaActual.total_ventas)}</strong>
