@@ -126,7 +126,12 @@ class CajaViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         dia = parse_date(request.data.get('dia') or '') or timezone.localtime().date()
-        caja = Caja.objects.create(dia=dia, nota_apertura=request.data.get('nota_apertura', ''))
+        caja = Caja.objects.create(
+            dia=dia,
+            nota_apertura=request.data.get('nota_apertura', ''),
+            monto_inicial=request.data.get('monto_inicial') or 0,
+            metodo_inicial=request.data.get('metodo_inicial') or 'efectivo',
+        )
         return Response(self.get_serializer(caja).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'])
