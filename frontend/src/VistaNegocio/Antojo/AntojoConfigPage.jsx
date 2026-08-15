@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 
+const pad2 = (n) => String(n).padStart(2, '0');
+// Igual que en DescuentoProductoModal: el input datetime-local trabaja en hora local.
+const aDatetimeLocal = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+};
+
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
 
@@ -10,6 +18,7 @@ export default function AntojoConfigPage() {
   const [productoId, setProductoId] = useState('');
   const [descuentoPct, setDescuentoPct] = useState(15);
   const [activo, setActivo] = useState(false);
+  const [activoHasta, setActivoHasta] = useState('');
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
 
@@ -28,6 +37,7 @@ export default function AntojoConfigPage() {
           setProductoId(config.producto || '');
           setDescuentoPct(config.descuento_pct);
           setActivo(config.activo);
+          setActivoHasta(aDatetimeLocal(config.activo_hasta));
         }
       } catch (error) {
         console.error('Error al cargar el Antojo del día:', error);
@@ -49,6 +59,7 @@ export default function AntojoConfigPage() {
       producto: productoId || null,
       descuento_pct: Number(descuentoPct) || 0,
       activo,
+      activo_hasta: activoHasta ? new Date(activoHasta).toISOString() : null,
     };
 
     setGuardando(true);
@@ -116,6 +127,21 @@ export default function AntojoConfigPage() {
                   {' '}(antes {formatearPrecio(productoElegido.precio)})
                 </p>
               )}
+
+              <div className="form-group">
+                <label className="form-label">Hasta cuándo dura (opcional)</label>
+                <input
+                  type="datetime-local"
+                  className="input-vibrante"
+                  value={activoHasta}
+                  onChange={(e) => setActivoHasta(e.target.value)}
+                />
+                <p className="form-ayuda">
+                  {activoHasta
+                    ? 'Pasada esa hora se apaga solo y deja de verse en la web.'
+                    : 'Vacío: queda visible hasta que lo desactives a mano.'}
+                </p>
+              </div>
 
               <div className="form-group">
                 <label className="checkbox-vibrante">

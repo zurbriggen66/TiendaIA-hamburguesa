@@ -7,7 +7,7 @@ class AntojoDelDiaConfigSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AntojoDelDia
-        fields = ['id', 'producto', 'producto_nombre', 'descuento_pct', 'activo']
+        fields = ['id', 'producto', 'producto_nombre', 'descuento_pct', 'activo', 'activo_hasta']
         extra_kwargs = {
             'producto': {'required': False, 'allow_null': True},
         }

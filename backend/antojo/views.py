@@ -16,7 +16,7 @@ class AntojoDelDiaView(APIView):
             .select_related('producto', 'producto__categoria')
             .first()
         )
-        if not antojo:
+        if not antojo or not antojo.esta_vigente():
             return Response(None)
 
         producto = antojo.producto
@@ -29,6 +29,7 @@ class AntojoDelDiaView(APIView):
 
         return Response({
             'descuento_pct': antojo.descuento_pct,
+            'activo_hasta': antojo.activo_hasta,
             'producto': {
                 'id': producto.id,
                 'nombre': producto.nombre,
