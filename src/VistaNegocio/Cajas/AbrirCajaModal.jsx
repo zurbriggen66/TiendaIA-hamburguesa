@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import api from '../../services/api';
+import { METODOS_PAGO } from '../../utils/metodosPago';
 
 const pad2 = (n) => String(n).padStart(2, '0');
 // OJO: no usar toISOString() acá — convierte a UTC y en Argentina (UTC-3) eso hace
@@ -11,6 +12,8 @@ const hoyISO = () => {
 
 export default function AbrirCajaModal({ onClose, onSaved }) {
   const [dia, setDia] = useState(hoyISO());
+  const [montoInicial, setMontoInicial] = useState('');
+  const [metodoInicial, setMetodoInicial] = useState('efectivo');
   const [nota, setNota] = useState('');
   const [guardando, setGuardando] = useState(false);
 
@@ -18,7 +21,12 @@ export default function AbrirCajaModal({ onClose, onSaved }) {
     e.preventDefault();
     setGuardando(true);
     try {
-      await api.post('/cajas/abrir/', { dia, nota_apertura: nota.trim() });
+      await api.post('/cajas/abrir/', {
+        dia,
+        nota_apertura: nota.trim(),
+        monto_inicial: Number(montoInicial) || 0,
+        metodo_inicial: metodoInicial,
+      });
       onSaved();
     } catch (error) {
       console.error('Error al abrir la caja:', error);
@@ -48,15 +56,38 @@ export default function AbrirCajaModal({ onClose, onSaved }) {
             <p className="form-ayuda">Todo lo que se venda mientras esta caja esté abierta se va a atribuir a este día, aunque el cierre cruce la medianoche.</p>
           </div>
 
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Monto inicial</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                className="input-vibrante"
+                placeholder="0.00"
+                value={montoInicial}
+                onChange={(e) => setMontoInicial(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">¿En qué forma está?</label>
+              <select className="input-vibrante" value={metodoInicial} onChange={(e) => setMetodoInicial(e.target.value)}>
+                {METODOS_PAGO.map((m) => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           <div className="form-group">
             <label className="form-label">Nota de apertura (opcional)</label>
             <textarea
               className="input-vibrante"
               rows={3}
-              placeholder="Ej: arranco con $5.000 de fondo de caja"
+              placeholder="Ej: turno noche"
               value={nota}
               onChange={(e) => setNota(e.target.value)}
-              autoFocus
             />
           </div>
 
