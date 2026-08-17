@@ -16,12 +16,14 @@ class CajaSerializer(serializers.ModelSerializer):
     esta_abierta = serializers.BooleanField(read_only=True)
     total_ventas = serializers.SerializerMethodField()
     total_pedidos = serializers.SerializerMethodField()
+    metodo_inicial_label = serializers.CharField(source='get_metodo_inicial_display', read_only=True)
 
     class Meta:
         model = Caja
         fields = [
             'id', 'dia', 'abierta_en', 'cerrada_en', 'nota_apertura', 'nota_cierre',
             'esta_abierta', 'total_ventas', 'total_pedidos',
+            'monto_inicial', 'metodo_inicial', 'metodo_inicial_label',
         ]
         read_only_fields = ['dia', 'abierta_en', 'cerrada_en']
 

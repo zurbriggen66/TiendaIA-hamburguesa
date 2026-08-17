@@ -3,6 +3,16 @@ from decimal import Decimal
 from django.db import models
 from productos.models import Producto, Combo
 
+# A nivel de módulo porque la usan Caja y Pago (y, vía Pago.METODOS, también gastos).
+METODOS_PAGO = [
+    ('efectivo', 'Efectivo'),
+    ('transferencia', 'Transferencia'),
+    ('tarjeta_debito', 'Tarjeta de débito'),
+    ('tarjeta_credito', 'Tarjeta de crédito'),
+    ('mercado_pago', 'Mercado Pago'),
+    ('otro', 'Otro'),
+]
+
 
 class Localidad(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
@@ -92,6 +102,9 @@ class Caja(models.Model):
     dia = models.DateField()
     abierta_en = models.DateTimeField(auto_now_add=True)
     cerrada_en = models.DateTimeField(null=True, blank=True)
+    # Fondo con el que arranca la caja y en qué forma está esa plata.
+    monto_inicial = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    metodo_inicial = models.CharField(max_length=20, choices=METODOS_PAGO, default='efectivo')
     nota_apertura = models.CharField(max_length=200, blank=True)
     nota_cierre = models.CharField(max_length=200, blank=True)
 
@@ -108,14 +121,7 @@ class Caja(models.Model):
 
 
 class Pago(models.Model):
-    METODOS = [
-        ('efectivo', 'Efectivo'),
-        ('transferencia', 'Transferencia'),
-        ('tarjeta_debito', 'Tarjeta de débito'),
-        ('tarjeta_credito', 'Tarjeta de crédito'),
-        ('mercado_pago', 'Mercado Pago'),
-        ('otro', 'Otro'),
-    ]
+    METODOS = METODOS_PAGO
 
     pedido = models.ForeignKey(Pedido, related_name='pagos', on_delete=models.CASCADE)
     metodo = models.CharField(max_length=20, choices=METODOS)

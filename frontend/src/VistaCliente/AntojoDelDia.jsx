@@ -4,11 +4,15 @@ import api from '../services/api';
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
 
-const calcularFaltante = () => {
+const calcularFaltante = (activoHasta) => {
   const ahora = new Date();
-  const medianoche = new Date(ahora);
-  medianoche.setHours(24, 0, 0, 0);
-  const ms = medianoche.getTime() - ahora.getTime();
+  // Si el antojo tiene vencimiento, la cuenta va contra esa hora; si no, contra medianoche.
+  const fin = activoHasta ? new Date(activoHasta) : (() => {
+    const m = new Date(ahora);
+    m.setHours(24, 0, 0, 0);
+    return m;
+  })();
+  const ms = Math.max(fin.getTime() - ahora.getTime(), 0);
   const horas = Math.floor(ms / 3_600_000);
   const minutos = Math.floor((ms % 3_600_000) / 60_000);
   const segundos = Math.floor((ms % 60_000) / 1_000);
@@ -26,11 +30,12 @@ export default function AntojoDelDia({ onAgregar }) {
   }, []);
 
   useEffect(() => {
-    const intervalo = setInterval(() => setFaltante(calcularFaltante()), 1000);
+    const intervalo = setInterval(() => setFaltante(calcularFaltante(antojo?.activo_hasta)), 1000);
     return () => clearInterval(intervalo);
-  }, []);
+  }, [antojo]);
 
-  if (!antojo) return null;
+  // Si venció mientras la página estaba abierta, se oculta sin necesidad de recargar.
+  if (!antojo || faltante === '00:00:00') return null;
 
   const { producto } = antojo;
 
