@@ -34,8 +34,9 @@ function SelectorExtras({ extrasDisponibles, cantidadesExtras, onCambiarCantidad
 function TarjetaProducto({ producto, onVerDetalle }) {
   return (
     <div className="menu-tarjeta">
-      {producto.destacado && <span className="badge-destacado">⭐ Destacado</span>}
-      {producto.descuento_activo && <span className="badge-descuento">🏷️ -{producto.descuento_pct}%</span>}
+      {producto.descuento_activo && (
+        <span className="badge-descuento menu-tarjeta-badge-descuento">🏷️ -{producto.descuento_pct}%</span>
+      )}
       <div
         className="menu-tarjeta-imagen"
         onClick={() => onVerDetalle(producto)}
@@ -123,7 +124,6 @@ function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
         </div>
 
         <div className="modal-producto-info">
-          {producto.destacado && <span className="badge-destacado">⭐ Destacado</span>}
           {producto.descuento_activo && <span className="badge-descuento">🏷️ -{producto.descuento_pct}%</span>}
           <span className="producto-categoria-tag">{producto.categoria_nombre}</span>
           <h3>{producto.nombre}</h3>
@@ -587,7 +587,6 @@ export default function Menu({ categorias, productos, onAgregar }) {
           background: #fffdfb;
         }
 
-        .modal-producto-info .badge-destacado,
         .modal-producto-info .badge-descuento {
           position: static;
           align-self: flex-start;
