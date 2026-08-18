@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework.authtoken',
     'corsheaders',
     'negocio',
     'productos',
@@ -72,7 +73,17 @@ INSTALLED_APPS = [
     'gastos',
     'estadisticas',
     'antojo',
+    'clientes',
 ]
+
+# Token de DRF: sin esto las vistas quedarían con la autenticación por sesión solamente,
+# que no sirve para el frontend separado.
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+}
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware', 
