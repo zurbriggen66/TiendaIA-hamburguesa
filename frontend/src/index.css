@@ -2410,6 +2410,43 @@ body {
   transform: translateY(-1px);
 }
 
+@media (max-width: 640px) {
+  .menu-seccion {
+    padding: 16px 12px 64px;
+  }
+
+  .menu-titulo {
+    font-size: 1.4rem;
+  }
+
+  .menu-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .menu-tarjeta-imagen {
+    height: 130px;
+  }
+
+  .menu-tarjeta-info {
+    padding: 12px;
+    gap: 6px;
+  }
+
+  .menu-tarjeta-info h3 {
+    font-size: 0.92rem;
+  }
+
+  .menu-tarjeta-descripcion {
+    font-size: 0.72rem;
+  }
+
+  .menu-tarjeta-toppings {
+    font-size: 0.78rem;
+    padding: 8px;
+  }
+}
+
 /* Extras enganchados a un producto, con cantidad propia (Menu.jsx: SelectorExtras,
    VistaNegocio/Pedidos/PedidoModal.jsx: filas de extras) */
 .menu-tarjeta-extras {
