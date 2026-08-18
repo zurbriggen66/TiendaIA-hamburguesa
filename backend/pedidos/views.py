@@ -9,6 +9,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from .models import Pedido, Localidad, Pago, Caja
 from .serializers import PedidoSerializer, LocalidadSerializer, PagoSerializer, CajaSerializer, mover_stock_item
+from clientes.puntos import acreditar as acreditar_puntos
 
 
 class PedidosPagination(PageNumberPagination):
@@ -62,7 +63,8 @@ class PedidoViewSet(viewsets.ModelViewSet):
             serializer.save(caja=None, confirmado=False)
         else:
             caja_abierta = Caja.objects.filter(cerrada_en__isnull=True).order_by('-abierta_en').first()
-            serializer.save(caja=caja_abierta, confirmado=True)
+            pedido = serializer.save(caja=caja_abierta, confirmado=True)
+            acreditar_puntos(pedido)
 
     @action(detail=True, methods=['post'])
     def confirmar(self, request, pk=None):
@@ -73,6 +75,9 @@ class PedidoViewSet(viewsets.ModelViewSet):
         pedido.confirmado = True
         pedido.caja = caja_abierta
         pedido.save()
+        # Los puntos se acreditan recién acá: un pedido web sin confirmar podría no
+        # haber existido nunca, y no queremos que se acumulen puntos por pedidos falsos.
+        acreditar_puntos(pedido)
         return Response(self.get_serializer(pedido).data)
 
     def perform_destroy(self, instance):

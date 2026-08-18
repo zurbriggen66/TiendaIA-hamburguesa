@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function NavBar({ configuracion, totalItems, onPedir }) {
+export default function NavBar({ configuracion, totalItems, onPedir, cliente, onAbrirCuenta, onCerrarSesion }) {
   const [menuAbierto, setMenuAbierto] = useState(false);
 
   const scrollA = (id) => (e) => {
@@ -33,6 +33,18 @@ export default function NavBar({ configuracion, totalItems, onPedir }) {
         <a href="#menu" onClick={scrollA('menu')}>Menú</a>
         <a href="#antojo-dia" onClick={scrollA('antojo-dia')}>Antojo del día</a>
         <a href={configuracion.instagram} target="_blank" rel="noopener noreferrer" onClick={() => setMenuAbierto(false)}>Instagram</a>
+        {cliente ? (
+          <a
+            href="#"
+            className="nav-cuenta"
+            onClick={(e) => { e.preventDefault(); setMenuAbierto(false); onCerrarSesion(); }}
+            title="Cerrar sesión"
+          >
+            ⭐ {cliente.puntos} pts · {cliente.nombre.split(' ')[0]}
+          </a>
+        ) : (
+          <a href="#" onClick={(e) => { e.preventDefault(); setMenuAbierto(false); onAbrirCuenta(); }}>Mi cuenta</a>
+        )}
       </div>
 
       <style>{`

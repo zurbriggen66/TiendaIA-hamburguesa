@@ -4,6 +4,7 @@ from rest_framework import serializers
 from .models import Pedido, DetallePedido, DetalleExtra, Localidad, Pago, Caja
 from productos.models import Producto
 from antojo.models import AntojoDelDia
+from clientes.puntos import calcular_descuento as calcular_descuento_puntos
 
 
 class LocalidadSerializer(serializers.ModelSerializer):
@@ -133,6 +134,7 @@ class PedidoSerializer(serializers.ModelSerializer):
     total = serializers.SerializerMethodField()
     cobrado = serializers.SerializerMethodField()
     estado_cobro = serializers.SerializerMethodField()
+    usar_puntos = serializers.BooleanField(write_only=True, required=False, default=False)
 
     class Meta:
         model = Pedido
@@ -140,11 +142,15 @@ class PedidoSerializer(serializers.ModelSerializer):
             'id', 'cliente', 'telefono', 'tipo_entrega', 'direccion', 'estado', 'creado', 'items',
             'localidad', 'localidad_nombre', 'caja', 'origen', 'confirmado', 'costo_envio', 'descuento_pct',
             'hora_salida', 'nota', 'pagos', 'subtotal', 'total', 'cobrado', 'estado_cobro',
+            'puntos_usados', 'descuento_puntos', 'usar_puntos',
         ]
         extra_kwargs = {
             'localidad': {'required': False, 'allow_null': True},
             'caja': {'read_only': True},
             'confirmado': {'read_only': True},
+            # El monto del canje lo decide el servidor; el frontend solo pide usar_puntos.
+            'puntos_usados': {'read_only': True},
+            'descuento_puntos': {'read_only': True},
         }
 
     def get_subtotal(self, obj):
@@ -166,7 +172,12 @@ class PedidoSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         items_data = validated_data.pop('items')
-        pedido = Pedido.objects.create(**validated_data)
+        usar_puntos = validated_data.pop('usar_puntos', False)
+
+        # El pedido se asocia al cliente logueado (si lo hay), nunca a uno que venga por body.
+        usuario = getattr(self.context.get('request'), 'user', None)
+        cliente = getattr(usuario, 'cliente', None) if usuario and usuario.is_authenticated else None
+        pedido = Pedido.objects.create(cliente_registrado=cliente, **validated_data)
 
         antojo_activo = AntojoDelDia.objects.filter(activo=True).first()
 
@@ -204,6 +215,17 @@ class PedidoSerializer(serializers.ModelSerializer):
                     precio_unitario=combo.precio,
                 )
             mover_stock_item(detalle, signo=-1)
+
+        # El canje va al final: recién acá se conoce el total real del pedido.
+        if usar_puntos and cliente:
+            puntos, descuento = calcular_descuento_puntos(cliente, pedido.calcular_total())
+            if puntos > 0:
+                pedido.puntos_usados = puntos
+                pedido.descuento_puntos = descuento
+                pedido.save(update_fields=['puntos_usados', 'descuento_puntos'])
+                cliente.puntos -= puntos
+                cliente.save(update_fields=['puntos'])
+
         return pedido
 
     def update(self, instance, validated_data):

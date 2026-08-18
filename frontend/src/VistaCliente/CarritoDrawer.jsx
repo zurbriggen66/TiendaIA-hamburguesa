@@ -34,9 +34,10 @@ function armarMensajeWhatsapp({ nombre, telefono, tipoEntrega, direccion, items,
   return lineas.join('\n');
 }
 
-export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onCambiarCantidad, onQuitar, onAgregarSugerido, onVaciar }) {
-  const [nombre, setNombre] = useState('');
-  const [telefono, setTelefono] = useState('');
+export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onCambiarCantidad, onQuitar, onAgregarSugerido, onVaciar, cliente, onClienteActualizado }) {
+  const [nombre, setNombre] = useState(cliente?.nombre || '');
+  const [telefono, setTelefono] = useState(cliente?.telefono || '');
+  const [usarPuntos, setUsarPuntos] = useState(false);
   const [tipoEntrega, setTipoEntrega] = useState('retiro');
   const [direccion, setDireccion] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -71,6 +72,8 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
   }, []);
 
   const total = items.reduce((acc, linea) => acc + precioUnitarioLinea(linea) * linea.cantidad, 0);
+  // Solo para mostrar: el descuento real lo recalcula y topea el backend.
+  const descuentoPuntos = Math.min(Number(cliente?.puntos_en_pesos) || 0, total);
 
   const lineaSugerido = (productoId) =>
     items.find((l) => l.tipo === 'producto' && l.sugerido && l.item.id === productoId);
@@ -103,6 +106,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
 
     try {
       await api.post('/pedidos/', {
+        usar_puntos: usarPuntos,
         cliente: nombre.trim(),
         telefono: telefono.trim(),
         tipo_entrega: tipoEntrega,
@@ -119,6 +123,10 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
               }
         ),
       });
+      // Si canjeó puntos, refrescamos el saldo que muestra la barra.
+      if (usarPuntos && cliente) {
+        api.get('/clientes/mi-cuenta/').then((r) => onClienteActualizado?.(r.data)).catch(() => {});
+      }
     } catch (error) {
       // No bloqueamos el envío por WhatsApp aunque falle el guardado en el sistema.
       console.error('Error al registrar el pedido:', error);
@@ -196,9 +204,19 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
               ))}
             </div>
 
+            {cliente && cliente.puntos > 0 && (
+              <label className="carrito-puntos">
+                <input type="checkbox" checked={usarPuntos} onChange={(e) => setUsarPuntos(e.target.checked)} />
+                <span>
+                  ⭐ Usar mis {cliente.puntos} puntos
+                  <small> (hasta −{formatearPrecio(descuentoPuntos)})</small>
+                </span>
+              </label>
+            )}
+
             <div className="pedido-total">
               <span>Total</span>
-              <strong>{formatearPrecio(total)}</strong>
+              <strong>{formatearPrecio(Math.max(total - (usarPuntos ? descuentoPuntos : 0), 0))}</strong>
             </div>
 
             {sugeridos && sugeridos.length > 0 && (

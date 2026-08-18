@@ -11,6 +11,7 @@ urlpatterns = [
     path('api/', include('gastos.urls')),
     path('api/', include('estadisticas.urls')),
     path('api/', include('antojo.urls')),
+    path('api/', include('clientes.urls')),
 ]
 
 # Server las imágenes subidas (categorías, productos, logo) por Django mismo como

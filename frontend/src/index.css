@@ -3418,6 +3418,33 @@ body {
   margin: 24px 0 8px;
 }
 
+.cuenta-error {
+  color: #f87171;
+  font-size: 0.85rem;
+  margin: 4px 0 0;
+}
+
+.carrito-puntos {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.carrito-puntos small {
+  color: var(--text-muted);
+}
+
+.nav-cuenta {
+  white-space: nowrap;
+}
+
 .pedidos-paginacion-conteo {
   font-size: 0.82rem;
   color: var(--text-muted);

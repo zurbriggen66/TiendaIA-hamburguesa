@@ -56,8 +56,16 @@ class Pedido(models.Model):
     # realmente envió el WhatsApp (el botón de la tienda solo abre WhatsApp, no garantiza el envío).
     # Los pedidos cargados a mano en el admin se consideran confirmados desde que se crean.
     confirmado = models.BooleanField(default=True)
+    cliente_registrado = models.ForeignKey(
+        'clientes.Cliente', null=True, blank=True, on_delete=models.SET_NULL, related_name='pedidos',
+    )
     costo_envio = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     descuento_pct = models.PositiveIntegerField(default=0)
+    # Canje de puntos: el monto lo calcula el servidor, nunca llega desde el frontend.
+    puntos_usados = models.PositiveIntegerField(default=0)
+    descuento_puntos = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    # Evita acreditar dos veces si se confirma un pedido ya confirmado.
+    puntos_acreditados = models.BooleanField(default=False)
     hora_salida = models.TimeField(null=True, blank=True)
     nota = models.TextField(blank=True)
     estado = models.CharField(max_length=20, choices=ESTADOS, default='pendiente')
@@ -80,8 +88,9 @@ class Pedido(models.Model):
         con_envio = self.calcular_subtotal() + self.costo_envio
         if self.descuento_pct:
             descuento = con_envio * Decimal(self.descuento_pct) / Decimal(100)
-            return (con_envio - descuento).quantize(Decimal('1'))
-        return con_envio
+            con_envio = (con_envio - descuento).quantize(Decimal('1'))
+        # Los puntos se descuentan al final y nunca dejan el total en negativo.
+        return max(con_envio - self.descuento_puntos, Decimal('0'))
 
     def calcular_cobrado(self):
         return sum((p.monto for p in self.pagos.all()), Decimal('0'))
