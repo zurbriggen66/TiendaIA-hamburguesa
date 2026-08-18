@@ -97,7 +97,10 @@ class Presentacion(models.Model):
     orden = models.PositiveIntegerField(default=0)
 
     class Meta:
-        ordering = ['orden', 'precio']
+        # Siempre por precio, nunca por `orden` (el orden en que el dueño las tipeó en el
+        # form no tiene por qué coincidir con el precio): así la más barata queda primera
+        # de forma predecible, y el cliente/admin la ven preseleccionada por defecto.
+        ordering = ['precio']
 
     def __str__(self):
         return f'{self.producto.nombre} - {self.nombre}'
