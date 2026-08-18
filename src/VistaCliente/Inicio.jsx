@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import api from '../services/api';
+import api, { CLAVE_TOKEN } from '../services/api';
+import CuentaModal from './CuentaModal';
 import NavBar from './NavBar';
 import Hero from './Hero';
 import AntojoDelDia from './AntojoDelDia';
@@ -63,6 +64,8 @@ export default function Inicio() {
   const [combos, setCombos] = useState([]);
   const [items, setItems] = useState([]);
   const [carritoAbierto, setCarritoAbierto] = useState(false);
+  const [cliente, setCliente] = useState(null);
+  const [mostrarCuenta, setMostrarCuenta] = useState(false);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
@@ -146,7 +149,20 @@ export default function Inicio() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const armarLineaId = (tipo, id, extras, sugerido) =>
+  // Si quedó un token de una visita anterior, recuperamos la sesión (y los puntos al día).
+  useEffect(() => {
+    if (!localStorage.getItem(CLAVE_TOKEN)) return;
+    api.get('/clientes/mi-cuenta/')
+      .then((res) => setCliente(res.data))
+      .catch(() => localStorage.removeItem(CLAVE_TOKEN));
+  }, []);
+
+  const cerrarSesion = () => {
+    localStorage.removeItem(CLAVE_TOKEN);
+    setCliente(null);
+  };
+
+  const armarLineaId =(tipo, id, extras, sugerido) =>
     `${tipo}-${id}-${(extras || []).map((e) => `${e.id}x${e.cantidad}`).sort().join('_')}${sugerido ? '-carrito' : ''}`;
 
   // `sugerido` distingue una línea agregada desde la sugerencia de venta cruzada del
@@ -261,7 +277,14 @@ export default function Inicio() {
 
   return (
     <div className="cliente-container" style={totalItems > 0 ? { paddingBottom: 76 } : undefined}>
-      <NavBar configuracion={configuracion} totalItems={totalItems} onPedir={pedirPorWhatsapp} />
+      <NavBar
+        configuracion={configuracion}
+        totalItems={totalItems}
+        onPedir={pedirPorWhatsapp}
+        cliente={cliente}
+        onAbrirCuenta={() => setMostrarCuenta(true)}
+        onCerrarSesion={cerrarSesion}
+      />
 
       <Hero configuracion={configuracion} />
 
@@ -293,7 +316,13 @@ export default function Inicio() {
           onQuitar={quitarDelCarrito}
           onAgregarSugerido={agregarSugeridoAlCarrito}
           onVaciar={() => setItems([])}
+          cliente={cliente}
+          onClienteActualizado={setCliente}
         />
+      )}
+
+      {mostrarCuenta && (
+        <CuentaModal onClose={() => setMostrarCuenta(false)} onIngreso={setCliente} />
       )}
 
       {/* <-- AQUÍ RENDERIZAMOS EL NUEVO FOOTER --> */}

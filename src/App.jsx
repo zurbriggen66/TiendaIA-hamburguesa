@@ -12,6 +12,7 @@ import CombosPage from './VistaNegocio/Combos/CombosPage';
 import ImpresionPage from './VistaNegocio/Impresion/ImpresionPage';
 import AntojoConfigPage from './VistaNegocio/Antojo/AntojoConfigPage';
 import CobranzasPage from './VistaNegocio/Cobranzas/CobranzasPage';
+import ClientesPage from './VistaNegocio/Clientes/ClientesPage';
 import CajasPage from './VistaNegocio/Cajas/CajasPage';
 
 function App() {
@@ -31,6 +32,7 @@ function App() {
           <Route path="impresion" element={<ImpresionPage />} />
           <Route path="antojo" element={<AntojoConfigPage />} />
           <Route path="cobranzas" element={<CobranzasPage />} />
+          <Route path="clientes" element={<ClientesPage />} />
         </Route>
       </Routes>
     </Router>
