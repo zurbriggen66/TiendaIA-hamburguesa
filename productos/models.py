@@ -97,6 +97,22 @@ class Combo(models.Model):
         return self.nombre
 
 
+class Presentacion(models.Model):
+    producto = models.ForeignKey(Producto, related_name='presentaciones', on_delete=models.CASCADE)
+    nombre = models.CharField(max_length=50)
+    precio = models.DecimalField(max_digits=10, decimal_places=2)
+    orden = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        # Siempre por precio, nunca por `orden` (el orden en que el dueño las tipeó en el
+        # form no tiene por qué coincidir con el precio): así la más barata queda primera
+        # de forma predecible, y el cliente/admin la ven preseleccionada por defecto.
+        ordering = ['precio']
+
+    def __str__(self):
+        return f'{self.producto.nombre} - {self.nombre}'
+
+
 class ComboItem(models.Model):
     combo = models.ForeignKey(Combo, related_name='items', on_delete=models.CASCADE)
     producto = models.ForeignKey(Producto, on_delete=models.PROTECT, related_name='combo_items')
