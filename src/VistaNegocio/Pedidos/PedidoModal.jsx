@@ -4,13 +4,21 @@ import api from '../../services/api';
 const COLORES_CHIP = ['chip-mostaza', 'chip-naranja', 'chip-tomate'];
 
 let contadorFila = 0;
-const nuevaFila = (productoId) => ({ key: ++contadorFila, producto: productoId, cantidad: 1, extras: [] });
+// La presentación más barata siempre está primera (Presentacion.Meta.ordering =
+// ['precio']), así una fila nueva ya queda con un precio válido sin tocar nada más.
+const nuevaFila = (productoId, presentacionId = null) => ({ key: ++contadorFila, producto: productoId, presentacion: presentacionId, cantidad: 1, extras: [] });
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
 
-const precioEfectivo = (producto) =>
-  producto.descuento_activo ? Number(producto.precio_actual) : Number(producto.precio);
+// Con presentación elegida el precio base es el de esa presentación (el % de descuento
+// del producto se sigue aplicando igual, sólo para la estimación que se ve acá — el
+// precio real que se cobra siempre lo recalcula el servidor).
+const precioEfectivo = (producto, presentacion) => {
+  const base = presentacion ? Number(presentacion.precio) : Number(producto.precio);
+  if (!producto.descuento_activo) return base;
+  return presentacion ? Math.round(base * (1 - Number(producto.descuento_pct) / 100)) : Number(producto.precio_actual);
+};
 
 export default function PedidoModal({ productos, categorias, localidades, onClose, onSaved }) {
   const [cliente, setCliente] = useState('');
@@ -65,12 +73,13 @@ export default function PedidoModal({ productos, categorias, localidades, onClos
   };
 
   const agregarProductoClick = (producto) => {
+    const presentacionDefault = producto.presentaciones?.[0]?.id ?? null;
     setFilas((prev) => {
-      const idx = prev.findIndex((f) => f.producto === String(producto.id) && f.extras.length === 0);
+      const idx = prev.findIndex((f) => f.producto === String(producto.id) && f.extras.length === 0 && f.presentacion === presentacionDefault);
       if (idx !== -1) {
         return prev.map((f, i) => (i === idx ? { ...f, cantidad: Number(f.cantidad) + 1 } : f));
       }
-      return [...prev, nuevaFila(String(producto.id))];
+      return [...prev, nuevaFila(String(producto.id), presentacionDefault)];
     });
   };
 
@@ -91,9 +100,12 @@ export default function PedidoModal({ productos, categorias, localidades, onClos
 
   const filasValidas = filas.filter((f) => f.producto && Number(f.cantidad) > 0);
 
+  const presentacionDeFila = (producto, fila) =>
+    (producto?.presentaciones || []).find((p) => String(p.id) === String(fila.presentacion));
+
   const totalEstimado = filasValidas.reduce((acc, f) => {
     const producto = productoPorId(f.producto);
-    const precioUnidad = (producto ? precioEfectivo(producto) : 0) + costoExtrasFila(f);
+    const precioUnidad = (producto ? precioEfectivo(producto, presentacionDeFila(producto, f)) : 0) + costoExtrasFila(f);
     return acc + precioUnidad * Number(f.cantidad);
   }, 0);
 
@@ -119,6 +131,7 @@ export default function PedidoModal({ productos, categorias, localidades, onClos
         nota,
         items: filasValidas.map((f) => ({
           producto: f.producto,
+          presentacion: f.presentacion || null,
           cantidad: f.cantidad,
           extras: f.extras.map((ex) => ({ producto: ex.id, cantidad: ex.cantidad })),
         })),
@@ -294,7 +307,9 @@ export default function PedidoModal({ productos, categorias, localidades, onClos
                 >
                   {p.descuento_activo && <span className="badge-descuento badge-descuento-chica">🏷️ -{p.descuento_pct}%</span>}
                   <span>{p.nombre}</span>
-                  {p.descuento_activo ? (
+                  {p.presentaciones && p.presentaciones.length > 0 ? (
+                    <strong>Desde {formatearPrecio(p.presentaciones[0].precio)}</strong>
+                  ) : p.descuento_activo ? (
                     <strong>
                       <span className="precio-tachado">{formatearPrecio(p.precio)}</span>
                       {' '}{formatearPrecio(p.precio_actual)}
@@ -312,6 +327,7 @@ export default function PedidoModal({ productos, categorias, localidades, onClos
               <div className="pedido-filas">
                 {filas.map((fila) => {
                   const producto = productoPorId(fila.producto);
+                  const presentacion = presentacionDeFila(producto, fila);
                   const extrasDisponibles = extrasParaProducto(producto);
                   const filaTieneExtras = fila.extras.length > 0;
                   const filaTieneVarios = Number(fila.cantidad) > 1;
@@ -321,11 +337,22 @@ export default function PedidoModal({ productos, categorias, localidades, onClos
                         <div className="pedido-fila-nombre">
                           <strong>{producto ? producto.nombre : 'Producto'}</strong>
                           <span>
-                            {producto && producto.descuento_activo && (
+                            {producto && !presentacion && producto.descuento_activo && (
                               <span className="precio-tachado">{formatearPrecio(producto.precio)}</span>
                             )}
-                            {' '}{producto ? formatearPrecio(precioEfectivo(producto)) : ''}
+                            {' '}{producto ? formatearPrecio(precioEfectivo(producto, presentacion)) : ''}
                           </span>
+                          {producto && producto.presentaciones && producto.presentaciones.length > 0 && (
+                            <select
+                              className="input-vibrante pedido-fila-presentacion"
+                              value={fila.presentacion || ''}
+                              onChange={(e) => actualizarFila(fila.key, { presentacion: Number(e.target.value) })}
+                            >
+                              {producto.presentaciones.map((p) => (
+                                <option key={p.id} value={p.id}>{p.nombre}</option>
+                              ))}
+                            </select>
+                          )}
                         </div>
                         <div className="pedido-fila-cantidad-stepper">
                           <button type="button" onClick={() => actualizarFila(fila.key, { cantidad: Math.max(1, Number(fila.cantidad) - 1) })} disabled={filaTieneExtras}>−</button>

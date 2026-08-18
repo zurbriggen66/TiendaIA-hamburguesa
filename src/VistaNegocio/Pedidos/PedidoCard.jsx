@@ -87,6 +87,7 @@ export default function PedidoCard({ pedido, onCobrar, onDetalle, onImprimir, on
             <div className="pedido-item-info">
               <span>
                 {item.cantidad} × {item.producto_nombre || item.combo_nombre}
+                {item.presentacion_nombre && ` (${item.presentacion_nombre})`}
                 {item.descuento_pct > 0 && <span className="badge-descuento badge-descuento-chica">🏷️ -{item.descuento_pct}%</span>}
               </span>
               {item.extras_detalle && item.extras_detalle.length > 0 && (

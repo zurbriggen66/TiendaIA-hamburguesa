@@ -4,6 +4,9 @@ import api from '../../services/api';
 let contadorFilaInsumo = 0;
 const nuevaFilaInsumo = (insumo = '', cantidad = 1) => ({ key: ++contadorFilaInsumo, insumo: String(insumo), cantidad });
 
+let contadorFilaPresentacion = 0;
+const nuevaFilaPresentacion = (id = null, nombre = '', precio = '') => ({ key: ++contadorFilaPresentacion, id, nombre, precio });
+
 export default function ProductoModal({ producto, categorias, categoriaPreseleccionada, onClose, onSaved }) {
   const [nombre, setNombre] = useState(producto ? producto.nombre : '');
   const [descripcion, setDescripcion] = useState(producto ? producto.descripcion : '');
@@ -25,6 +28,11 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
       ? producto.insumos_detalle.map((d) => nuevaFilaInsumo(d.insumo, d.cantidad))
       : [nuevaFilaInsumo()]
   );
+  const [filasPresentaciones, setFilasPresentaciones] = useState(
+    producto && producto.presentaciones && producto.presentaciones.length > 0
+      ? producto.presentaciones.map((p) => nuevaFilaPresentacion(p.id, p.nombre, p.precio))
+      : []
+  );
 
   useEffect(() => {
     api.get('/insumos/').then((res) => setInsumosDisponibles(res.data)).catch((err) => console.error('Error al cargar insumos:', err));
@@ -40,6 +48,18 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
 
   const agregarFilaInsumo = () => {
     setFilasInsumos((prev) => [...prev, nuevaFilaInsumo()]);
+  };
+
+  const actualizarFilaPresentacion = (key, cambios) => {
+    setFilasPresentaciones((prev) => prev.map((f) => (f.key === key ? { ...f, ...cambios } : f)));
+  };
+
+  const quitarFilaPresentacion = (key) => {
+    setFilasPresentaciones((prev) => prev.filter((f) => f.key !== key));
+  };
+
+  const agregarFilaPresentacion = () => {
+    setFilasPresentaciones((prev) => [...prev, nuevaFilaPresentacion()]);
   };
 
   const previewImagen = imagen ? URL.createObjectURL(imagen) : (producto ? producto.imagen : null);
@@ -84,6 +104,11 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
     });
     const insumosParaGuardar = Array.from(cantidadPorInsumo, ([insumo, cantidad]) => ({ insumo, cantidad }));
     formData.append('insumos_json', JSON.stringify(insumosParaGuardar));
+
+    const presentacionesParaGuardar = filasPresentaciones
+      .filter((f) => f.nombre.trim() && Number(f.precio) > 0)
+      .map((f) => ({ id: f.id, nombre: f.nombre.trim(), precio: f.precio }));
+    formData.append('presentaciones_json', JSON.stringify(presentacionesParaGuardar));
 
     setGuardando(true);
     try {
@@ -255,6 +280,44 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
               </button>
             </div>
           )}
+
+          <div className="form-group">
+            <label className="form-label">Presentaciones (opcional, ej: Simple, Doble, Triple)</label>
+            <p className="form-ayuda">Si cargás alguna, el cliente va a tener que elegir una y ese precio reemplaza al de arriba.</p>
+            <div className="pedido-filas">
+              {filasPresentaciones.map((fila) => (
+                <div key={fila.key} className="pedido-fila">
+                  <input
+                    type="text"
+                    className="input-vibrante"
+                    placeholder="Ej: Doble"
+                    value={fila.nombre}
+                    onChange={(e) => actualizarFilaPresentacion(fila.key, { nombre: e.target.value })}
+                  />
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="input-vibrante pedido-fila-cantidad"
+                    placeholder="Precio"
+                    value={fila.precio}
+                    onChange={(e) => actualizarFilaPresentacion(fila.key, { precio: e.target.value })}
+                  />
+                  <button
+                    type="button"
+                    className="pedido-fila-quitar"
+                    onClick={() => quitarFilaPresentacion(fila.key)}
+                    title="Quitar presentación"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button type="button" className="btn-agregar-fila" onClick={agregarFilaPresentacion}>
+              + Agregar presentación
+            </button>
+          </div>
 
           <div className="form-group">
             <label className="form-label">Imagen</label>

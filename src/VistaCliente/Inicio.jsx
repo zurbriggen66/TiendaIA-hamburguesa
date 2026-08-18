@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import api, { leerToken, guardarToken } from '../services/api';
 import CuentaModal from './CuentaModal';
 import NavBar from './NavBar';
@@ -51,6 +52,8 @@ const precioUnitarioLinea = (linea) =>
   Number(linea.item.precio) + (linea.extras || []).reduce((acc, e) => acc + Number(e.precio) * e.cantidad, 0);
 
 export default function Inicio() {
+  const navigate = useNavigate();
+  const { id: idProductoUrl } = useParams();
   const [configuracion, setConfiguracion] = useState({
     logo: "https://cdn-icons-png.flaticon.com/512/3075/3075977.png",
     logo_precarga: null,
@@ -64,6 +67,7 @@ export default function Inicio() {
   const [combos, setCombos] = useState([]);
   const [items, setItems] = useState([]);
   const [carritoAbierto, setCarritoAbierto] = useState(false);
+  const [productoDetalleId, setProductoDetalleId] = useState(null);
   const [cliente, setCliente] = useState(null);
   const [mostrarCuenta, setMostrarCuenta] = useState(false);
   const [cargando, setCargando] = useState(true);
@@ -162,14 +166,30 @@ export default function Inicio() {
     setCliente(null);
   };
 
-  const armarLineaId =(tipo, id, extras, sugerido) =>
-    `${tipo}-${id}-${(extras || []).map((e) => `${e.id}x${e.cantidad}`).sort().join('_')}${sugerido ? '-carrito' : ''}`;
+  // Cada producto tiene su propia URL compartible (/producto/:id): si se entra directo
+  // desde un link (ej. Instagram), esto abre su detalle apenas carga el menú.
+  useEffect(() => {
+    if (idProductoUrl) setProductoDetalleId(Number(idProductoUrl));
+  }, [idProductoUrl]);
+
+  const abrirProducto = (id) => {
+    setProductoDetalleId(id);
+    navigate(`/producto/${id}`);
+  };
+
+  const cerrarProducto = () => {
+    setProductoDetalleId(null);
+    navigate('/');
+  };
+
+  const armarLineaId = (tipo, id, extras, sugerido, presentacionId) =>
+    `${tipo}-${id}-${presentacionId || ''}-${(extras || []).map((e) => `${e.id}x${e.cantidad}`).sort().join('_')}${sugerido ? '-carrito' : ''}`;
 
   // `sugerido` distingue una línea agregada desde la sugerencia de venta cruzada del
   // carrito (precio con descuento_carrito_pct) de una agregada normalmente desde el
   // menú (precio de lista): así nunca se mezclan en la misma línea con precios distintos.
   const agregarAlCarritoGenerico = (tipo, item, cantidad, extras = [], sugerido = false) => {
-    const lineaId = armarLineaId(tipo, item.id, extras, sugerido);
+    const lineaId = armarLineaId(tipo, item.id, extras, sugerido, item.presentacion_id);
     setItems((prev) => {
       const existente = prev.find((i) => i.lineaId === lineaId);
       if (existente) {
@@ -294,7 +314,14 @@ export default function Inicio() {
 
       <Combos combos={combos} onAgregar={agregarComboAlCarrito} />
 
-      <Menu categorias={categorias} productos={productos} onAgregar={agregarAlCarrito} />
+      <Menu
+        categorias={categorias}
+        productos={productos}
+        onAgregar={agregarAlCarrito}
+        productoDetalleId={productoDetalleId}
+        onAbrirProducto={abrirProducto}
+        onCerrarProducto={cerrarProducto}
+      />
 
       {totalItems > 0 && (
         <button type="button" className="carrito-barra-flotante" onClick={() => setCarritoAbierto(true)}>
