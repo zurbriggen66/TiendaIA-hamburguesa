@@ -549,7 +549,10 @@ export default function Menu({ categorias, productos, onAgregar, productoDetalle
           backdrop-filter: blur(4px);
           display: flex;
           justify-content: center;
-          z-index: 1000;
+          /* Más alto que el navbar (.nav-bar-pro usa z-index: 9999 !important): a
+             pantalla completa este overlay tiene que taparlo, si no el navbar queda
+             pintado encima y se come los clicks del header "Seguir comprando". */
+          z-index: 10000;
           animation: modalFondoAparece 0.2s ease-out;
         }
 
