@@ -27,6 +27,7 @@ function SelectorExtras({ extrasDisponibles, cantidadesExtras, onCambiarCantidad
 
   return (
     <div className="menu-tarjeta-extras">
+      <span className="presentaciones-titulo">Toppings</span>
       {extrasDisponibles.map((extra) => {
         const cantidad = cantidadesExtras[extra.id] || 0;
         return (
@@ -109,7 +110,7 @@ function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
     setCantidad(1);
     setCantidadesExtras({});
     // La primera presentación es siempre la más barata (Presentacion.Meta.ordering =
-    // ['orden', 'precio']), así "Agregar al pedido" funciona sin tocar nada más.
+    // ['precio']), así "Agregar al pedido" funciona sin tocar nada más.
     setPresentacionId(producto?.presentaciones?.[0]?.id ?? null);
   }, [producto]);
 
@@ -151,9 +152,11 @@ function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
   return (
     <div className="modal-producto-fondo" onClick={onCerrar}>
       <div className="modal-producto" onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="modal-producto-cerrar" onClick={onCerrar} aria-label="Cerrar">
-          ✕
-        </button>
+        <div className="modal-producto-header">
+          <button type="button" className="modal-producto-volver" onClick={onCerrar}>
+            ← Seguir comprando
+          </button>
+        </div>
 
         <div className="modal-producto-imagen">
           {producto.imagen ? (
@@ -545,11 +548,9 @@ export default function Menu({ categorias, productos, onAgregar, productoDetalle
           background: rgba(20, 12, 8, 0.6);
           backdrop-filter: blur(4px);
           display: flex;
-          align-items: center;
           justify-content: center;
-          padding: 20px;
           z-index: 1000;
-          animation: modalFondoAparece 0.25s ease-out;
+          animation: modalFondoAparece 0.2s ease-out;
         }
 
         @keyframes modalFondoAparece {
@@ -557,56 +558,63 @@ export default function Menu({ categorias, productos, onAgregar, productoDetalle
           to { opacity: 1; }
         }
 
+        /* A pantalla completa (como una página propia): en mobile ocupa todo el
+           viewport, en desktop queda centrado como una "hoja" ancha con el fondo
+           oscuro visible a los costados. */
         .modal-producto {
           background: #fff;
-          border-radius: 24px;
-          max-width: 520px;
           width: 100%;
-          max-height: 90vh;
+          max-width: 720px;
+          height: 100%;
+          height: 100dvh;
           overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
           position: relative;
-          box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35);
-          animation: modalAparece 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+          animation: modalAparece 0.25s ease-out;
         }
 
         @keyframes modalAparece {
           from {
             opacity: 0;
-            transform: scale(0.85) translateY(20px);
+            transform: translateY(24px);
           }
           to {
             opacity: 1;
-            transform: scale(1) translateY(0);
+            transform: translateY(0);
           }
         }
 
-        .modal-producto-cerrar {
-          position: absolute;
-          top: 14px;
-          right: 14px;
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          border: none;
-          background: rgba(255, 255, 255, 0.9);
-          font-size: 18px;
-          cursor: pointer;
-          z-index: 2;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: transform 0.15s ease, background 0.15s ease;
+        .modal-producto-header {
+          position: sticky;
+          top: 0;
+          z-index: 3;
+          background: rgba(255, 253, 251, 0.94);
+          backdrop-filter: blur(6px);
+          padding: 14px 20px;
+          border-bottom: 1px solid #f0e6dd;
         }
-        .modal-producto-cerrar:hover {
-          background: #fff;
-          transform: scale(1.1);
+
+        .modal-producto-volver {
+          border: none;
+          background: none;
+          padding: 4px 0;
+          font: inherit;
+          font-weight: 700;
+          font-size: 14px;
+          color: #241a13;
+          cursor: pointer;
+          transition: color 0.15s ease;
+        }
+        .modal-producto-volver:hover {
+          color: #e8630c;
         }
 
         .modal-producto-imagen {
           width: 100%;
-          height: 340px;
+          height: 38vh;
+          min-height: 260px;
+          max-height: 420px;
           overflow: hidden;
-          border-radius: 24px 24px 0 0;
           position: relative;
           background: linear-gradient(135deg, #f5efe8, #ece1d6);
         }
@@ -718,9 +726,13 @@ export default function Menu({ categorias, productos, onAgregar, productoDetalle
           color: #a89a8f;
         }
 
+        .modal-producto-info .menu-tarjeta-extras {
+          border: 1px solid #ece1d6;
+          background: #f5efe8;
+        }
         .modal-producto-info .extra-selector-fila {
           border-color: #ece1d6;
-          background: #f5efe8;
+          background: #ffffff;
         }
         .modal-producto-info .extra-selector-fila-activa {
           border-color: #e8630c;
@@ -743,12 +755,16 @@ export default function Menu({ categorias, productos, onAgregar, productoDetalle
           color: #241a13;
         }
 
+        .modal-producto-info .menu-tarjeta-presentaciones {
+          border: 1px solid #ece1d6;
+          background: #f5efe8;
+        }
         .modal-producto-info .presentaciones-titulo {
           color: #8a7c70;
         }
         .modal-producto-info .presentacion-selector-fila {
           border-color: #ece1d6;
-          background: #f5efe8;
+          background: #ffffff;
         }
         .modal-producto-info .presentacion-selector-fila-activa {
           border-color: #e8630c;

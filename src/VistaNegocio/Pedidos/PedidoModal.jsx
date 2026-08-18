@@ -5,7 +5,7 @@ const COLORES_CHIP = ['chip-mostaza', 'chip-naranja', 'chip-tomate'];
 
 let contadorFila = 0;
 // La presentación más barata siempre está primera (Presentacion.Meta.ordering =
-// ['orden', 'precio']), así una fila nueva ya queda con un precio válido sin tocar nada más.
+// ['precio']), así una fila nueva ya queda con un precio válido sin tocar nada más.
 const nuevaFila = (productoId, presentacionId = null) => ({ key: ++contadorFila, producto: productoId, presentacion: presentacionId, cantidad: 1, extras: [] });
 
 const formatearPrecio = (precio) =>
