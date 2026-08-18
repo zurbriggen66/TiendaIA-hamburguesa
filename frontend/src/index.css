@@ -2459,8 +2459,11 @@ body {
 .menu-tarjeta-extras {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 12px;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  margin-bottom: 16px;
 }
 
 .extra-selector-fila {
@@ -2532,60 +2535,67 @@ body {
 .menu-tarjeta-presentaciones {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 12px;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  margin-bottom: 16px;
 }
 
 .presentaciones-titulo {
-  font-size: 0.78rem;
-  font-weight: 700;
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   color: var(--text-muted);
+  margin-bottom: 2px;
 }
 
 .presentacion-selector-fila {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
   border: 1.5px solid var(--border);
-  background: var(--surface-2);
-  border-radius: 10px;
-  padding: 10px 14px;
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 12px 14px;
   font: inherit;
   color: var(--text);
   cursor: pointer;
   text-align: left;
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .presentacion-selector-fila-activa {
   border-color: #e8630c;
+  box-shadow: 0 0 0 1px #e8630c;
 }
 
 .presentacion-selector-check {
   flex-shrink: 0;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   border: 2px solid var(--border);
+  transition: border-color 0.15s ease;
 }
 
 .presentacion-selector-fila-activa .presentacion-selector-check {
   border-color: #e8630c;
-  background: radial-gradient(circle, #e8630c 0 40%, transparent 44%);
+  background: radial-gradient(circle, #e8630c 0 42%, transparent 46%);
 }
 
 .presentacion-selector-nombre {
   flex: 1;
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .presentacion-selector-precio {
   flex-shrink: 0;
-  font-weight: 700;
+  font-weight: 800;
   color: #f4a35c;
 }
 
