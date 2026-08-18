@@ -28,7 +28,8 @@ function armarMensajeWhatsapp({ nombre, telefono, tipoEntrega, direccion, items,
       ? ` (+ ${textoExtras(linea.extras)})`
       : '';
     const etiquetaSugerido = linea.sugerido ? ' 🛒(oferta carrito)' : '';
-    lineas.push(`${linea.cantidad}x ${linea.item.nombre}${extrasTexto}${etiquetaSugerido} - ${formatearPrecio(precioUnitarioLinea(linea) * linea.cantidad)}`);
+    const presentacionTexto = linea.item.presentacion_nombre ? ` (${linea.item.presentacion_nombre})` : '';
+    lineas.push(`${linea.cantidad}x ${linea.item.nombre}${presentacionTexto}${extrasTexto}${etiquetaSugerido} - ${formatearPrecio(precioUnitarioLinea(linea) * linea.cantidad)}`);
   });
   lineas.push('', `*Total: ${formatearPrecio(total)}*`);
   return lineas.join('\n');
@@ -117,6 +118,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
             ? { combo: linea.item.id, cantidad: linea.cantidad }
             : {
                 producto: linea.item.id,
+                presentacion: linea.item.presentacion_id || null,
                 cantidad: linea.cantidad,
                 extras: (linea.extras || []).map((e) => ({ producto: e.id, cantidad: e.cantidad })),
                 sugerido_carrito: !!linea.sugerido,
@@ -183,6 +185,9 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
                     <div className="pedido-item-titulo">
                       <strong>{linea.item.nombre}</strong>
                       {linea.tipo === 'combo' && <span className="pedido-item-badge-combo">Combo</span>}
+                      {linea.item.presentacion_nombre && (
+                        <span className="pedido-item-badge-combo">{linea.item.presentacion_nombre}</span>
+                      )}
                     </div>
                     {linea.extras && linea.extras.length > 0 && (
                       <span className="pedido-item-extras">+ {textoExtras(linea.extras)}</span>

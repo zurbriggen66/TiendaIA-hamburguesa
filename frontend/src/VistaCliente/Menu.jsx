@@ -3,9 +3,22 @@ import React, { useState, useEffect, useRef } from 'react';
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
 
-const calcularPrecioTotal = (producto, extrasDisponibles, cantidadesExtras, cantidad, usarDescuento = true) => {
+// Con presentación elegida, la base es el precio de esa presentación en vez del precio
+// de lista del producto (que pasa a ser sólo un valor de referencia sin usar).
+const precioBaseSinDescuento = (producto, presentacion) => Number(presentacion ? presentacion.precio : producto.precio);
+
+const precioBaseConDescuento = (producto, presentacion) => {
+  if (!producto.descuento_activo) return precioBaseSinDescuento(producto, presentacion);
+  // Sin presentación, se respeta el precio_actual que ya viene calculado (y redondeado)
+  // por el servidor. Con presentación no hay ese campo por variante: se aplica el mismo
+  // % acá para mostrar — el precio real que se cobra lo vuelve a calcular el servidor.
+  if (!presentacion) return Number(producto.precio_actual);
+  return Math.round(precioBaseSinDescuento(producto, presentacion) * (1 - Number(producto.descuento_pct) / 100));
+};
+
+const calcularPrecioTotal = (producto, extrasDisponibles, cantidadesExtras, cantidad, usarDescuento = true, presentacion = null) => {
   const costoExtras = extrasDisponibles.reduce((acc, e) => acc + Number(e.precio) * (cantidadesExtras[e.id] || 0), 0);
-  const precioUnidad = usarDescuento && producto.descuento_activo ? Number(producto.precio_actual) : Number(producto.precio);
+  const precioUnidad = usarDescuento ? precioBaseConDescuento(producto, presentacion) : precioBaseSinDescuento(producto, presentacion);
   return (precioUnidad + costoExtras) * cantidad;
 };
 
@@ -14,6 +27,7 @@ function SelectorExtras({ extrasDisponibles, cantidadesExtras, onCambiarCantidad
 
   return (
     <div className="menu-tarjeta-extras">
+      <span className="presentaciones-titulo">Toppings</span>
       {extrasDisponibles.map((extra) => {
         const cantidad = cantidadesExtras[extra.id] || 0;
         return (
@@ -27,6 +41,29 @@ function SelectorExtras({ extrasDisponibles, cantidadesExtras, onCambiarCantidad
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function SelectorPresentaciones({ presentaciones, presentacionId, onElegir }) {
+  if (!presentaciones || presentaciones.length === 0) return null;
+
+  return (
+    <div className="menu-tarjeta-presentaciones">
+      <span className="presentaciones-titulo">Presentaciones</span>
+      {presentaciones.map((p) => (
+        <button
+          type="button"
+          key={p.id}
+          className={`presentacion-selector-fila ${presentacionId === p.id ? 'presentacion-selector-fila-activa' : ''}`}
+          onClick={() => onElegir(p.id)}
+          aria-pressed={presentacionId === p.id}
+        >
+          <span className="presentacion-selector-check" aria-hidden="true" />
+          <span className="presentacion-selector-nombre">{p.nombre}</span>
+          <span className="presentacion-selector-precio">{formatearPrecio(p.precio)}</span>
+        </button>
+      ))}
     </div>
   );
 }
@@ -67,10 +104,14 @@ function TarjetaProducto({ producto, onVerDetalle }) {
 function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
   const [cantidad, setCantidad] = useState(1);
   const [cantidadesExtras, setCantidadesExtras] = useState({});
+  const [presentacionId, setPresentacionId] = useState(null);
 
   useEffect(() => {
     setCantidad(1);
     setCantidadesExtras({});
+    // La primera presentación es siempre la más barata (Presentacion.Meta.ordering =
+    // ['precio']), así "Agregar al pedido" funciona sin tocar nada más.
+    setPresentacionId(producto?.presentaciones?.[0]?.id ?? null);
   }, [producto]);
 
   useEffect(() => {
@@ -88,6 +129,8 @@ function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
 
   if (!producto) return null;
 
+  const presentacionSeleccionada = (producto.presentaciones || []).find((p) => p.id === presentacionId) || null;
+
   const cambiarCantidadExtra = (id, nuevaCantidad) => {
     setCantidadesExtras((prev) => ({ ...prev, [id]: nuevaCantidad }));
   };
@@ -96,17 +139,24 @@ function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
     const extras = extrasDisponibles
       .filter((e) => (cantidadesExtras[e.id] || 0) > 0)
       .map((e) => ({ ...e, cantidad: cantidadesExtras[e.id] }));
-    const precioBase = producto.descuento_activo ? Number(producto.precio_actual) : Number(producto.precio);
-    onAgregar({ ...producto, precio: precioBase }, cantidad, extras);
+    const precioBase = precioBaseConDescuento(producto, presentacionSeleccionada);
+    onAgregar({
+      ...producto,
+      precio: precioBase,
+      presentacion_id: presentacionSeleccionada?.id ?? null,
+      presentacion_nombre: presentacionSeleccionada?.nombre ?? null,
+    }, cantidad, extras);
     onCerrar();
   };
 
   return (
     <div className="modal-producto-fondo" onClick={onCerrar}>
       <div className="modal-producto" onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="modal-producto-cerrar" onClick={onCerrar} aria-label="Cerrar">
-          ✕
-        </button>
+        <div className="modal-producto-header">
+          <button type="button" className="modal-producto-volver" onClick={onCerrar}>
+            ← Seguir comprando
+          </button>
+        </div>
 
         <div className="modal-producto-imagen">
           {producto.imagen ? (
@@ -129,14 +179,20 @@ function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
           <h3>{producto.nombre}</h3>
           {producto.descripcion && <p className="modal-producto-descripcion">{producto.descripcion}</p>}
 
+          <SelectorPresentaciones
+            presentaciones={producto.presentaciones}
+            presentacionId={presentacionId}
+            onElegir={setPresentacionId}
+          />
+
           <SelectorExtras extrasDisponibles={extrasDisponibles} cantidadesExtras={cantidadesExtras} onCambiarCantidad={cambiarCantidadExtra} />
 
           <div className="menu-tarjeta-footer">
             <span className="menu-tarjeta-precio">
               {producto.descuento_activo && (
-                <span className="precio-tachado">{formatearPrecio(calcularPrecioTotal(producto, extrasDisponibles, cantidadesExtras, cantidad, false))}</span>
+                <span className="precio-tachado">{formatearPrecio(calcularPrecioTotal(producto, extrasDisponibles, cantidadesExtras, cantidad, false, presentacionSeleccionada))}</span>
               )}
-              {formatearPrecio(calcularPrecioTotal(producto, extrasDisponibles, cantidadesExtras, cantidad))}
+              {formatearPrecio(calcularPrecioTotal(producto, extrasDisponibles, cantidadesExtras, cantidad, true, presentacionSeleccionada))}
             </span>
             <div className="menu-tarjeta-cantidad">
               <button type="button" onClick={() => setCantidad((c) => Math.max(1, c - 1))}>−</button>
@@ -154,9 +210,11 @@ function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
   );
 }
 
-export default function Menu({ categorias, productos, onAgregar }) {
+export default function Menu({ categorias, productos, onAgregar, productoDetalleId, onAbrirProducto, onCerrarProducto }) {
   const [categoriaActiva, setCategoriaActiva] = useState('todas');
-  const [productoDetalle, setProductoDetalle] = useState(null);
+  // El producto abierto en el modal/página de detalle lo controla Inicio.jsx (vive
+  // sincronizado con la URL /producto/:id para que cada producto tenga link propio).
+  const productoDetalle = productos.find((p) => p.id === productoDetalleId) || null;
   const cintaRef = useRef(null);
   const pausadaRef = useRef(false);
   const posicionCintaRef = useRef(0);
@@ -306,7 +364,7 @@ export default function Menu({ categorias, productos, onAgregar }) {
             <TarjetaProducto
               key={producto.id}
               producto={producto}
-              onVerDetalle={setProductoDetalle}
+              onVerDetalle={(p) => onAbrirProducto(p.id)}
             />
           ))}
         </div>
@@ -315,7 +373,7 @@ export default function Menu({ categorias, productos, onAgregar }) {
       <ModalProducto
         producto={productoDetalle}
         extrasDisponibles={extrasParaProducto(productoDetalle)}
-        onCerrar={() => setProductoDetalle(null)}
+        onCerrar={onCerrarProducto}
         onAgregar={onAgregar}
       />
 
@@ -490,11 +548,12 @@ export default function Menu({ categorias, productos, onAgregar }) {
           background: rgba(20, 12, 8, 0.6);
           backdrop-filter: blur(4px);
           display: flex;
-          align-items: center;
           justify-content: center;
-          padding: 20px;
-          z-index: 1000;
-          animation: modalFondoAparece 0.25s ease-out;
+          /* Más alto que el navbar (.nav-bar-pro usa z-index: 9999 !important): a
+             pantalla completa este overlay tiene que taparlo, si no el navbar queda
+             pintado encima y se come los clicks del header "Seguir comprando". */
+          z-index: 10000;
+          animation: modalFondoAparece 0.2s ease-out;
         }
 
         @keyframes modalFondoAparece {
@@ -502,56 +561,63 @@ export default function Menu({ categorias, productos, onAgregar }) {
           to { opacity: 1; }
         }
 
+        /* A pantalla completa (como una página propia): en mobile ocupa todo el
+           viewport, en desktop queda centrado como una "hoja" ancha con el fondo
+           oscuro visible a los costados. */
         .modal-producto {
           background: #fff;
-          border-radius: 24px;
-          max-width: 520px;
           width: 100%;
-          max-height: 90vh;
+          max-width: 720px;
+          height: 100%;
+          height: 100dvh;
           overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
           position: relative;
-          box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35);
-          animation: modalAparece 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+          animation: modalAparece 0.25s ease-out;
         }
 
         @keyframes modalAparece {
           from {
             opacity: 0;
-            transform: scale(0.85) translateY(20px);
+            transform: translateY(24px);
           }
           to {
             opacity: 1;
-            transform: scale(1) translateY(0);
+            transform: translateY(0);
           }
         }
 
-        .modal-producto-cerrar {
-          position: absolute;
-          top: 14px;
-          right: 14px;
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          border: none;
-          background: rgba(255, 255, 255, 0.9);
-          font-size: 18px;
-          cursor: pointer;
-          z-index: 2;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: transform 0.15s ease, background 0.15s ease;
+        .modal-producto-header {
+          position: sticky;
+          top: 0;
+          z-index: 3;
+          background: rgba(255, 253, 251, 0.94);
+          backdrop-filter: blur(6px);
+          padding: 14px 20px;
+          border-bottom: 1px solid #f0e6dd;
         }
-        .modal-producto-cerrar:hover {
-          background: #fff;
-          transform: scale(1.1);
+
+        .modal-producto-volver {
+          border: none;
+          background: none;
+          padding: 4px 0;
+          font: inherit;
+          font-weight: 700;
+          font-size: 14px;
+          color: #241a13;
+          cursor: pointer;
+          transition: color 0.15s ease;
+        }
+        .modal-producto-volver:hover {
+          color: #e8630c;
         }
 
         .modal-producto-imagen {
           width: 100%;
-          height: 340px;
+          height: 38vh;
+          min-height: 260px;
+          max-height: 420px;
           overflow: hidden;
-          border-radius: 24px 24px 0 0;
           position: relative;
           background: linear-gradient(135deg, #f5efe8, #ece1d6);
         }
@@ -663,9 +729,13 @@ export default function Menu({ categorias, productos, onAgregar }) {
           color: #a89a8f;
         }
 
+        .modal-producto-info .menu-tarjeta-extras {
+          border: 1px solid #ece1d6;
+          background: #f5efe8;
+        }
         .modal-producto-info .extra-selector-fila {
           border-color: #ece1d6;
-          background: #f5efe8;
+          background: #ffffff;
         }
         .modal-producto-info .extra-selector-fila-activa {
           border-color: #e8630c;
@@ -686,6 +756,27 @@ export default function Menu({ categorias, productos, onAgregar }) {
         }
         .modal-producto-info .extra-selector-stepper span {
           color: #241a13;
+        }
+
+        .modal-producto-info .menu-tarjeta-presentaciones {
+          border: 1px solid #ece1d6;
+          background: #f5efe8;
+        }
+        .modal-producto-info .presentaciones-titulo {
+          color: #8a7c70;
+        }
+        .modal-producto-info .presentacion-selector-fila {
+          border-color: #ece1d6;
+          background: #ffffff;
+        }
+        .modal-producto-info .presentacion-selector-fila-activa {
+          border-color: #e8630c;
+        }
+        .modal-producto-info .presentacion-selector-nombre {
+          color: #241a13;
+        }
+        .modal-producto-info .presentacion-selector-check {
+          border-color: #d9cbbc;
         }
 
         .modal-producto-agregar {
