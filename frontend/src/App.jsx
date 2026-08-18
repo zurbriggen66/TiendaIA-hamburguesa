@@ -20,6 +20,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Inicio />} />
+        <Route path="/producto/:id" element={<Inicio />} />
         <Route path="/admin" element={<DashboardLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="inicio" element={<InicioPage />} />

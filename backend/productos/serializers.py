@@ -1,7 +1,7 @@
 import json
 
 from rest_framework import serializers
-from .models import Categoria, Producto, Combo, ProductoInsumo, ComboItem
+from .models import Categoria, Producto, Combo, ProductoInsumo, ComboItem, Presentacion
 
 
 class CategoriaSerializer(serializers.ModelSerializer):
@@ -17,6 +17,8 @@ class ProductoSerializer(serializers.ModelSerializer):
     descuento_activo = serializers.SerializerMethodField()
     precio_actual = serializers.SerializerMethodField()
     precio_sugerido_carrito = serializers.SerializerMethodField()
+    presentaciones = serializers.SerializerMethodField()
+    presentaciones_json = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = Producto
@@ -24,7 +26,8 @@ class ProductoSerializer(serializers.ModelSerializer):
             'id', 'categoria', 'categoria_nombre', 'nombre', 'descripcion', 'precio',
             'imagen', 'destacado', 'es_extra', 'insumos_detalle', 'insumos_json',
             'descuento_pct', 'descuento_hasta', 'descuento_activo', 'precio_actual',
-            'sugerido_carrito', 'descuento_carrito_pct', 'precio_sugerido_carrito', 'creado',
+            'sugerido_carrito', 'descuento_carrito_pct', 'precio_sugerido_carrito',
+            'presentaciones', 'presentaciones_json', 'creado',
         ]
 
     def get_descuento_activo(self, obj):
@@ -47,6 +50,12 @@ class ProductoSerializer(serializers.ModelSerializer):
             for detalle in obj.detalle_insumos.select_related('insumo').all()
         ]
 
+    def get_presentaciones(self, obj):
+        return [
+            {'id': p.id, 'nombre': p.nombre, 'precio': p.precio, 'orden': p.orden}
+            for p in obj.presentaciones.all()
+        ]
+
     def _guardar_insumos(self, producto, insumos_json):
         if insumos_json is None:
             return
@@ -62,16 +71,49 @@ class ProductoSerializer(serializers.ModelSerializer):
         ]
         ProductoInsumo.objects.bulk_create(nuevas)
 
+    def _guardar_presentaciones(self, producto, presentaciones_json):
+        if presentaciones_json is None:
+            return
+        try:
+            filas = json.loads(presentaciones_json) if presentaciones_json else []
+        except (TypeError, ValueError):
+            raise serializers.ValidationError({'presentaciones_json': 'Formato inválido.'})
+
+        # A diferencia de los insumos, acá no se puede borrar-todo-y-recrear en cada
+        # guardado: DetallePedido.presentacion apunta a filas puntuales, y este JSON se
+        # reenvía completo en cada edición del producto (la haya tocado o no). Se hace
+        # upsert por id para no romper esa referencia en pedidos ya hechos; sólo se
+        # borran las presentaciones que efectivamente dejaron de estar en la lista.
+        ids_vigentes = set()
+        for orden, fila in enumerate(filas):
+            nombre = (fila.get('nombre') or '').strip()
+            precio = fila.get('precio')
+            if not nombre or not precio:
+                continue
+            fila_id = fila.get('id')
+            if fila_id and producto.presentaciones.filter(id=fila_id).exists():
+                producto.presentaciones.filter(id=fila_id).update(nombre=nombre, precio=precio, orden=orden)
+                ids_vigentes.add(fila_id)
+            else:
+                nueva = Presentacion.objects.create(producto=producto, nombre=nombre, precio=precio, orden=orden)
+                ids_vigentes.add(nueva.id)
+
+        producto.presentaciones.exclude(id__in=ids_vigentes).delete()
+
     def create(self, validated_data):
         insumos_json = validated_data.pop('insumos_json', None)
+        presentaciones_json = validated_data.pop('presentaciones_json', None)
         producto = Producto.objects.create(**validated_data)
         self._guardar_insumos(producto, insumos_json)
+        self._guardar_presentaciones(producto, presentaciones_json)
         return producto
 
     def update(self, instance, validated_data):
         insumos_json = validated_data.pop('insumos_json', None)
+        presentaciones_json = validated_data.pop('presentaciones_json', None)
         producto = super().update(instance, validated_data)
         self._guardar_insumos(producto, insumos_json)
+        self._guardar_presentaciones(producto, presentaciones_json)
         return producto
 
 

@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from django.db import models
-from productos.models import Producto, Combo
+from productos.models import Producto, Combo, Presentacion
 
 # A nivel de módulo porque la usan Caja y Pago (y, vía Pago.METODOS, también gastos).
 METODOS_PAGO = [
@@ -148,6 +148,9 @@ class DetallePedido(models.Model):
     pedido = models.ForeignKey(Pedido, related_name='items', on_delete=models.CASCADE)
     producto = models.ForeignKey(Producto, null=True, blank=True, on_delete=models.PROTECT)
     combo = models.ForeignKey(Combo, null=True, blank=True, on_delete=models.PROTECT)
+    # Si se borra la presentación elegida más adelante, el pedido no se pierde: sólo
+    # pierde la etiqueta ("Doble"), el precio ya quedó congelado en precio_unitario.
+    presentacion = models.ForeignKey(Presentacion, null=True, blank=True, on_delete=models.SET_NULL)
     cantidad = models.PositiveIntegerField()
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
     descuento_pct = models.PositiveIntegerField(default=0)
