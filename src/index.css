@@ -1566,6 +1566,13 @@ body {
   color: var(--text-muted);
 }
 
+.pedido-fila-presentacion {
+  margin-top: 2px;
+  padding: 4px 8px;
+  font-size: 0.78rem;
+  width: auto;
+}
+
 .pedido-fila-cantidad-stepper {
   display: flex;
   align-items: center;
@@ -2520,6 +2527,66 @@ body {
   text-align: center;
   font-weight: 700;
   color: var(--text);
+}
+
+.menu-tarjeta-presentaciones {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.presentaciones-titulo {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.presentacion-selector-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease;
+}
+
+.presentacion-selector-fila-activa {
+  border-color: #e8630c;
+}
+
+.presentacion-selector-check {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+}
+
+.presentacion-selector-fila-activa .presentacion-selector-check {
+  border-color: #e8630c;
+  background: radial-gradient(circle, #e8630c 0 40%, transparent 44%);
+}
+
+.presentacion-selector-nombre {
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.presentacion-selector-precio {
+  flex-shrink: 0;
+  font-weight: 700;
+  color: #f4a35c;
 }
 
 .carrito-barra-flotante {
