@@ -96,9 +96,6 @@ function TarjetaProducto({ producto, onVerDetalle }) {
   const [ref, visible] = useReveal();
   return (
     <div ref={ref} className={`menu-tarjeta reveal ${visible ? 'reveal-visible' : ''}`}>
-      {producto.descuento_activo && (
-        <span className="badge-descuento menu-tarjeta-badge-descuento">🏷️ -{producto.descuento_pct}%</span>
-      )}
       <div
         className="menu-tarjeta-imagen"
         onClick={() => onVerDetalle(producto)}
@@ -112,15 +109,28 @@ function TarjetaProducto({ producto, onVerDetalle }) {
         ) : (
           <div className="menu-tarjeta-imagen-placeholder">🍔</div>
         )}
+        <div className="menu-tarjeta-imagen-degradado" aria-hidden="true" />
+        {producto.categoria_nombre && (
+          <span className="menu-tarjeta-categoria-flotante">🍔 {producto.categoria_nombre}</span>
+        )}
+        {producto.descuento_activo && (
+          <span className="badge-descuento menu-tarjeta-badge-descuento">🏷️ -{producto.descuento_pct}%</span>
+        )}
+        <h3 className="menu-tarjeta-titulo-flotante fuente-impacto">{producto.nombre}</h3>
       </div>
       <div className="menu-tarjeta-info">
-        <span className="producto-categoria-tag">{producto.categoria_nombre}</span>
-        <h3 className="menu-tarjeta-titulo-clickeable" onClick={() => onVerDetalle(producto)}>{producto.nombre}</h3>
         {producto.descripcion && <p className="menu-tarjeta-descripcion">{producto.descripcion}</p>}
-
-        <button type="button" className="menu-tarjeta-toppings" onClick={() => onVerDetalle(producto)}>
-          Agregar al pedido
-        </button>
+        <div className="menu-tarjeta-divisor" aria-hidden="true" />
+        <div className="menu-tarjeta-footer">
+          <span className="menu-tarjeta-precio">{formatearPrecio(producto.precio)}</span>
+          <button type="button" className="menu-tarjeta-toppings" onClick={() => onVerDetalle(producto)}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M8 7V6a4 4 0 118 0v1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+              <path d="M5.5 7h13l1.3 12.2a2 2 0 0 1-2 2.3H6.2a2 2 0 0 1-2-2.3L5.5 7z" fill="currentColor" />
+            </svg>
+            Agregar
+          </button>
+        </div>
       </div>
     </div>
   );
