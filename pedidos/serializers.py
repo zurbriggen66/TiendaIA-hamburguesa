@@ -4,6 +4,7 @@ from rest_framework import serializers
 from .models import Pedido, DetallePedido, DetalleExtra, Localidad, Pago, Caja
 from productos.models import Producto, Presentacion
 from antojo.models import AntojoDelDia
+from negocio.models import ConfiguracionSitio
 from clientes.puntos import calcular_descuento as calcular_descuento_puntos
 
 
@@ -195,6 +196,18 @@ class PedidoSerializer(serializers.ModelSerializer):
         if not value:
             raise serializers.ValidationError('El pedido necesita al menos un producto.')
         return value
+
+    def validate(self, data):
+        # El interruptor de "tienda abierta" solo frena los pedidos que llegan por la
+        # web pública; lo cargado a mano en el admin (origen='admin', el default) sigue
+        # funcionando siempre, para no trabar al mostrador con un cliente presente.
+        if data.get('origen') == 'web':
+            config = ConfiguracionSitio.objects.order_by('id').last()
+            if config and not config.tienda_abierta:
+                raise serializers.ValidationError(
+                    config.mensaje_cerrado or 'La tienda está cerrada en este momento. No se pueden recibir pedidos.'
+                )
+        return data
 
     def create(self, validated_data):
         items_data = validated_data.pop('items')

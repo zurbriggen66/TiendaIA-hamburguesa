@@ -17,4 +17,6 @@ class ConfiguracionSitioSerializer(serializers.ModelSerializer):
             'color_superficie',
             'color_acento',
             'color_boton_agregar',
+            'tienda_abierta',
+            'mensaje_cerrado',
         ]

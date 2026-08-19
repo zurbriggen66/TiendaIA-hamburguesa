@@ -31,6 +31,13 @@ class ConfiguracionSitio(models.Model):
     color_fondo = models.CharField(max_length=7, default='#0d2b23')
     color_superficie = models.CharField(max_length=7, default='#163a30')
     color_acento = models.CharField(max_length=7, default='#e8630c')
+
+    # Apagar esto bloquea los pedidos nuevos de la tienda web (no los cargados a mano
+    # en el admin): ver PedidoSerializer.validate en la app "pedidos".
+    tienda_abierta = models.BooleanField(default=True)
+    mensaje_cerrado = models.CharField(
+        max_length=200, blank=True, default='Volvemos pronto, gracias por tu paciencia.'
+    )
     color_boton_agregar = models.CharField(max_length=7, default='#ffc700')
 
     def __str__(self):
