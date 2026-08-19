@@ -35,7 +35,7 @@ function armarMensajeWhatsapp({ nombre, telefono, tipoEntrega, direccion, items,
   return lineas.join('\n');
 }
 
-export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onCambiarCantidad, onQuitar, onAgregarSugerido, onVaciar, cliente, onClienteActualizado }) {
+export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onCambiarCantidad, onQuitar, onAgregarSugerido, onVaciar, cliente, onClienteActualizado, tiendaAbierta = true, mensajeCerrado }) {
   const [nombre, setNombre] = useState(cliente?.nombre || '');
   const [telefono, setTelefono] = useState(cliente?.telefono || '');
   const [usarPuntos, setUsarPuntos] = useState(false);
@@ -81,7 +81,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
 
   const enviarPedido = async (e) => {
     e.preventDefault();
-    if (items.length === 0) return;
+    if (items.length === 0 || !tiendaAbierta) return;
 
     const nuevosErrores = {};
     if (!nombre.trim()) nuevosErrores.nombre = 'Falta tu nombre';
@@ -355,10 +355,18 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
               </>
             )}
 
-            <button type="submit" className="pedido-btn-finalizar" disabled={enviando}>
-              {enviando ? 'Enviando...' : '📲 Enviar pedido por WhatsApp'}
-            </button>
-            <p className="pedido-confianza">Te confirmamos el pedido por WhatsApp antes de prepararlo.</p>
+            {tiendaAbierta ? (
+              <>
+                <button type="submit" className="pedido-btn-finalizar" disabled={enviando}>
+                  {enviando ? 'Enviando...' : '📲 Enviar pedido por WhatsApp'}
+                </button>
+                <p className="pedido-confianza">Te confirmamos el pedido por WhatsApp antes de prepararlo.</p>
+              </>
+            ) : (
+              <p className="pedido-cerrado-aviso">
+                😴 Estamos cerrados en este momento — {mensajeCerrado || 'volvemos pronto'}. Guardá tu carrito y volvé a intentar más tarde.
+              </p>
+            )}
           </form>
         )}
       </aside>
@@ -963,6 +971,17 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           border-radius: 10px;
           padding: 10px 14px;
           margin: 0 0 16px;
+        }
+
+        .pedido-cerrado-aviso {
+          font-size: 0.88rem;
+          font-weight: 600;
+          color: #78350f;
+          background: linear-gradient(135deg, #fbbf24, #f59e0b);
+          border-radius: 12px;
+          padding: 14px 16px;
+          margin: 0;
+          line-height: 1.4;
         }
 
         .pedido-btn-whatsapp {

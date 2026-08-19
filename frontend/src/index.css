@@ -2312,6 +2312,31 @@ body {
   justify-content: center;
 }
 
+.tienda-cerrada-aviso {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #78350f;
+}
+
+.tienda-cerrada-aviso-icono {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+
+.tienda-cerrada-aviso strong {
+  display: block;
+  font-size: 1rem;
+}
+
+.tienda-cerrada-aviso p {
+  margin: 2px 0 0;
+  font-size: 0.88rem;
+  opacity: 0.9;
+}
+
 .hero {
   position: relative;
   min-height: 560px;
