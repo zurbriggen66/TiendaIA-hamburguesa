@@ -31,6 +31,19 @@ const precioBaseConDescuento = (producto, presentacion) => {
   return candidatos.length > 0 ? Math.min(...candidatos) : base;
 };
 
+// Las presentaciones son variantes CON RECARGO sobre el producto (ej. "Doble" = la
+// hamburguesa + un medallón extra). Si el producto tiene alguna cargada pero ninguna
+// es igual o más barata que el precio de lista, se agrega "Simple" (el precio base)
+// como primera opción — si no, el cliente queda obligado a pagar siempre el recargo,
+// sin poder pedir el producto tal cual.
+const presentacionesConBase = (producto) => {
+  const reales = producto.presentaciones || [];
+  if (reales.length === 0) return [];
+  const masBarataReal = Math.min(...reales.map((p) => Number(p.precio)));
+  if (masBarataReal <= Number(producto.precio)) return reales;
+  return [{ id: null, nombre: 'Simple', precio: producto.precio }, ...reales];
+};
+
 const calcularPrecioTotal = (producto, extrasDisponibles, cantidadesExtras, cantidad, usarDescuento = true, presentacion = null) => {
   const costoExtras = extrasDisponibles.reduce((acc, e) => acc + Number(e.precio) * (cantidadesExtras[e.id] || 0), 0);
   const precioUnidad = usarDescuento ? precioBaseConDescuento(producto, presentacion) : precioBaseSinDescuento(producto, presentacion);
@@ -144,9 +157,9 @@ function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
   useEffect(() => {
     setCantidad(1);
     setCantidadesExtras({});
-    // La primera presentación es siempre la más barata (Presentacion.Meta.ordering =
-    // ['precio']), así "Agregar al pedido" funciona sin tocar nada más.
-    setPresentacionId(producto?.presentaciones?.[0]?.id ?? null);
+    // La primera opción es siempre la más barata (presentacionesConBase ya la deja
+    // primera), así "Agregar al pedido" funciona sin tocar nada más.
+    setPresentacionId(producto ? presentacionesConBase(producto)[0]?.id ?? null : null);
   }, [producto]);
 
   useEffect(() => {
@@ -193,30 +206,34 @@ function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
           </button>
         </div>
 
-        <div className="modal-producto-imagen">
-          {producto.imagen ? (
-            <>
-              <div
-                className="modal-producto-imagen-fondo"
-                style={{ backgroundImage: `url(${producto.imagen})` }}
-                aria-hidden="true"
-              />
-              <img src={producto.imagen} alt={producto.nombre} className="modal-producto-imagen-real" />
-            </>
-          ) : (
-            <div className="menu-tarjeta-imagen-placeholder">🍔</div>
-          )}
+        <div className="modal-producto-tarjeta">
+          <div className="modal-producto-imagen">
+            {producto.imagen ? (
+              <>
+                <div
+                  className="modal-producto-imagen-fondo"
+                  style={{ backgroundImage: `url(${producto.imagen})` }}
+                  aria-hidden="true"
+                />
+                <img src={producto.imagen} alt={producto.nombre} className="modal-producto-imagen-real" />
+              </>
+            ) : (
+              <div className="menu-tarjeta-imagen-placeholder">🍔</div>
+            )}
+          </div>
+
+          <div className="modal-producto-tarjeta-texto">
+            {producto.descuento_activo && <span className="badge-descuento">🏷️ -{producto.descuento_pct}%</span>}
+            <span className="producto-categoria-tag">{producto.categoria_nombre}</span>
+            <h3>{producto.nombre}</h3>
+            {producto.descripcion && <p className="modal-producto-descripcion">{producto.descripcion}</p>}
+          </div>
         </div>
 
-        <div className="modal-producto-info">
-          {producto.descuento_activo && <span className="badge-descuento">🏷️ -{producto.descuento_pct}%</span>}
-          <span className="producto-categoria-tag">{producto.categoria_nombre}</span>
-          <h3>{producto.nombre}</h3>
-          {producto.descripcion && <p className="modal-producto-descripcion">{producto.descripcion}</p>}
-
+        <div className="modal-producto-acciones">
           <SelectorPresentaciones
             producto={producto}
-            presentaciones={producto.presentaciones}
+            presentaciones={presentacionesConBase(producto)}
             presentacionId={presentacionId}
             onElegir={setPresentacionId}
           />
@@ -599,9 +616,22 @@ export default function Menu({ categorias, productos, onAgregar, productoDetalle
 
         /* A pantalla completa (como una página propia): en mobile ocupa todo el
            viewport, en desktop queda centrado como una "hoja" ancha con el fondo
-           oscuro visible a los costados. */
+           oscuro visible a los costados.
+
+           Estilo neumórfico (soft UI): un único color de fondo neutro para todo
+           (página, tarjeta, botones) — el relieve lo dan solo las sombras duales
+           (--sombra-elevada para lo que "sobresale", --sombra-hundida para lo que
+           está presionado/anidado), nunca un color de fondo distinto. Variables
+           reutilizables para poder ajustar el tono o la intensidad más adelante. */
         .modal-producto {
-          background: #fff;
+          --bg-suave: #f0ece4;
+          --sombra-clara: #ffffff;
+          --sombra-oscura: #c9c2b4;
+          --sombra-elevada: 7px 7px 14px var(--sombra-oscura), -7px -7px 14px var(--sombra-clara);
+          --sombra-hundida: inset 4px 4px 9px var(--sombra-oscura), inset -4px -4px 9px var(--sombra-clara);
+          --sombra-elevada-chica: 4px 4px 8px var(--sombra-oscura), -4px -4px 8px var(--sombra-clara);
+          --sombra-hundida-chica: inset 3px 3px 6px var(--sombra-oscura), inset -3px -3px 6px var(--sombra-clara);
+          background: var(--bg-suave);
           width: 100%;
           max-width: 720px;
           height: 100%;
@@ -627,10 +657,10 @@ export default function Menu({ categorias, productos, onAgregar, productoDetalle
           position: sticky;
           top: 0;
           z-index: 3;
-          background: rgba(255, 253, 251, 0.94);
+          background: rgba(240, 236, 228, 0.92);
           backdrop-filter: blur(6px);
           padding: 14px 20px;
-          border-bottom: 1px solid #f0e6dd;
+          border-bottom: 1px solid #e2dbcd;
         }
 
         .modal-producto-volver {
@@ -648,11 +678,21 @@ export default function Menu({ categorias, productos, onAgregar, productoDetalle
           color: var(--accent, #e8630c);
         }
 
+        /* Tarjeta principal (imagen + descripción): un solo bloque elevado del
+           mismo color que el fondo, con sombra dual clara/oscura. */
+        .modal-producto-tarjeta {
+          margin: 20px 20px 0;
+          border-radius: 26px;
+          background: var(--bg-suave);
+          box-shadow: var(--sombra-elevada);
+          overflow: hidden;
+        }
+
         .modal-producto-imagen {
           width: 100%;
-          height: 38vh;
-          min-height: 260px;
-          max-height: 420px;
+          height: 34vh;
+          min-height: 220px;
+          max-height: 360px;
           overflow: hidden;
           position: relative;
           background: linear-gradient(135deg, #f5efe8, #ece1d6);
@@ -682,25 +722,24 @@ export default function Menu({ categorias, productos, onAgregar, productoDetalle
           z-index: 2;
         }
 
-        .modal-producto-info {
-          padding: 26px 28px 28px;
+        .modal-producto-tarjeta-texto {
+          padding: 20px 24px 24px;
           display: flex;
           flex-direction: column;
-          background: #fffdfb;
         }
 
-        .modal-producto-info .badge-descuento {
+        .modal-producto-tarjeta-texto .badge-descuento {
           position: static;
           align-self: flex-start;
           margin-bottom: 8px;
         }
 
-        .modal-producto-info .producto-categoria-tag {
+        .modal-producto-tarjeta-texto .producto-categoria-tag {
           align-self: flex-start;
           margin-bottom: 10px;
         }
 
-        .modal-producto-info h3 {
+        .modal-producto-tarjeta-texto h3 {
           margin: 0 0 8px;
           font-size: 26px;
           font-weight: 800;
@@ -713,35 +752,44 @@ export default function Menu({ categorias, productos, onAgregar, productoDetalle
           color: #6f6259;
           line-height: 1.55;
           font-size: 15px;
-          margin: 0 0 20px;
+          margin: 0;
         }
 
-        .modal-producto-info .menu-tarjeta-footer {
+        .modal-producto-acciones {
+          padding: 22px 22px 28px;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .modal-producto-acciones .menu-tarjeta-footer {
           padding-top: 18px;
-          border-top: 1px solid #f0e6dd;
           margin-bottom: 4px;
         }
 
-        .modal-producto-info .menu-tarjeta-precio {
+        .modal-producto-acciones .menu-tarjeta-precio {
           font-size: 22px;
           font-weight: 800;
           color: #1f8a4c;
         }
 
-        .modal-producto-info .menu-tarjeta-cantidad {
+        /* Stepper de cantidad del producto: mismo trato neumórfico que los +/-
+           de toppings (punto 4), para que no queden dos estilos de botón distintos
+           en la misma pantalla. */
+        .modal-producto-acciones .menu-tarjeta-cantidad {
           display: flex;
           align-items: center;
           gap: 14px;
-          border: 1px solid #ece1d6;
+          border: none;
           border-radius: 999px;
           padding: 4px 6px;
         }
-        .modal-producto-info .menu-tarjeta-cantidad button {
+        .modal-producto-acciones .menu-tarjeta-cantidad button {
           width: 30px;
           height: 30px;
           border-radius: 50%;
           border: none;
-          background: #f5efe8;
+          background: var(--bg-suave);
+          box-shadow: var(--sombra-elevada-chica);
           color: #241a13;
           font-size: 16px;
           font-weight: 700;
@@ -749,80 +797,110 @@ export default function Menu({ categorias, productos, onAgregar, productoDetalle
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: background 0.15s ease;
+          transition: box-shadow 0.12s ease;
         }
-        .modal-producto-info .menu-tarjeta-cantidad button:hover {
-          background: #ebdccb;
+        .modal-producto-acciones .menu-tarjeta-cantidad button:active {
+          box-shadow: var(--sombra-hundida-chica);
         }
-        .modal-producto-info .menu-tarjeta-cantidad span {
+        .modal-producto-acciones .menu-tarjeta-cantidad span {
           min-width: 16px;
           text-align: center;
           font-weight: 700;
           color: #241a13;
         }
 
-        .modal-producto-info .precio-tachado {
+        .modal-producto-acciones .precio-tachado {
           color: #a89a8f;
         }
 
-        .modal-producto-info .menu-tarjeta-extras {
-          border: 1px solid #ece1d6;
-          background: #f5efe8;
+        /* Punto 5: el contenedor de toppings queda hundido para diferenciarse de
+           las superficies que sobresalen (tarjeta, selector, botones). */
+        .modal-producto-acciones .menu-tarjeta-extras {
+          border: none;
+          background: var(--bg-suave);
+          box-shadow: var(--sombra-hundida);
+          border-radius: 18px;
+          margin-bottom: 8px;
         }
-        .modal-producto-info .extra-selector-fila {
-          border-color: #ece1d6;
-          background: #ffffff;
+        .modal-producto-acciones .extra-selector-fila {
+          border: none;
+          border-bottom: 1px solid rgba(36, 26, 19, 0.08);
+          background: transparent;
+          border-radius: 0;
+          padding: 10px 4px;
         }
-        .modal-producto-info .extra-selector-fila-activa {
-          border-color: var(--accent, #e8630c);
+        .modal-producto-acciones .extra-selector-fila:last-child {
+          border-bottom: none;
         }
-        .modal-producto-info .extra-selector-nombre {
+        .modal-producto-acciones .extra-selector-fila-activa {
+          border-bottom-color: rgba(36, 26, 19, 0.08);
+        }
+        .modal-producto-acciones .extra-selector-nombre {
           color: #241a13;
         }
-        .modal-producto-info .extra-selector-nombre small {
+        .modal-producto-acciones .extra-selector-nombre small {
           color: #8a7c70;
         }
-        .modal-producto-info .extra-selector-stepper button {
-          background: #ffffff;
+        /* Punto 4: círculos +/- con relieve en reposo y hundidos al tocar. */
+        .modal-producto-acciones .extra-selector-stepper button {
+          background: var(--bg-suave);
+          box-shadow: var(--sombra-elevada-chica);
           color: #241a13;
+          transition: box-shadow 0.12s ease, background 0.12s ease;
         }
-        .modal-producto-info .extra-selector-stepper button:not(:disabled):hover {
+        .modal-producto-acciones .extra-selector-stepper button:active:not(:disabled) {
+          box-shadow: var(--sombra-hundida-chica);
+        }
+        .modal-producto-acciones .extra-selector-stepper button:not(:disabled):hover {
           background: linear-gradient(135deg, var(--accent-light, #f4854a), var(--accent, #e8630c));
           color: #ffffff;
         }
-        .modal-producto-info .extra-selector-stepper span {
+        .modal-producto-acciones .extra-selector-stepper span {
           color: #241a13;
         }
 
-        .modal-producto-info .menu-tarjeta-presentaciones {
-          border: 1px solid #ece1d6;
-          background: #f5efe8;
+        .modal-producto-acciones .menu-tarjeta-presentaciones {
+          border: none;
+          background: transparent;
+          padding: 0;
         }
-        .modal-producto-info .presentaciones-titulo {
+        .modal-producto-acciones .presentaciones-titulo {
           color: #8a7c70;
         }
-        .modal-producto-info .presentacion-selector-fila {
-          border-color: #ece1d6;
-          background: #ffffff;
+        /* Punto 3: fila normal = elevada; fila elegida = hundida, sin borde de
+           color — el acento naranja queda solo en el "punto" del check. */
+        .modal-producto-acciones .presentacion-selector-fila {
+          border: none;
+          background: var(--bg-suave);
+          box-shadow: var(--sombra-elevada);
+          transition: box-shadow 0.15s ease;
         }
-        .modal-producto-info .presentacion-selector-fila-activa {
-          border-color: var(--accent, #e8630c);
+        .modal-producto-acciones .presentacion-selector-fila-activa {
+          border: none;
+          box-shadow: var(--sombra-hundida);
         }
-        .modal-producto-info .presentacion-selector-nombre {
+        .modal-producto-acciones .presentacion-selector-nombre {
           color: #241a13;
         }
-        .modal-producto-info .presentacion-selector-check {
+        .modal-producto-acciones .presentacion-selector-fila-activa .presentacion-selector-nombre {
+          color: var(--accent, #e8630c);
+        }
+        .modal-producto-acciones .presentacion-selector-check {
           border-color: #d9cbbc;
         }
 
+        /* Punto 6: sigue naranja de marca, pero con sombra neumórfica en tonos del
+           propio acento en vez de un box-shadow plano. */
         .modal-producto-agregar {
           margin-top: 20px;
           width: 100%;
           font-size: 16px;
+          box-shadow: 5px 5px 10px rgba(184, 78, 10, 0.45), -5px -5px 10px rgba(244, 133, 74, 0.35);
+          transition: box-shadow 0.12s ease, transform 0.12s ease;
         }
-
-        .modal-producto-info .menu-tarjeta-extras {
-          margin-bottom: 8px;
+        .modal-producto-agregar:active {
+          box-shadow: inset 4px 4px 8px rgba(184, 78, 10, 0.5), inset -4px -4px 8px rgba(244, 133, 74, 0.25);
+          transform: none;
         }
 
         @media (prefers-reduced-motion: reduce) {
