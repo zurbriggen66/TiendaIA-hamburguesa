@@ -41,7 +41,7 @@ const presentacionesConBase = (producto) => {
   if (reales.length === 0) return [];
   const masBarataReal = Math.min(...reales.map((p) => Number(p.precio)));
   if (masBarataReal <= Number(producto.precio)) return reales;
-  return [{ id: null, nombre: 'Simple', precio: producto.precio }, ...reales];
+  return [{ id: null, nombre: 'CLASICA', precio: producto.precio }, ...reales];
 };
 
 const calcularPrecioTotal = (producto, extrasDisponibles, cantidadesExtras, cantidad, usarDescuento = true, presentacion = null) => {
