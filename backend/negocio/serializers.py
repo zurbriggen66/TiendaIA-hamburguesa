@@ -12,4 +12,9 @@ class ConfiguracionSitioSerializer(serializers.ModelSerializer):
             'video_principal',
             'whatsapp',
             'instagram',
+            'color_navbar',
+            'color_fondo',
+            'color_superficie',
+            'color_acento',
+            'color_boton_agregar',
         ]

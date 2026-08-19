@@ -95,6 +95,12 @@ class Presentacion(models.Model):
     nombre = models.CharField(max_length=50)
     precio = models.DecimalField(max_digits=10, decimal_places=2)
     orden = models.PositiveIntegerField(default=0)
+    # Insumos que esta variante suma POR ENCIMA de los del producto base (ej. "Doble" =
+    # los insumos de la hamburguesa simple + 1 medallón extra). No reemplazan a
+    # `Producto.insumos`, se descuentan además de esos al vender la variante.
+    insumos_extra = models.ManyToManyField(
+        'gastos.Insumo', through='PresentacionInsumo', blank=True, related_name='presentaciones_extra'
+    )
 
     class Meta:
         # Siempre por precio, nunca por `orden` (el orden en que el dueño las tipeó en el
@@ -104,6 +110,34 @@ class Presentacion(models.Model):
 
     def __str__(self):
         return f'{self.producto.nombre} - {self.nombre}'
+
+    def mejor_descuento_insumo(self):
+        """% de descuento más alto entre los insumos extra de esta variante que tengan
+        uno activo ahora mismo (0 si ninguno). Ej: si "Doble" suma un medallón y ese
+        insumo está en oferta, la variante hereda ese descuento."""
+        pcts = [
+            pi.insumo.descuento_pct
+            for pi in self.detalle_insumos_extra.select_related('insumo')
+            if pi.insumo.tiene_descuento_activo()
+        ]
+        return max(pcts) if pcts else 0
+
+    def ajustar_stock_extra(self, delta_unidades):
+        for pi in self.detalle_insumos_extra.select_related('insumo'):
+            pi.insumo.cantidad_disponible += pi.cantidad * delta_unidades
+            pi.insumo.save(update_fields=['cantidad_disponible'])
+
+
+class PresentacionInsumo(models.Model):
+    presentacion = models.ForeignKey(Presentacion, related_name='detalle_insumos_extra', on_delete=models.CASCADE)
+    insumo = models.ForeignKey('gastos.Insumo', on_delete=models.PROTECT, related_name='usado_en_presentaciones')
+    cantidad = models.DecimalField(max_digits=10, decimal_places=2, default=1)
+
+    class Meta:
+        unique_together = ('presentacion', 'insumo')
+
+    def __str__(self):
+        return f'{self.presentacion} usa {self.cantidad} extra de {self.insumo.nombre}'
 
 
 class ComboItem(models.Model):

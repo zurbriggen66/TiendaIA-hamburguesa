@@ -162,6 +162,9 @@ export default function GastosPage() {
                       title="Editar insumo"
                     >
                       {bajo && <span className="stock-card-aviso">⚠️ Queda poco</span>}
+                      {insumo.descuento_activo && (
+                        <span className="badge-descuento">🏷️ -{insumo.descuento_pct}%</span>
+                      )}
                       <span className="stock-card-nombre">{insumo.nombre}</span>
                       <strong className="stock-card-cantidad">{insumo.cantidad_disponible}</strong>
                       <span className="stock-card-unidad">{insumo.unidad}</span>

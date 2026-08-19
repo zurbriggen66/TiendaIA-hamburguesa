@@ -1,7 +1,7 @@
 import json
 
 from rest_framework import serializers
-from .models import Categoria, Producto, Combo, ProductoInsumo, ComboItem, Presentacion
+from .models import Categoria, Producto, Combo, ProductoInsumo, ComboItem, Presentacion, PresentacionInsumo
 
 
 class CategoriaSerializer(serializers.ModelSerializer):
@@ -52,7 +52,20 @@ class ProductoSerializer(serializers.ModelSerializer):
 
     def get_presentaciones(self, obj):
         return [
-            {'id': p.id, 'nombre': p.nombre, 'precio': p.precio, 'orden': p.orden}
+            {
+                'id': p.id,
+                'nombre': p.nombre,
+                'precio': p.precio,
+                'orden': p.orden,
+                'insumos_extra': [
+                    {'insumo': pi.insumo_id, 'nombre': pi.insumo.nombre, 'cantidad': pi.cantidad}
+                    for pi in p.detalle_insumos_extra.select_related('insumo').all()
+                ],
+                # Derivado de los insumos extra (ver Presentacion.mejor_descuento_insumo),
+                # no es un campo propio: si un medallón está en oferta, la variante que lo
+                # suma queda con este % aplicado sobre su precio.
+                'descuento_pct': p.mejor_descuento_insumo(),
+            }
             for p in obj.presentaciones.all()
         ]
 
@@ -93,10 +106,21 @@ class ProductoSerializer(serializers.ModelSerializer):
             fila_id = fila.get('id')
             if fila_id and producto.presentaciones.filter(id=fila_id).exists():
                 producto.presentaciones.filter(id=fila_id).update(nombre=nombre, precio=precio, orden=orden)
-                ids_vigentes.add(fila_id)
+                presentacion = producto.presentaciones.get(id=fila_id)
             else:
-                nueva = Presentacion.objects.create(producto=producto, nombre=nombre, precio=precio, orden=orden)
-                ids_vigentes.add(nueva.id)
+                presentacion = Presentacion.objects.create(producto=producto, nombre=nombre, precio=precio, orden=orden)
+            ids_vigentes.add(presentacion.id)
+
+            # Los insumos extra sí se borran-todo-y-recrean en cada guardado (igual que
+            # los insumos del producto): a diferencia de la Presentacion en sí, nada
+            # referencia estas filas puntuales desde un pedido ya hecho.
+            PresentacionInsumo.objects.filter(presentacion=presentacion).delete()
+            filas_insumos_extra = fila.get('insumos_extra') or []
+            nuevas_extra = [
+                PresentacionInsumo(presentacion=presentacion, insumo_id=fi['insumo'], cantidad=fi.get('cantidad') or 1)
+                for fi in filas_insumos_extra if fi.get('insumo')
+            ]
+            PresentacionInsumo.objects.bulk_create(nuevas_extra)
 
         producto.presentaciones.exclude(id__in=ids_vigentes).delete()
 

@@ -126,6 +126,14 @@ def calcular_precio_producto(producto, antojo_activo, via_sugerencia_carrito=Fal
     if via_sugerencia_carrito and producto.tiene_descuento_carrito_activo():
         descuento = Decimal(producto.descuento_carrito_pct) / Decimal(100)
         candidatos.append((producto.descuento_carrito_pct, (precio_base * (Decimal(1) - descuento)).quantize(Decimal('1'))))
+    # Si la variante elegida suma un insumo (ej. un medallón extra) que está en oferta,
+    # ese descuento también compite: gana el que le dé más descuento al cliente, igual
+    # que con los demás orígenes de descuento.
+    if presentacion:
+        descuento_pct_insumo = presentacion.mejor_descuento_insumo()
+        if descuento_pct_insumo:
+            descuento = Decimal(descuento_pct_insumo) / Decimal(100)
+            candidatos.append((descuento_pct_insumo, (precio_base * (Decimal(1) - descuento)).quantize(Decimal('1'))))
 
     if candidatos:
         return min(candidatos, key=lambda c: c[1])
@@ -135,6 +143,8 @@ def calcular_precio_producto(producto, antojo_activo, via_sugerencia_carrito=Fal
 def mover_stock_item(item, signo):
     if item.producto_id:
         item.producto.ajustar_stock(signo * item.cantidad)
+        if item.presentacion_id:
+            item.presentacion.ajustar_stock_extra(signo * item.cantidad)
         for extra in item.extras.all():
             extra.extra.ajustar_stock(signo * extra.cantidad * item.cantidad)
     elif item.combo_id:

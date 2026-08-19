@@ -25,7 +25,12 @@ export default function NavBar({ configuracion, totalItems, onPedir, cliente, on
       </a>
 
       <button type="button" className="nav-btn-carrito" onClick={onPedir} aria-label="Ver carrito">
-        🛒
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 7V6a4 4 0 118 0v1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+          <path d="M5.5 7h13l1.3 12.2a2 2 0 0 1-2 2.3H6.2a2 2 0 0 1-2-2.3L5.5 7z" fill="currentColor" />
+          <circle cx="9.3" cy="12.5" r="1" fill="var(--navbar-bg, #0d2b23)" />
+          <circle cx="14.7" cy="12.5" r="1" fill="var(--navbar-bg, #0d2b23)" />
+        </svg>
         {totalItems > 0 && <span className="nav-btn-carrito-badge">{totalItems}</span>}
       </button>
 
@@ -54,7 +59,7 @@ export default function NavBar({ configuracion, totalItems, onPedir, cliente, on
           grid-template-columns: 1fr auto 1fr !important;
           align-items: center !important;
           padding: 12px 20px !important; /* Espaciado extra para que respire */
-          background-color: #0d2b23; /* Fondo oscuro unificado */
+          background-color: var(--navbar-bg, #0d2b23); /* Fondo oscuro unificado */
           gap: 15px 0;
         }
 
@@ -106,16 +111,16 @@ export default function NavBar({ configuracion, totalItems, onPedir, cliente, on
           height: 46px;
           border-radius: 50%;
           border: none;
-          background: linear-gradient(135deg, #f4854a 0%, #e8630c 100%);
-          color: #fff;
+          background: transparent;
+          color: #ffffff;
           font-size: 20px;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          box-shadow: 0 4px 10px rgba(232, 99, 12, 0.25); /* Sombra elegante */
+          box-shadow: none;
         }
-        
+
         .nav-btn-carrito-badge {
           position: absolute;
           top: -2px;
@@ -124,8 +129,8 @@ export default function NavBar({ configuracion, totalItems, onPedir, cliente, on
           height: 18px;
           padding: 0 4px;
           border-radius: 50%;
-          background: #fff;
-          color: #b84e0a;
+          background: var(--accent-gradient, linear-gradient(135deg, #f4854a 0%, #e8630c 100%));
+          color: #fff;
           font-size: 11px;
           font-weight: 800;
           display: flex;
@@ -140,7 +145,7 @@ export default function NavBar({ configuracion, totalItems, onPedir, cliente, on
           top: 100% !important; /* Lo ubica exactamente debajo de la barra */
           left: 0 !important;
           width: 100% !important;
-          background-color: #0d2b23 !important; /* Mismo fondo oscuro */
+          background-color: var(--navbar-bg, #0d2b23) !important; /* Mismo fondo oscuro */
           padding: 20px 0 30px 0 !important; /* Espaciado arriba y abajo */
           box-shadow: 0 15px 20px rgba(0, 0, 0, 0.4) !important; /* Sombra para despegarlo del fondo */
           
@@ -159,7 +164,7 @@ export default function NavBar({ configuracion, totalItems, onPedir, cliente, on
           grid-template-columns: 1fr auto 1fr !important;
           align-items: center !important;
           padding: 12px 20px !important;
-          background-color: #0d2b23;
+          background-color: var(--navbar-bg, #0d2b23);
           gap: 15px 0;
           /* Agrega estas dos líneas: */
           position: relative !important; 

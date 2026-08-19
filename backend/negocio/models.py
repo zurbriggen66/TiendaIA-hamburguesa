@@ -24,5 +24,14 @@ class ConfiguracionSitio(models.Model):
     pesos_por_punto = models.PositiveIntegerField(default=100)
     valor_punto = models.DecimalField(max_digits=10, decimal_places=2, default=1)
 
+    # Colores de la vista del cliente (código hex, ej. "#0d2b23"). Los defaults son
+    # los colores actuales del sitio, así que mientras nadie los cambie desde el
+    # admin la tienda se ve exactamente igual que antes de este campo existir.
+    color_navbar = models.CharField(max_length=7, default='#0d2b23')
+    color_fondo = models.CharField(max_length=7, default='#0d2b23')
+    color_superficie = models.CharField(max_length=7, default='#163a30')
+    color_acento = models.CharField(max_length=7, default='#e8630c')
+    color_boton_agregar = models.CharField(max_length=7, default='#ffc700')
+
     def __str__(self):
         return "Configuración General del Sitio"

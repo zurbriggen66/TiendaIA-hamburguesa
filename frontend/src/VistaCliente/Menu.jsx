@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useReveal } from '../utils/useReveal';
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
@@ -7,13 +8,27 @@ const formatearPrecio = (precio) =>
 // de lista del producto (que pasa a ser sólo un valor de referencia sin usar).
 const precioBaseSinDescuento = (producto, presentacion) => Number(presentacion ? presentacion.precio : producto.precio);
 
+// Si la presentación elegida suma un insumo con descuento activo (ej. "Doble" con un
+// medallón en oferta), ese % también compite con el descuento del producto — gana el
+// que le dé más descuento al cliente, igual que hace el servidor al cobrar el pedido.
+const tieneDescuento = (producto, presentacion) =>
+  Boolean(producto.descuento_activo || (presentacion && Number(presentacion.descuento_pct) > 0));
+
 const precioBaseConDescuento = (producto, presentacion) => {
-  if (!producto.descuento_activo) return precioBaseSinDescuento(producto, presentacion);
-  // Sin presentación, se respeta el precio_actual que ya viene calculado (y redondeado)
-  // por el servidor. Con presentación no hay ese campo por variante: se aplica el mismo
-  // % acá para mostrar — el precio real que se cobra lo vuelve a calcular el servidor.
-  if (!presentacion) return Number(producto.precio_actual);
-  return Math.round(precioBaseSinDescuento(producto, presentacion) * (1 - Number(producto.descuento_pct) / 100));
+  const base = precioBaseSinDescuento(producto, presentacion);
+  if (!presentacion) {
+    // Sin presentación, se respeta el precio_actual que ya viene calculado (y redondeado)
+    // por el servidor.
+    return producto.descuento_activo ? Number(producto.precio_actual) : base;
+  }
+  const candidatos = [];
+  if (producto.descuento_activo) {
+    candidatos.push(Math.round(base * (1 - Number(producto.descuento_pct) / 100)));
+  }
+  if (Number(presentacion.descuento_pct) > 0) {
+    candidatos.push(Math.round(base * (1 - Number(presentacion.descuento_pct) / 100)));
+  }
+  return candidatos.length > 0 ? Math.min(...candidatos) : base;
 };
 
 const calcularPrecioTotal = (producto, extrasDisponibles, cantidadesExtras, cantidad, usarDescuento = true, presentacion = null) => {
@@ -45,32 +60,42 @@ function SelectorExtras({ extrasDisponibles, cantidadesExtras, onCambiarCantidad
   );
 }
 
-function SelectorPresentaciones({ presentaciones, presentacionId, onElegir }) {
+function SelectorPresentaciones({ producto, presentaciones, presentacionId, onElegir }) {
   if (!presentaciones || presentaciones.length === 0) return null;
 
   return (
     <div className="menu-tarjeta-presentaciones">
       <span className="presentaciones-titulo">Presentaciones</span>
-      {presentaciones.map((p) => (
-        <button
-          type="button"
-          key={p.id}
-          className={`presentacion-selector-fila ${presentacionId === p.id ? 'presentacion-selector-fila-activa' : ''}`}
-          onClick={() => onElegir(p.id)}
-          aria-pressed={presentacionId === p.id}
-        >
-          <span className="presentacion-selector-check" aria-hidden="true" />
-          <span className="presentacion-selector-nombre">{p.nombre}</span>
-          <span className="presentacion-selector-precio">{formatearPrecio(p.precio)}</span>
-        </button>
-      ))}
+      {presentaciones.map((p) => {
+        const conDescuento = tieneDescuento(producto, p);
+        return (
+          <button
+            type="button"
+            key={p.id}
+            className={`presentacion-selector-fila ${presentacionId === p.id ? 'presentacion-selector-fila-activa' : ''}`}
+            onClick={() => onElegir(p.id)}
+            aria-pressed={presentacionId === p.id}
+          >
+            <span className="presentacion-selector-check" aria-hidden="true" />
+            <span className="presentacion-selector-nombre">
+              {p.nombre}
+              {conDescuento && <span className="badge-descuento badge-descuento-chica">🏷️ -{Math.max(producto.descuento_pct || 0, p.descuento_pct || 0)}%</span>}
+            </span>
+            <span className="presentacion-selector-precio">
+              {conDescuento && <span className="precio-tachado">{formatearPrecio(p.precio)}</span>}
+              {formatearPrecio(precioBaseConDescuento(producto, p))}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
 
 function TarjetaProducto({ producto, onVerDetalle }) {
+  const [ref, visible] = useReveal();
   return (
-    <div className="menu-tarjeta">
+    <div ref={ref} className={`menu-tarjeta reveal ${visible ? 'reveal-visible' : ''}`}>
       {producto.descuento_activo && (
         <span className="badge-descuento menu-tarjeta-badge-descuento">🏷️ -{producto.descuento_pct}%</span>
       )}
@@ -180,6 +205,7 @@ function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
           {producto.descripcion && <p className="modal-producto-descripcion">{producto.descripcion}</p>}
 
           <SelectorPresentaciones
+            producto={producto}
             presentaciones={producto.presentaciones}
             presentacionId={presentacionId}
             onElegir={setPresentacionId}
@@ -189,7 +215,7 @@ function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
 
           <div className="menu-tarjeta-footer">
             <span className="menu-tarjeta-precio">
-              {producto.descuento_activo && (
+              {tieneDescuento(producto, presentacionSeleccionada) && (
                 <span className="precio-tachado">{formatearPrecio(calcularPrecioTotal(producto, extrasDisponibles, cantidadesExtras, cantidad, false, presentacionSeleccionada))}</span>
               )}
               {formatearPrecio(calcularPrecioTotal(producto, extrasDisponibles, cantidadesExtras, cantidad, true, presentacionSeleccionada))}
@@ -410,7 +436,7 @@ export default function Menu({ categorias, productos, onAgregar, productoDetalle
         .menu-filtro-linea {
           flex: 1;
           height: 1px;
-          background: linear-gradient(90deg, transparent, #e8630c 50%, transparent);
+          background: linear-gradient(90deg, transparent, var(--accent, #e8630c) 50%, transparent);
         }
 
         .menu-filtro-titulo {
@@ -418,7 +444,7 @@ export default function Menu({ categorias, productos, onAgregar, productoDetalle
           font-size: 0.78rem;
           letter-spacing: 0.1em;
           text-transform: uppercase;
-          color: #e8630c;
+          color: var(--accent, #e8630c);
           white-space: nowrap;
         }
 
@@ -477,7 +503,7 @@ export default function Menu({ categorias, productos, onAgregar, productoDetalle
         }
 
         .filtro-categoria-activa {
-          border-color: #e8630c;
+          border-color: var(--accent, #e8630c);
           background: linear-gradient(180deg, rgba(232, 99, 12, 0.2), rgba(232, 99, 12, 0.06));
           box-shadow: 0 10px 24px -12px rgba(232, 99, 12, 0.5);
         }
@@ -527,7 +553,7 @@ export default function Menu({ categorias, productos, onAgregar, productoDetalle
 
         .filtro-categoria-activa .filtro-categoria-check {
           border-color: transparent;
-          background: linear-gradient(135deg, #f4854a, #e8630c);
+          background: linear-gradient(135deg, var(--accent-light, #f4854a), var(--accent, #e8630c));
           color: #ffffff;
         }
 
@@ -609,7 +635,7 @@ export default function Menu({ categorias, productos, onAgregar, productoDetalle
           transition: color 0.15s ease;
         }
         .modal-producto-volver:hover {
-          color: #e8630c;
+          color: var(--accent, #e8630c);
         }
 
         .modal-producto-imagen {
@@ -738,7 +764,7 @@ export default function Menu({ categorias, productos, onAgregar, productoDetalle
           background: #ffffff;
         }
         .modal-producto-info .extra-selector-fila-activa {
-          border-color: #e8630c;
+          border-color: var(--accent, #e8630c);
         }
         .modal-producto-info .extra-selector-nombre {
           color: #241a13;
@@ -751,7 +777,7 @@ export default function Menu({ categorias, productos, onAgregar, productoDetalle
           color: #241a13;
         }
         .modal-producto-info .extra-selector-stepper button:not(:disabled):hover {
-          background: linear-gradient(135deg, #f4854a, #e8630c);
+          background: linear-gradient(135deg, var(--accent-light, #f4854a), var(--accent, #e8630c));
           color: #ffffff;
         }
         .modal-producto-info .extra-selector-stepper span {
@@ -770,7 +796,7 @@ export default function Menu({ categorias, productos, onAgregar, productoDetalle
           background: #ffffff;
         }
         .modal-producto-info .presentacion-selector-fila-activa {
-          border-color: #e8630c;
+          border-color: var(--accent, #e8630c);
         }
         .modal-producto-info .presentacion-selector-nombre {
           color: #241a13;
