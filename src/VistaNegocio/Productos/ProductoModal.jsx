@@ -5,7 +5,16 @@ let contadorFilaInsumo = 0;
 const nuevaFilaInsumo = (insumo = '', cantidad = 1) => ({ key: ++contadorFilaInsumo, insumo: String(insumo), cantidad });
 
 let contadorFilaPresentacion = 0;
-const nuevaFilaPresentacion = (id = null, nombre = '', precio = '') => ({ key: ++contadorFilaPresentacion, id, nombre, precio });
+const nuevaFilaPresentacion = (id = null, nombre = '', precio = '', insumosExtra = []) => ({
+  key: ++contadorFilaPresentacion,
+  id,
+  nombre,
+  precio,
+  // Insumos que esta variante suma por encima de los del producto base (ej. "Doble" =
+  // insumos de la simple + 1 medallón extra). Si ese insumo tiene descuento, la
+  // variante lo hereda automáticamente (lo calcula el backend).
+  insumosExtra: insumosExtra.length > 0 ? insumosExtra.map((d) => nuevaFilaInsumo(d.insumo, d.cantidad)) : [],
+});
 
 export default function ProductoModal({ producto, categorias, categoriaPreseleccionada, onClose, onSaved }) {
   const [nombre, setNombre] = useState(producto ? producto.nombre : '');
@@ -30,7 +39,7 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
   );
   const [filasPresentaciones, setFilasPresentaciones] = useState(
     producto && producto.presentaciones && producto.presentaciones.length > 0
-      ? producto.presentaciones.map((p) => nuevaFilaPresentacion(p.id, p.nombre, p.precio))
+      ? producto.presentaciones.map((p) => nuevaFilaPresentacion(p.id, p.nombre, p.precio, p.insumos_extra))
       : []
   );
 
@@ -60,6 +69,26 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
 
   const agregarFilaPresentacion = () => {
     setFilasPresentaciones((prev) => [...prev, nuevaFilaPresentacion()]);
+  };
+
+  const actualizarInsumoExtra = (presKey, insumoKey, cambios) => {
+    setFilasPresentaciones((prev) => prev.map((f) => (
+      f.key === presKey
+        ? { ...f, insumosExtra: f.insumosExtra.map((ie) => (ie.key === insumoKey ? { ...ie, ...cambios } : ie)) }
+        : f
+    )));
+  };
+
+  const quitarInsumoExtra = (presKey, insumoKey) => {
+    setFilasPresentaciones((prev) => prev.map((f) => (
+      f.key === presKey ? { ...f, insumosExtra: f.insumosExtra.filter((ie) => ie.key !== insumoKey) } : f
+    )));
+  };
+
+  const agregarInsumoExtra = (presKey) => {
+    setFilasPresentaciones((prev) => prev.map((f) => (
+      f.key === presKey ? { ...f, insumosExtra: [...f.insumosExtra, nuevaFilaInsumo()] } : f
+    )));
   };
 
   const previewImagen = imagen ? URL.createObjectURL(imagen) : (producto ? producto.imagen : null);
@@ -107,7 +136,20 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
 
     const presentacionesParaGuardar = filasPresentaciones
       .filter((f) => f.nombre.trim() && Number(f.precio) > 0)
-      .map((f) => ({ id: f.id, nombre: f.nombre.trim(), precio: f.precio }));
+      .map((f) => {
+        const extraValidos = f.insumosExtra.filter((ie) => ie.insumo && Number(ie.cantidad) > 0);
+        const cantidadPorInsumoExtra = new Map();
+        extraValidos.forEach((ie) => {
+          const id = Number(ie.insumo);
+          cantidadPorInsumoExtra.set(id, (cantidadPorInsumoExtra.get(id) || 0) + Number(ie.cantidad));
+        });
+        return {
+          id: f.id,
+          nombre: f.nombre.trim(),
+          precio: f.precio,
+          insumos_extra: Array.from(cantidadPorInsumoExtra, ([insumo, cantidad]) => ({ insumo, cantidad })),
+        };
+      });
     formData.append('presentaciones_json', JSON.stringify(presentacionesParaGuardar));
 
     setGuardando(true);
@@ -285,32 +327,80 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
             <label className="form-label">Presentaciones (opcional, ej: Simple, Doble, Triple)</label>
             <p className="form-ayuda">Si cargás alguna, el cliente va a tener que elegir una y ese precio reemplaza al de arriba.</p>
             <div className="pedido-filas">
-              {filasPresentaciones.map((fila) => (
-                <div key={fila.key} className="pedido-fila">
-                  <input
-                    type="text"
-                    className="input-vibrante"
-                    placeholder="Ej: Doble"
-                    value={fila.nombre}
-                    onChange={(e) => actualizarFilaPresentacion(fila.key, { nombre: e.target.value })}
-                  />
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    className="input-vibrante pedido-fila-cantidad"
-                    placeholder="Precio"
-                    value={fila.precio}
-                    onChange={(e) => actualizarFilaPresentacion(fila.key, { precio: e.target.value })}
-                  />
-                  <button
-                    type="button"
-                    className="pedido-fila-quitar"
-                    onClick={() => quitarFilaPresentacion(fila.key)}
-                    title="Quitar presentación"
-                  >
-                    ✕
-                  </button>
+              {filasPresentaciones.map((fila, indice) => (
+                <div key={fila.key} className="presentacion-card">
+                  <div className="pedido-fila">
+                    <input
+                      type="text"
+                      className="input-vibrante"
+                      placeholder="Ej: Doble"
+                      value={fila.nombre}
+                      onChange={(e) => actualizarFilaPresentacion(fila.key, { nombre: e.target.value })}
+                    />
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="input-vibrante pedido-fila-cantidad"
+                      placeholder="Precio"
+                      value={fila.precio}
+                      onChange={(e) => actualizarFilaPresentacion(fila.key, { precio: e.target.value })}
+                    />
+                    <button
+                      type="button"
+                      className="pedido-fila-quitar"
+                      onClick={() => quitarFilaPresentacion(fila.key)}
+                      title="Quitar presentación"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {insumosDisponibles.length > 0 && (
+                    <div className="presentacion-insumos-extra">
+                      <span className="presentacion-insumos-extra-titulo">
+                        🧾 Insumos extra de {fila.nombre.trim() ? `"${fila.nombre.trim()}"` : `esta variante (${indice + 1}ª)`}
+                      </span>
+                      <p className="presentacion-insumos-extra-ayuda">
+                        Se suman a los insumos del producto de arriba (ej: "Doble" = los de la base + 1 medallón acá). Si el insumo tiene descuento, esta variante lo hereda sola.
+                      </p>
+                      {fila.insumosExtra.map((ie) => (
+                        <div key={ie.key} className="pedido-fila">
+                          <select
+                            className="input-vibrante"
+                            value={ie.insumo}
+                            onChange={(e) => actualizarInsumoExtra(fila.key, ie.key, { insumo: e.target.value })}
+                          >
+                            <option value="">Elegir insumo...</option>
+                            {insumosDisponibles.map((i) => (
+                              <option key={i.id} value={i.id}>
+                                {i.nombre} ({i.unidad}){i.descuento_activo ? ` · 🏷️ -${i.descuento_pct}%` : ''}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="input-vibrante pedido-fila-cantidad"
+                            value={ie.cantidad}
+                            onChange={(e) => actualizarInsumoExtra(fila.key, ie.key, { cantidad: e.target.value })}
+                          />
+                          <button
+                            type="button"
+                            className="pedido-fila-quitar"
+                            onClick={() => quitarInsumoExtra(fila.key, ie.key)}
+                            title="Quitar insumo extra"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                      <button type="button" className="btn-agregar-fila" onClick={() => agregarInsumoExtra(fila.key)}>
+                        + Agregar insumo extra
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

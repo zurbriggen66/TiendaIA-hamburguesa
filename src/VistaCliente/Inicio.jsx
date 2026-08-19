@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api, { CLAVE_TOKEN } from '../services/api';
+import { aclararColor, colorContraste } from '../utils/colores';
 import CuentaModal from './CuentaModal';
 import NavBar from './NavBar';
 import Hero from './Hero';
@@ -61,6 +62,11 @@ export default function Inicio() {
     video_principal: null,
     whatsapp: '5493544400993',
     instagram: 'https://www.instagram.com/antojoburger_/',
+    color_navbar: '#0d2b23',
+    color_fondo: '#0d2b23',
+    color_superficie: '#163a30',
+    color_acento: '#e8630c',
+    color_boton_agregar: '#ffc700',
   });
   const [categorias, setCategorias] = useState([]);
   const [productos, setProductos] = useState([]);
@@ -87,6 +93,11 @@ export default function Inicio() {
             video_principal: ultimaConfig.video_principal || configuracion.video_principal,
             whatsapp: ultimaConfig.whatsapp || configuracion.whatsapp,
             instagram: ultimaConfig.instagram || configuracion.instagram,
+            color_navbar: ultimaConfig.color_navbar || configuracion.color_navbar,
+            color_fondo: ultimaConfig.color_fondo || configuracion.color_fondo,
+            color_superficie: ultimaConfig.color_superficie || configuracion.color_superficie,
+            color_acento: ultimaConfig.color_acento || configuracion.color_acento,
+            color_boton_agregar: ultimaConfig.color_boton_agregar || configuracion.color_boton_agregar,
           };
         }
         return null;
@@ -295,8 +306,31 @@ export default function Inicio() {
     );
   }
 
+  // Variables CSS con los colores elegidos en el admin ("Diseño & Colores"). Se
+  // aplican solo dentro de .cliente-container, así el panel de administración
+  // (que usa las mismas variables --accent/--bg para su propia UI) no se ve afectado.
+  const colorAcentoClaro = aclararColor(configuracion.color_acento);
+  const estiloTema = {
+    '--navbar-bg': configuracion.color_navbar,
+    '--bg': configuracion.color_fondo,
+    '--surface': configuracion.color_superficie,
+    '--accent': configuracion.color_acento,
+    '--accent-light': colorAcentoClaro,
+    // Las custom properties heredan su valor ya resuelto en el punto donde se
+    // declaran, no la referencia var() en sí: --accent-gradient está definida
+    // en :root usando var(--accent)/var(--accent-light), así que si no la
+    // volvemos a declarar acá con el gradiente ya armado, los descendientes
+    // heredarían el gradiente naranja resuelto en :root en vez del elegido.
+    '--accent-gradient': `linear-gradient(135deg, ${colorAcentoClaro}, ${configuracion.color_acento})`,
+    '--boton-agregar': configuracion.color_boton_agregar,
+    '--boton-agregar-texto': colorContraste(configuracion.color_boton_agregar),
+  };
+
   return (
-    <div className="cliente-container" style={totalItems > 0 ? { paddingBottom: 76 } : undefined}>
+    <div
+      className="cliente-container"
+      style={{ ...estiloTema, ...(totalItems > 0 ? { paddingBottom: 76 } : null) }}
+    >
       <NavBar
         configuracion={configuracion}
         totalItems={totalItems}

@@ -145,7 +145,14 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
         <div className="pedido-header">
           <div className="pedido-header-titulo">
             <span className="pedido-header-icono">🛍️</span>
-            <h3>Tu pedido</h3>
+            <div>
+              <h3>Tu pedido</h3>
+              {items.length > 0 && !exito && (
+                <p className="pedido-header-subtitulo">
+                  {items.reduce((acc, l) => acc + l.cantidad, 0)} producto{items.reduce((acc, l) => acc + l.cantidad, 0) === 1 ? '' : 's'}
+                </p>
+              )}
+            </div>
           </div>
           <button type="button" className="pedido-cerrar" onClick={onClose} aria-label="Cerrar">✕</button>
         </div>
@@ -167,7 +174,10 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
             <button type="button" className="pedido-btn-primario" onClick={onClose}>Cerrar</button>
           </div>
         ) : items.length === 0 ? (
-          <p className="pedido-vacio">Todavía no agregaste productos.</p>
+          <div className="pedido-vacio">
+            <span className="pedido-vacio-icono">🛒</span>
+            <p style={{ margin: 0 }}>Todavía no agregaste productos.</p>
+          </div>
         ) : (
           <form onSubmit={enviarPedido} className="pedido-form">
             <div className="pedido-items">
@@ -219,9 +229,21 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
               </label>
             )}
 
-            <div className="pedido-total">
-              <span>Total</span>
-              <strong>{formatearPrecio(Math.max(total - (usarPuntos ? descuentoPuntos : 0), 0))}</strong>
+            <div className="pedido-resumen">
+              <div className="pedido-resumen-fila">
+                <span>Subtotal</span>
+                <span>{formatearPrecio(total)}</span>
+              </div>
+              {usarPuntos && descuentoPuntos > 0 && (
+                <div className="pedido-resumen-fila pedido-resumen-descuento">
+                  <span>Descuento por puntos</span>
+                  <span>−{formatearPrecio(descuentoPuntos)}</span>
+                </div>
+              )}
+              <div className="pedido-resumen-fila pedido-resumen-total">
+                <span>Total</span>
+                <strong>{formatearPrecio(Math.max(total - (usarPuntos ? descuentoPuntos : 0), 0))}</strong>
+              </div>
             </div>
 
             {sugeridos && sugeridos.length > 0 && (
@@ -336,8 +358,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
             <button type="submit" className="pedido-btn-finalizar" disabled={enviando}>
               {enviando ? 'Enviando...' : '📲 Enviar pedido por WhatsApp'}
             </button>
-
-        
+            <p className="pedido-confianza">Te confirmamos el pedido por WhatsApp antes de prepararlo.</p>
           </form>
         )}
       </aside>
@@ -349,7 +370,10 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           height: 100vh;
           height: 100dvh;
           background: rgba(17, 24, 39, 0.55);
-          z-index: 50;
+          /* El navbar del sitio tiene z-index: 9999 (ver NavBar.jsx), así que el
+             overlay necesita superarlo o el navbar queda pintado por encima del
+             carrito (tapando el header del drawer). */
+          z-index: 10000;
           display: flex;
           justify-content: flex-end;
           animation: pedidoFondoAparece 0.2s ease-out;
@@ -363,15 +387,15 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
 
         .pedido-drawer {
           width: 100%;
-          max-width: 420px;
+          max-width: 440px;
           height: 100vh;
           height: 100dvh;
           background: #ffffff;
-          padding: 22px;
+          padding: 0 22px 22px;
           overflow-y: auto;
           -webkit-overflow-scrolling: touch;
           overscroll-behavior: contain;
-          box-shadow: -20px 0 40px -10px rgba(0, 0, 0, 0.5);
+          box-shadow: -24px 0 48px -12px rgba(0, 0, 0, 0.5);
           animation: pedidoDrawerAparece 0.28s cubic-bezier(0.22, 1, 0.36, 1);
         }
 
@@ -388,61 +412,95 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
         }
 
         .pedido-header {
+          position: sticky;
+          top: 0;
+          z-index: 2;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-bottom: 20px;
+          padding: 20px 0 16px;
+          margin: 0 0 20px;
+          background: #ffffff;
+          border-bottom: 1px solid #f0f1f4;
         }
 
         .pedido-header-titulo {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 12px;
         }
 
         .pedido-header-icono {
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
+          width: 38px;
+          height: 38px;
+          border-radius: 11px;
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 1.1rem;
           background: linear-gradient(135deg, #f4854a, #e8630c);
+          box-shadow: 0 6px 14px -6px rgba(232, 99, 12, 0.55);
         }
 
         .pedido-header h3 {
           margin: 0;
-          color: #1a2333;
-          font-size: 1.15rem;
+          color: #14181f;
+          font-size: 1.18rem;
+          font-weight: 800;
+          letter-spacing: -0.01em;
+        }
+
+        .pedido-header-subtitulo {
+          margin: 1px 0 0;
+          font-size: 0.76rem;
+          color: #94a3b8;
+          font-weight: 600;
         }
 
         .pedido-cerrar {
-          width: 32px;
-          height: 32px;
+          width: 34px;
+          height: 34px;
           border-radius: 50%;
           border: none;
-          background: #eef0f3;
-          color: #94a3b8;
+          background: #f4f5f7;
+          color: #6b7684;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
+          transition: background 0.15s ease, color 0.15s ease;
         }
         .pedido-cerrar:hover {
           background: #e4e7ec;
+          color: #1a2333;
         }
 
         .pedido-vacio {
           text-align: center;
-          color: #8a7c70;
-          padding: 48px 0;
+          color: #94a3b8;
+          padding: 64px 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 12px;
+          font-weight: 600;
+        }
+
+        .pedido-vacio-icono {
+          width: 64px;
+          height: 64px;
+          border-radius: 50%;
+          background: #f4f5f7;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.8rem;
         }
 
         .pedido-items {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 10px;
           margin-bottom: 16px;
         }
 
@@ -450,8 +508,11 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           display: flex;
           align-items: flex-start;
           gap: 12px;
-          padding-bottom: 14px;
-          border-bottom: 1px solid #f0e6dd;
+          padding: 12px;
+          border-radius: 16px;
+          border: 1px solid #f0f1f4;
+          background: #fbfbfc;
+          transition: border-color 0.15s ease;
         }
 
         .pedido-item-imagen {
@@ -465,6 +526,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           align-items: center;
           justify-content: center;
           font-size: 1.5rem;
+          box-shadow: 0 2px 6px -2px rgba(0, 0, 0, 0.15);
         }
 
         .pedido-item-imagen img {
@@ -572,20 +634,61 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           color: #1a2333;
         }
 
-        .pedido-total {
+        .carrito-puntos {
           display: flex;
-          justify-content: space-between;
           align-items: center;
-          background: #fde8d3;
+          gap: 10px;
+          background: #fffaeb;
+          border: 1px solid #fde68a;
           border-radius: 12px;
-          padding: 14px 16px;
-          margin-bottom: 22px;
-          font-weight: 700;
+          padding: 12px 14px;
+          margin-bottom: 12px;
+          cursor: pointer;
+          font-size: 0.86rem;
+          font-weight: 600;
           color: #1a2333;
         }
 
-        .pedido-total strong {
-          font-size: 1.2rem;
+        .carrito-puntos small {
+          color: #92722f;
+          font-weight: 500;
+        }
+
+        .pedido-resumen {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          background: #fafbfc;
+          border: 1px solid #f0f1f4;
+          border-radius: 16px;
+          padding: 16px 18px;
+          margin-bottom: 22px;
+        }
+
+        .pedido-resumen-fila {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #6b7684;
+        }
+
+        .pedido-resumen-descuento {
+          color: #16a34a;
+        }
+
+        .pedido-resumen-total {
+          padding-top: 10px;
+          margin-top: 2px;
+          border-top: 1px dashed #e2e6eb;
+          font-weight: 800;
+          font-size: 0.98rem;
+          color: #14181f;
+        }
+
+        .pedido-resumen-total strong {
+          font-size: 1.3rem;
           color: #e8630c;
         }
 
@@ -717,14 +820,18 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
         }
 
         .pedido-seccion {
-          margin-bottom: 20px;
+          margin-bottom: 16px;
+          padding: 16px;
+          border-radius: 16px;
+          border: 1px solid #f0f1f4;
+          background: #fbfbfc;
         }
 
         .pedido-seccion-titulo {
           display: flex;
           align-items: center;
           gap: 10px;
-          margin-bottom: 12px;
+          margin-bottom: 14px;
           font-weight: 700;
           font-size: 0.92rem;
           color: #1a2333;
@@ -758,11 +865,11 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           padding: 12px 14px;
           border-radius: 12px;
           border: 1.5px solid #eef0f3;
-          background: #f8f9fb;
+          background: #ffffff;
           font-size: 0.9rem;
           font-family: inherit;
           color: #1a2333;
-          transition: border-color 0.15s ease;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
         .pedido-input::placeholder {
           color: #9aa4b2;
@@ -770,6 +877,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
         .pedido-input:focus {
           outline: none;
           border-color: #e8630c;
+          box-shadow: 0 0 0 3px rgba(232, 99, 12, 0.12);
         }
 
         .pedido-input-error {
@@ -800,11 +908,11 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           text-align: left;
           padding: 14px 14px 12px;
           border-radius: 14px;
-          border: 1.5px solid #ece1d6;
-          background: #fdfbf9;
+          border: 1.5px solid #eef0f3;
+          background: #ffffff;
           cursor: pointer;
           font-family: inherit;
-          transition: border-color 0.15s ease, background 0.15s ease;
+          transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
         }
         .pedido-entrega-opcion:hover {
           border-color: #f0c9a8;
@@ -812,7 +920,8 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
 
         .pedido-entrega-activa {
           border-color: #e8630c;
-          background: linear-gradient(180deg, rgba(232, 99, 12, 0.06), rgba(244, 133, 74, 0.02));
+          background: linear-gradient(180deg, rgba(232, 99, 12, 0.07), rgba(244, 133, 74, 0.02));
+          box-shadow: 0 6px 16px -8px rgba(232, 99, 12, 0.35);
         }
 
         .pedido-entrega-check {
@@ -885,17 +994,19 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           background: #14181f;
           color: #ffffff;
           border: none;
-          padding: 14px 24px;
+          padding: 15px 24px;
           border-radius: 999px;
           font-weight: 700;
           font-size: 0.95rem;
+          letter-spacing: 0.01em;
           font-family: inherit;
           cursor: pointer;
+          box-shadow: 0 10px 24px -10px rgba(20, 24, 31, 0.5);
           transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
         .pedido-btn-finalizar:hover {
           transform: translateY(-1px);
-          box-shadow: 0 8px 16px -6px rgba(20, 24, 31, 0.4);
+          box-shadow: 0 12px 26px -8px rgba(20, 24, 31, 0.5);
         }
         .pedido-btn-finalizar:disabled {
           opacity: 0.6;
@@ -933,7 +1044,20 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
         }
 
         .pedido-exito-icono {
-          font-size: 3rem;
+          width: 72px;
+          height: 72px;
+          border-radius: 50%;
+          background: #dcfce7;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 2.1rem;
+        }
+
+        .pedido-exito p {
+          max-width: 300px;
+          line-height: 1.5;
+          color: #4b5563;
         }
 
         .pedido-link-whatsapp {

@@ -38,11 +38,33 @@ body {
   text-transform: uppercase;
 }
 
+/* Animación de aparición al hacer scroll (ver hook useReveal). Empieza invisible y
+   corrida hacia abajo; al entrar en pantalla, index.css la deja "quieta" y visible. */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+.reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
 /* === VISTA CLIENTE (Inicio.jsx) === */
 .cliente-container {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  background-color: var(--bg);
 }
 
 .cliente-footer {
@@ -758,6 +780,45 @@ body {
   line-height: 1;
 }
 
+/* Presentaciones (ProductoModal.jsx): cada variante es su propia tarjeta, con sus
+   insumos extra en un bloque anidado bien diferenciado, para que no se confunda con
+   los insumos del producto base de más arriba ni entre variantes distintas. */
+.presentacion-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--surface-2);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.presentacion-insumos-extra {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.presentacion-insumos-extra-titulo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.presentacion-insumos-extra-ayuda {
+  margin: -2px 0 2px;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
 /* Modales */
 .modal-overlay {
   position: fixed;
@@ -956,6 +1017,38 @@ body {
   white-space: nowrap;
 }
 
+.colores-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.color-picker-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.color-picker-swatch {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: none;
+  cursor: pointer;
+}
+
+.color-picker-swatch::-webkit-color-swatch-wrapper {
+  padding: 3px;
+}
+
+.color-picker-swatch::-webkit-color-swatch {
+  border: none;
+  border-radius: 7px;
+}
+
 .checkbox-vibrante {
   display: flex;
   align-items: center;
@@ -990,7 +1083,7 @@ body {
 }
 
 .btn-vibrante {
-  background: linear-gradient(135deg, #f4854a, #e8630c);
+  background: var(--accent-gradient, linear-gradient(135deg, #f4854a, #e8630c));
   color: #ffffff;
   border: none;
   padding: 12px 24px;
@@ -2403,17 +2496,17 @@ body {
   padding: 10px;
   border: none;
   border-radius: 10px;
-  background: #ffc700;
-  color: #1a1410;
+  background: var(--boton-agregar, #ffc700);
+  color: var(--boton-agregar-texto, #1a1410);
   font-weight: 800;
   font-size: 0.9rem;
   font-family: inherit;
   cursor: pointer;
-  transition: transform 0.15s ease, background 0.15s ease;
+  transition: transform 0.15s ease, filter 0.15s ease;
 }
 
 .menu-tarjeta-toppings:hover {
-  background: #ffb800;
+  filter: brightness(0.93);
   transform: translateY(-1px);
 }
 
@@ -3547,23 +3640,6 @@ body {
   color: #f87171;
   font-size: 0.85rem;
   margin: 4px 0 0;
-}
-
-.carrito-puntos {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: rgba(251, 191, 36, 0.1);
-  border: 1px solid rgba(251, 191, 36, 0.4);
-  border-radius: 10px;
-  padding: 12px 14px;
-  margin-bottom: 12px;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.carrito-puntos small {
-  color: var(--text-muted);
 }
 
 .nav-cuenta {

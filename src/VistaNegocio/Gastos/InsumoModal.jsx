@@ -3,10 +3,20 @@ import api from '../../services/api';
 
 const UNIDADES = ['kg', 'litros', 'unidades', 'otro'];
 
+const pad2 = (n) => String(n).padStart(2, '0');
+
+const aDatetimeLocal = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+};
+
 export default function InsumoModal({ insumo, onClose, onSaved }) {
   const [nombre, setNombre] = useState(insumo ? insumo.nombre : '');
   const [unidad, setUnidad] = useState(insumo ? insumo.unidad : 'kg');
   const [stockMinimo, setStockMinimo] = useState(insumo ? insumo.stock_minimo : '');
+  const [descuentoPct, setDescuentoPct] = useState(insumo && insumo.descuento_pct > 0 ? insumo.descuento_pct : '');
+  const [descuentoHasta, setDescuentoHasta] = useState(aDatetimeLocal(insumo ? insumo.descuento_hasta : null));
   const [guardando, setGuardando] = useState(false);
 
   const guardar = async (e) => {
@@ -15,10 +25,20 @@ export default function InsumoModal({ insumo, onClose, onSaved }) {
       alert('Ponele un nombre al insumo.');
       return;
     }
+    if (Number(descuentoPct) > 0 && !descuentoHasta) {
+      alert('Elegí hasta cuándo dura el descuento del insumo.');
+      return;
+    }
 
     setGuardando(true);
     try {
-      const datos = { nombre: nombre.trim(), unidad, stock_minimo: stockMinimo || 0 };
+      const datos = {
+        nombre: nombre.trim(),
+        unidad,
+        stock_minimo: stockMinimo || 0,
+        descuento_pct: Number(descuentoPct) > 0 ? Number(descuentoPct) : 0,
+        descuento_hasta: Number(descuentoPct) > 0 ? new Date(descuentoHasta).toISOString() : null,
+      };
       if (insumo) {
         await api.patch(`/insumos/${insumo.id}/`, datos);
       } else {
@@ -76,6 +96,30 @@ export default function InsumoModal({ insumo, onClose, onSaved }) {
                 onChange={(e) => setStockMinimo(e.target.value)}
               />
               <span>{unidad}</span>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">🏷️ Descuento sobre este insumo (opcional)</label>
+            <p className="form-ayuda" style={{ marginTop: 0 }}>
+              Si este insumo se usa como extra de alguna presentación (ej. "Doble"), el descuento se aplica solo en esas variantes.
+            </p>
+            <div className="form-row">
+              <input
+                type="number"
+                min="1"
+                max="99"
+                className="input-vibrante"
+                placeholder="% de descuento"
+                value={descuentoPct}
+                onChange={(e) => setDescuentoPct(e.target.value)}
+              />
+              <input
+                type="datetime-local"
+                className="input-vibrante"
+                value={descuentoHasta}
+                onChange={(e) => setDescuentoHasta(e.target.value)}
+              />
             </div>
           </div>
 

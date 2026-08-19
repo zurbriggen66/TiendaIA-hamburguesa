@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
+import { useReveal } from '../utils/useReveal';
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
@@ -22,6 +23,7 @@ const calcularFaltante = (activoHasta) => {
 export default function AntojoDelDia({ onAgregar }) {
   const [antojo, setAntojo] = useState(null);
   const [faltante, setFaltante] = useState(calcularFaltante());
+  const [ref, visible] = useReveal();
 
   useEffect(() => {
     api.get('/antojo-del-dia/')
@@ -44,7 +46,7 @@ export default function AntojoDelDia({ onAgregar }) {
   };
 
   return (
-    <section className="antojo-dia">
+    <section ref={ref} className={`antojo-dia reveal ${visible ? 'reveal-visible' : ''}`}>
       <div className="antojo-dia-imagen">
         {producto.imagen ? (
           <img src={producto.imagen} alt={producto.nombre} />

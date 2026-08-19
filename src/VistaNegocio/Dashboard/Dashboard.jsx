@@ -2,6 +2,29 @@ import React, { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
 import api from '../../services/api';
 
+function CampoColor({ label, value, onChange }) {
+  return (
+    <div className="form-group">
+      <label className="form-label">{label}</label>
+      <div className="color-picker-fila">
+        <input
+          type="color"
+          className="color-picker-swatch"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+        <input
+          type="text"
+          className="input-vibrante"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="#000000"
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const [logo, setLogo] = useState(null);
   const [logoPrecarga, setLogoPrecarga] = useState(null);
@@ -15,6 +38,11 @@ export default function Dashboard() {
   const [portadaActiva, setPortadaActiva] = useState(null);
   const [whatsapp, setWhatsapp] = useState('');
   const [instagram, setInstagram] = useState('');
+  const [colorNavbar, setColorNavbar] = useState('#0d2b23');
+  const [colorFondo, setColorFondo] = useState('#0d2b23');
+  const [colorSuperficie, setColorSuperficie] = useState('#163a30');
+  const [colorAcento, setColorAcento] = useState('#e8630c');
+  const [colorBotonAgregar, setColorBotonAgregar] = useState('#ffc700');
 
   // Traer las imágenes activas y el ID al cargar el panel
   useEffect(() => {
@@ -29,6 +57,11 @@ export default function Dashboard() {
           setPortadaActiva(ultimaConfig.imagen_principal);
           setWhatsapp(ultimaConfig.whatsapp || '');
           setInstagram(ultimaConfig.instagram || '');
+          setColorNavbar(ultimaConfig.color_navbar || '#0d2b23');
+          setColorFondo(ultimaConfig.color_fondo || '#0d2b23');
+          setColorSuperficie(ultimaConfig.color_superficie || '#163a30');
+          setColorAcento(ultimaConfig.color_acento || '#e8630c');
+          setColorBotonAgregar(ultimaConfig.color_boton_agregar || '#ffc700');
         }
       } catch (error) {
         console.error("Error al cargar el panel:", error);
@@ -79,10 +112,6 @@ export default function Dashboard() {
 
   const guardarCambios = async (e) => {
     e.preventDefault();
-    if (!logo && !logoPrecarga && !portada && !configId) {
-      alert("Por favor, selecciona al menos una imagen antes de guardar.");
-      return;
-    }
 
     const formData = new FormData();
     if (logo) formData.append('logo', logo);
@@ -90,6 +119,11 @@ export default function Dashboard() {
     if (portada) formData.append('imagen_principal', portada);
     formData.append('whatsapp', whatsapp);
     formData.append('instagram', instagram);
+    formData.append('color_navbar', colorNavbar);
+    formData.append('color_fondo', colorFondo);
+    formData.append('color_superficie', colorSuperficie);
+    formData.append('color_acento', colorAcento);
+    formData.append('color_boton_agregar', colorBotonAgregar);
 
     try {
       if (configId) {
@@ -233,6 +267,21 @@ export default function Dashboard() {
                     }}
                   />
                 </label>
+              </div>
+
+              {/* Colores de la vista del cliente */}
+              <div className="form-group">
+                <label className="form-label">Colores de la tienda</label>
+                <p className="form-ayuda" style={{ marginTop: 0, marginBottom: 14 }}>
+                  Así se ve hoy tu tienda. Cambiá cualquier color y guardá para aplicarlo.
+                </p>
+                <div className="colores-grid">
+                  <CampoColor label="Fondo del navbar" value={colorNavbar} onChange={setColorNavbar} />
+                  <CampoColor label="Fondo de la página" value={colorFondo} onChange={setColorFondo} />
+                  <CampoColor label="Tarjetas de producto" value={colorSuperficie} onChange={setColorSuperficie} />
+                  <CampoColor label="Botón &quot;Agregar al pedido&quot;" value={colorBotonAgregar} onChange={setColorBotonAgregar} />
+                  <CampoColor label="Color de acento (detalles, degradés)" value={colorAcento} onChange={setColorAcento} />
+                </div>
               </div>
 
               {/* Contacto */}

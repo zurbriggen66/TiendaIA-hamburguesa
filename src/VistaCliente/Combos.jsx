@@ -1,4 +1,96 @@
 import React, { useState } from 'react';
+import { useReveal } from '../utils/useReveal';
+
+function ComboCard({ combo, estaAbierto, onClick, onAgregar }) {
+  const [ref, visible] = useReveal();
+  return (
+    <div
+      ref={ref}
+      className={`combo-publico-card reveal ${visible ? 'reveal-visible' : ''}`}
+      onClick={onClick}
+      style={{
+        cursor: combo.descripcion ? 'pointer' : 'default',
+        flex: '0 0 75vw',
+        maxWidth: '330px',
+        scrollSnapAlign: 'center',
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: '#1c1a17',
+        borderRadius: '14px',
+        border: '1px solid #3d2b1f',
+        boxShadow: '0 6px 16px rgba(0,0,0,0.4)',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        className="combo-publico-imagen"
+        style={{
+          width: '100%',
+          height: '210px',
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          backgroundColor: '#0a0a0a',
+        }}
+      >
+        {combo.imagen ? (
+          <img
+            src={combo.imagen}
+            alt={combo.nombre}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        ) : (
+          <span style={{ fontSize: '3rem' }}>🎁</span>
+        )}
+      </div>
+
+      <div className="combo-publico-info" style={{ padding: '14px' }}>
+        <h3 style={{ margin: '0 0 6px 0', fontSize: '1.3rem', color: '#ffffff' }}>
+          {combo.nombre}
+        </h3>
+
+        {combo.descripcion && estaAbierto && (
+          <p className="combo-publico-descripcion" style={{ color: '#cccccc', marginBottom: '10px', fontSize: '0.85rem' }}>
+            {combo.descripcion}
+          </p>
+        )}
+
+        <p className="combo-publico-incluye" style={{ color: '#a0a0a0', fontSize: '0.85rem', marginBottom: '14px' }}>
+          Incluye: {combo.productos_detalle.map((p) => `${p.cantidad > 1 ? `${p.cantidad}x ` : ''}${p.nombre}`).join(' + ')}
+        </p>
+
+        <div className="combo-publico-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span className="combo-publico-precio" style={{ color: '#56c271', fontSize: '1.25rem', fontWeight: 'bold' }}>
+            {formatearPrecio(combo.precio)}
+          </span>
+          <button
+            type="button"
+            className="btn-vibrante"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAgregar(combo, 1);
+            }}
+            style={{
+              backgroundColor: '#e8630c',
+              color: '#ffffff',
+              border: 'none',
+              padding: '9px 14px',
+              borderRadius: '8px',
+              fontWeight: 'bold',
+              fontSize: '0.88rem',
+              cursor: 'pointer',
+              boxShadow: '0 3px 8px rgba(232, 99, 12, 0.35)',
+            }}
+          >
+            Agregar al pedido
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
@@ -53,97 +145,15 @@ export default function Combos({ combos, onAgregar }) {
           justifyContent: combos.length === 1 ? 'center' : 'flex-start',
         }}
       >
-        {combos.map((combo) => {
-          const estaAbierto = comboAbiertoId === combo.id;
-
-          return (
-            <div
-              key={combo.id}
-              className="combo-publico-card"
-              onClick={() => alternarDescripcion(combo.id)}
-              style={{
-                cursor: combo.descripcion ? 'pointer' : 'default',
-                flex: '0 0 75vw',
-                maxWidth: '330px', 
-                scrollSnapAlign: 'center',
-                display: 'flex',
-                flexDirection: 'column',
-                backgroundColor: '#1c1a17',
-                borderRadius: '14px',
-                border: '1px solid #3d2b1f',
-                boxShadow: '0 6px 16px rgba(0,0,0,0.4)',
-                overflow: 'hidden'
-              }}
-            >
-              <div
-                className="combo-publico-imagen"
-                style={{
-                  width: '100%',
-                  height: '210px',
-                  flexShrink: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  overflow: 'hidden',
-                  backgroundColor: '#0a0a0a'
-                }}
-              >
-                {combo.imagen ? (
-                  <img 
-                    src={combo.imagen} 
-                    alt={combo.nombre} 
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                  />
-                ) : (
-                  <span style={{ fontSize: '3rem' }}>🎁</span>
-                )}
-              </div>
-              
-              <div className="combo-publico-info" style={{ padding: '14px' }}>
-                <h3 style={{ margin: '0 0 6px 0', fontSize: '1.3rem', color: '#ffffff' }}>
-                  {combo.nombre}
-                </h3>
-
-                {combo.descripcion && estaAbierto && (
-                  <p className="combo-publico-descripcion" style={{ color: '#cccccc', marginBottom: '10px', fontSize: '0.85rem' }}>
-                    {combo.descripcion}
-                  </p>
-                )}
-
-                <p className="combo-publico-incluye" style={{ color: '#a0a0a0', fontSize: '0.85rem', marginBottom: '14px' }}>
-                  Incluye: {combo.productos_detalle.map((p) => `${p.cantidad > 1 ? `${p.cantidad}x ` : ''}${p.nombre}`).join(' + ')}
-                </p>
-                
-                <div className="combo-publico-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span className="combo-publico-precio" style={{ color: '#56c271', fontSize: '1.25rem', fontWeight: 'bold' }}>
-                    {formatearPrecio(combo.precio)}
-                  </span>
-                  <button
-                    type="button"
-                    className="btn-vibrante"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAgregar(combo, 1);
-                    }}
-                    style={{
-                      backgroundColor: '#e8630c',
-                      color: '#ffffff',
-                      border: 'none',
-                      padding: '9px 14px',
-                      borderRadius: '8px',
-                      fontWeight: 'bold',
-                      fontSize: '0.88rem',
-                      cursor: 'pointer',
-                      boxShadow: '0 3px 8px rgba(232, 99, 12, 0.35)'
-                    }}
-                  >
-                    Agregar al pedido
-                  </button>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        {combos.map((combo) => (
+          <ComboCard
+            key={combo.id}
+            combo={combo}
+            estaAbierto={comboAbiertoId === combo.id}
+            onClick={() => alternarDescripcion(combo.id)}
+            onAgregar={onAgregar}
+          />
+        ))}
       </div>
     </section>
   );
