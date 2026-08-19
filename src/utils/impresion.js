@@ -35,13 +35,14 @@ function construirBloqueTicket(pedido) {
   const filasItems = pedido.items
     .map((item) => {
       const nombre = item.producto_nombre || item.combo_nombre || 'Producto';
+      const presentacionTexto = item.presentacion_nombre ? ` (${item.presentacion_nombre})` : '';
       const subtotal = item.subtotal ?? item.precio_unitario * item.cantidad;
       const extrasTexto = item.extras_detalle && item.extras_detalle.length > 0
         ? `<div class="ticket-extra">  + ${item.extras_detalle.map((e) => escapeHtml(`${e.cantidad > 1 ? `${e.cantidad}x ` : ''}${e.nombre}`)).join(', ')}</div>`
         : '';
       return `
         <div class="ticket-item">
-          <span>${item.cantidad} x ${escapeHtml(nombre)}</span>
+          <span>${item.cantidad} x ${escapeHtml(nombre)}${escapeHtml(presentacionTexto)}</span>
           <span>${formatearPrecio(subtotal)}</span>
         </div>
         ${extrasTexto}`;
@@ -84,11 +85,12 @@ function construirBloqueTicketCocina(pedido) {
   const filasItems = pedido.items
     .map((item) => {
       const nombre = item.producto_nombre || item.combo_nombre || 'Producto';
+      const presentacionTexto = item.presentacion_nombre ? ` (${item.presentacion_nombre})` : '';
       const extrasTexto = item.extras_detalle && item.extras_detalle.length > 0
         ? `<div class="ticket-cocina-extra">+ ${item.extras_detalle.map((e) => escapeHtml(`${e.cantidad > 1 ? `${e.cantidad}x ` : ''}${e.nombre}`)).join(', ')}</div>`
         : '';
       return `
-        <div class="ticket-cocina-item">${item.cantidad} x ${escapeHtml(nombre)}</div>
+        <div class="ticket-cocina-item">${item.cantidad} x ${escapeHtml(nombre)}${escapeHtml(presentacionTexto)}</div>
         ${extrasTexto}`;
     })
     .join('');
