@@ -1,5 +1,6 @@
 import calendar
 from datetime import timedelta
+from decimal import Decimal
 
 from django.db import models
 from django.utils import timezone
@@ -12,6 +13,10 @@ class Insumo(models.Model):
     unidad = models.CharField(max_length=20, default='unidades')
     cantidad_disponible = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     stock_minimo = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    # Precio de venta de 1 unidad de este insumo cuando se usa como insumo extra de una
+    # variante (ej. "Doble" = precio del producto + este precio). No es el costo de compra,
+    # es lo que se le cobra de más al cliente por sumarlo.
+    precio = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     # Descuento sobre este insumo (ej. "medallones -20% esta semana"): cuando está activo,
     # se propaga a cualquier variante de producto que lo agregue como insumo extra
     # (ver Presentacion.mejor_descuento_insumo en productos.models).
@@ -27,6 +32,12 @@ class Insumo(models.Model):
 
     def tiene_descuento_activo(self):
         return bool(self.descuento_pct) and self.descuento_hasta is not None and self.descuento_hasta > timezone.now()
+
+    def precio_actual(self):
+        if self.tiene_descuento_activo():
+            descuento = Decimal(self.descuento_pct) / Decimal(100)
+            return (self.precio * (Decimal(1) - descuento)).quantize(Decimal('1'))
+        return self.precio
 
 
 class Gasto(models.Model):

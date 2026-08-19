@@ -8,7 +8,7 @@ class InsumoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Insumo
         fields = [
-            'id', 'nombre', 'unidad', 'cantidad_disponible', 'stock_minimo',
+            'id', 'nombre', 'unidad', 'cantidad_disponible', 'stock_minimo', 'precio',
             'descuento_pct', 'descuento_hasta', 'descuento_activo', 'creado',
         ]
 
