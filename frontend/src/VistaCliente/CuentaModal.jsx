@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import api, { CLAVE_TOKEN } from '../services/api';
+import api, { guardarToken } from '../services/api';
 
 export default function CuentaModal({ onClose, onIngreso }) {
   const [modo, setModo] = useState('login');
@@ -22,7 +22,7 @@ export default function CuentaModal({ onClose, onIngreso }) {
         ? { nombre: nombre.trim(), email: email.trim(), telefono: telefono.trim(), password }
         : { email: email.trim(), password };
       const { data } = await api.post(url, datos);
-      localStorage.setItem(CLAVE_TOKEN, data.token);
+      guardarToken(data.token);
       onIngreso(data.cliente);
       onClose();
     } catch (err) {

@@ -15,6 +15,16 @@ class InsumoSerializer(serializers.ModelSerializer):
     def get_descuento_activo(self, obj):
         return obj.tiene_descuento_activo()
 
+    def validate_cantidad_disponible(self, value):
+        if value < 0:
+            raise serializers.ValidationError('El stock no puede ser negativo.')
+        return value
+
+    def validate_stock_minimo(self, value):
+        if value < 0:
+            raise serializers.ValidationError('El mínimo no puede ser negativo.')
+        return value
+
 
 class GastoSerializer(serializers.ModelSerializer):
     insumo_nombre = serializers.CharField(source='insumo.nombre', read_only=True)

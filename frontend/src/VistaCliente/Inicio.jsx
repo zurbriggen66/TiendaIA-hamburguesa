@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import api, { CLAVE_TOKEN } from '../services/api';
+import api, { leerToken, guardarToken } from '../services/api';
 import { aclararColor, colorContraste } from '../utils/colores';
 import CuentaModal from './CuentaModal';
 import NavBar from './NavBar';
@@ -166,14 +166,14 @@ export default function Inicio() {
 
   // Si quedó un token de una visita anterior, recuperamos la sesión (y los puntos al día).
   useEffect(() => {
-    if (!localStorage.getItem(CLAVE_TOKEN)) return;
+    if (!leerToken()) return;
     api.get('/clientes/mi-cuenta/')
       .then((res) => setCliente(res.data))
-      .catch(() => localStorage.removeItem(CLAVE_TOKEN));
+      .catch(() => guardarToken(null));
   }, []);
 
   const cerrarSesion = () => {
-    localStorage.removeItem(CLAVE_TOKEN);
+    guardarToken(null);
     setCliente(null);
   };
 
