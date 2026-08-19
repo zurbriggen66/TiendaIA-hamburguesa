@@ -647,8 +647,8 @@ body {
 
 .menu-tarjeta-badge-descuento {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 14px;
+  right: 14px;
   z-index: 2;
   margin-bottom: 0;
   background: #14532d;
@@ -2396,22 +2396,25 @@ body {
 .menu-tarjeta {
   position: relative;
   background: var(--surface);
-  border-radius: 16px;
+  border-radius: 18px;
   overflow: hidden;
   border: 1px solid var(--border);
-  box-shadow: 0 8px 20px -12px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 10px 26px -14px rgba(0, 0, 0, 0.55);
   display: flex;
   flex-direction: column;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .menu-tarjeta:hover {
   transform: translateY(-4px);
+  box-shadow: 0 16px 34px -14px rgba(0, 0, 0, 0.6);
 }
 
 .menu-tarjeta-imagen {
-  height: 180px;
+  position: relative;
+  height: 240px;
   background: linear-gradient(135deg, var(--surface-2), var(--surface));
+  cursor: pointer;
 }
 
 .menu-tarjeta-imagen img {
@@ -2431,26 +2434,71 @@ body {
   opacity: 0.5;
 }
 
+/* Oscurece la base de la foto para que el título flotante se lea bien encima,
+   sin importar cuán clara sea la imagen que suba el negocio. */
+.menu-tarjeta-imagen-degradado {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 38%, rgba(0, 0, 0, 0.78) 100%);
+  pointer-events: none;
+}
+
+.menu-tarjeta-categoria-flotante {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(13, 20, 17, 0.65);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 6px 12px;
+  border-radius: 999px;
+}
+
+.menu-tarjeta-titulo-flotante {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 14px;
+  z-index: 2;
+  margin: 0;
+  color: #ffffff;
+  font-size: 1.35rem;
+  line-height: 1.15;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+}
+
 .menu-tarjeta-info {
-  padding: 18px;
+  padding: 16px 18px 18px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   flex-grow: 1;
 }
 
-.menu-tarjeta-info h3 {
-  font-size: 1.1rem;
-  color: var(--text);
-}
-
 .menu-tarjeta-descripcion {
+  margin: 0;
   font-size: 0.85rem;
   color: var(--text-muted);
+  line-height: 1.5;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+
+.menu-tarjeta-divisor {
+  height: 1px;
+  background: var(--border);
 }
 
 .menu-tarjeta-footer {
@@ -2458,12 +2506,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
 }
 
 .menu-tarjeta-precio {
   font-weight: 800;
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   color: #4ade80;
+  white-space: nowrap;
 }
 
 .menu-tarjeta-cantidad {
@@ -2491,17 +2541,22 @@ body {
 }
 
 .menu-tarjeta-toppings {
-  width: 100%;
-  margin-top: auto;
-  padding: 10px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 20px;
   border: none;
-  border-radius: 10px;
+  border-radius: 999px;
   background: var(--boton-agregar, #ffc700);
   color: var(--boton-agregar-texto, #1a1410);
   font-weight: 800;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
   font-family: inherit;
   cursor: pointer;
+  box-shadow: 0 6px 14px -6px rgba(0, 0, 0, 0.4);
   transition: transform 0.15s ease, filter 0.15s ease;
 }
 
@@ -2519,31 +2574,16 @@ body {
     font-size: 1.4rem;
   }
 
+  /* Una tarjeta por fila: con el diseño nuevo (foto grande + título superpuesto +
+     footer con precio y botón) dos columnas en un celular quedan demasiado
+     apretadas para que se lea bien. */
   .menu-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    grid-template-columns: 1fr;
+    gap: 18px;
   }
 
   .menu-tarjeta-imagen {
-    height: 130px;
-  }
-
-  .menu-tarjeta-info {
-    padding: 12px;
-    gap: 6px;
-  }
-
-  .menu-tarjeta-info h3 {
-    font-size: 0.92rem;
-  }
-
-  .menu-tarjeta-descripcion {
-    font-size: 0.72rem;
-  }
-
-  .menu-tarjeta-toppings {
-    font-size: 0.78rem;
-    padding: 8px;
+    height: 200px;
   }
 }
 
