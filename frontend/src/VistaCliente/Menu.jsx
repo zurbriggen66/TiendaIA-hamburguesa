@@ -111,7 +111,7 @@ function TarjetaProducto({ producto, onVerDetalle }) {
         )}
         <div className="menu-tarjeta-imagen-degradado" aria-hidden="true" />
         {producto.categoria_nombre && (
-          <span className="menu-tarjeta-categoria-flotante">🍔 {producto.categoria_nombre}</span>
+          <span className="menu-tarjeta-categoria-flotante">{producto.categoria_nombre}</span>
         )}
         {producto.descuento_activo && (
           <span className="badge-descuento menu-tarjeta-badge-descuento">🏷️ -{producto.descuento_pct}%</span>
