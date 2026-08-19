@@ -2,6 +2,7 @@ import json
 
 from rest_framework import serializers
 from .models import Categoria, Producto, Combo, ProductoInsumo, ComboItem, Presentacion, PresentacionInsumo
+from gastos.models import Insumo
 
 
 class CategoriaSerializer(serializers.ModelSerializer):
@@ -100,9 +101,22 @@ class ProductoSerializer(serializers.ModelSerializer):
         ids_vigentes = set()
         for orden, fila in enumerate(filas):
             nombre = (fila.get('nombre') or '').strip()
-            precio = fila.get('precio')
-            if not nombre or not precio:
+            if not nombre:
                 continue
+
+            # El precio de la variante nunca lo tipea el admin: es el precio de lista del
+            # producto más el precio de cada insumo extra que suma (sin su descuento —
+            # ese se aplica en vivo al cobrar, igual que el descuento del producto, para
+            # que nunca quede una variante con un % vencido "pegado" en su precio).
+            filas_insumos_extra = fila.get('insumos_extra') or []
+            ids_insumos = [fi['insumo'] for fi in filas_insumos_extra if fi.get('insumo')]
+            insumos_por_id = Insumo.objects.in_bulk(ids_insumos)
+            precio = producto.precio
+            for fi in filas_insumos_extra:
+                insumo = insumos_por_id.get(fi.get('insumo'))
+                if insumo:
+                    precio += insumo.precio * (fi.get('cantidad') or 1)
+
             fila_id = fila.get('id')
             if fila_id and producto.presentaciones.filter(id=fila_id).exists():
                 producto.presentaciones.filter(id=fila_id).update(nombre=nombre, precio=precio, orden=orden)
@@ -115,7 +129,6 @@ class ProductoSerializer(serializers.ModelSerializer):
             # los insumos del producto): a diferencia de la Presentacion en sí, nada
             # referencia estas filas puntuales desde un pedido ya hecho.
             PresentacionInsumo.objects.filter(presentacion=presentacion).delete()
-            filas_insumos_extra = fila.get('insumos_extra') or []
             nuevas_extra = [
                 PresentacionInsumo(presentacion=presentacion, insumo_id=fi['insumo'], cantidad=fi.get('cantidad') or 1)
                 for fi in filas_insumos_extra if fi.get('insumo')

@@ -5,14 +5,14 @@ let contadorFilaInsumo = 0;
 const nuevaFilaInsumo = (insumo = '', cantidad = 1) => ({ key: ++contadorFilaInsumo, insumo: String(insumo), cantidad });
 
 let contadorFilaPresentacion = 0;
-const nuevaFilaPresentacion = (id = null, nombre = '', precio = '', insumosExtra = []) => ({
+const nuevaFilaPresentacion = (id = null, nombre = '', insumosExtra = []) => ({
   key: ++contadorFilaPresentacion,
   id,
   nombre,
-  precio,
   // Insumos que esta variante suma por encima de los del producto base (ej. "Doble" =
-  // insumos de la simple + 1 medallón extra). Si ese insumo tiene descuento, la
-  // variante lo hereda automáticamente (lo calcula el backend).
+  // insumos de la simple + 1 medallón extra). El precio de la variante no se tipea:
+  // sale solo de precio del producto + precio de cada insumo extra (lo calcula el
+  // backend al guardar; acá solo se previsualiza).
   insumosExtra: insumosExtra.length > 0 ? insumosExtra.map((d) => nuevaFilaInsumo(d.insumo, d.cantidad)) : [],
 });
 
@@ -39,7 +39,7 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
   );
   const [filasPresentaciones, setFilasPresentaciones] = useState(
     producto && producto.presentaciones && producto.presentaciones.length > 0
-      ? producto.presentaciones.map((p) => nuevaFilaPresentacion(p.id, p.nombre, p.precio, p.insumos_extra))
+      ? producto.presentaciones.map((p) => nuevaFilaPresentacion(p.id, p.nombre, p.insumos_extra))
       : []
   );
 
@@ -91,6 +91,17 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
     )));
   };
 
+  // Precio de la variante = precio del producto + precio de cada insumo extra que suma.
+  // Solo para mostrar en el form: el valor real que se guarda lo recalcula el backend.
+  const calcularPrecioPresentacion = (fila) => {
+    const base = Number(precio) || 0;
+    const extra = fila.insumosExtra.reduce((acc, ie) => {
+      const insumo = insumosDisponibles.find((i) => String(i.id) === String(ie.insumo));
+      return acc + (insumo ? Number(insumo.precio || 0) * (Number(ie.cantidad) || 0) : 0);
+    }, 0);
+    return base + extra;
+  };
+
   const previewImagen = imagen ? URL.createObjectURL(imagen) : (producto ? producto.imagen : null);
 
   const prevenirNavegador = (e) => {
@@ -135,7 +146,7 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
     formData.append('insumos_json', JSON.stringify(insumosParaGuardar));
 
     const presentacionesParaGuardar = filasPresentaciones
-      .filter((f) => f.nombre.trim() && Number(f.precio) > 0)
+      .filter((f) => f.nombre.trim())
       .map((f) => {
         const extraValidos = f.insumosExtra.filter((ie) => ie.insumo && Number(ie.cantidad) > 0);
         const cantidadPorInsumoExtra = new Map();
@@ -146,7 +157,8 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
         return {
           id: f.id,
           nombre: f.nombre.trim(),
-          precio: f.precio,
+          // El precio no se manda: lo calcula el backend a partir del precio del
+          // producto y el de cada insumo extra (ver InsumoModal / precio del insumo).
           insumos_extra: Array.from(cantidadPorInsumoExtra, ([insumo, cantidad]) => ({ insumo, cantidad })),
         };
       });
@@ -325,7 +337,7 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
 
           <div className="form-group">
             <label className="form-label">Presentaciones (opcional, ej: Simple, Doble, Triple)</label>
-            <p className="form-ayuda">Si cargás alguna, el cliente va a tener que elegir una y ese precio reemplaza al de arriba.</p>
+            <p className="form-ayuda">Si cargás alguna, el cliente va a tener que elegir una. El precio de cada variante sale solo: precio del producto + precio de sus insumos extra.</p>
             <div className="pedido-filas">
               {filasPresentaciones.map((fila, indice) => (
                 <div key={fila.key} className="presentacion-card">
@@ -337,15 +349,9 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
                       value={fila.nombre}
                       onChange={(e) => actualizarFilaPresentacion(fila.key, { nombre: e.target.value })}
                     />
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      className="input-vibrante pedido-fila-cantidad"
-                      placeholder="Precio"
-                      value={fila.precio}
-                      onChange={(e) => actualizarFilaPresentacion(fila.key, { precio: e.target.value })}
-                    />
+                    <span className="presentacion-precio-calculado" title="Precio calculado: producto + insumos extra">
+                      $ {calcularPrecioPresentacion(fila).toLocaleString('es-AR')}
+                    </span>
                     <button
                       type="button"
                       className="pedido-fila-quitar"
@@ -374,7 +380,7 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
                             <option value="">Elegir insumo...</option>
                             {insumosDisponibles.map((i) => (
                               <option key={i.id} value={i.id}>
-                                {i.nombre} ({i.unidad}){i.descuento_activo ? ` · 🏷️ -${i.descuento_pct}%` : ''}
+                                {i.nombre} (+${Number(i.precio || 0).toLocaleString('es-AR')}){i.descuento_activo ? ` · 🏷️ -${i.descuento_pct}%` : ''}
                               </option>
                             ))}
                           </select>
