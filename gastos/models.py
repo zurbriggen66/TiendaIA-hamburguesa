@@ -12,6 +12,11 @@ class Insumo(models.Model):
     unidad = models.CharField(max_length=20, default='unidades')
     cantidad_disponible = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     stock_minimo = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    # Descuento sobre este insumo (ej. "medallones -20% esta semana"): cuando está activo,
+    # se propaga a cualquier variante de producto que lo agregue como insumo extra
+    # (ver Presentacion.mejor_descuento_insumo en productos.models).
+    descuento_pct = models.PositiveIntegerField(default=0)
+    descuento_hasta = models.DateTimeField(null=True, blank=True)
     creado = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -19,6 +24,9 @@ class Insumo(models.Model):
 
     def __str__(self):
         return self.nombre
+
+    def tiene_descuento_activo(self):
+        return bool(self.descuento_pct) and self.descuento_hasta is not None and self.descuento_hasta > timezone.now()
 
 
 class Gasto(models.Model):

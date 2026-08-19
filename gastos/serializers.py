@@ -3,9 +3,17 @@ from .models import Insumo, Gasto, GastoFijo
 
 
 class InsumoSerializer(serializers.ModelSerializer):
+    descuento_activo = serializers.SerializerMethodField()
+
     class Meta:
         model = Insumo
-        fields = '__all__'
+        fields = [
+            'id', 'nombre', 'unidad', 'cantidad_disponible', 'stock_minimo',
+            'descuento_pct', 'descuento_hasta', 'descuento_activo', 'creado',
+        ]
+
+    def get_descuento_activo(self, obj):
+        return obj.tiene_descuento_activo()
 
 
 class GastoSerializer(serializers.ModelSerializer):
