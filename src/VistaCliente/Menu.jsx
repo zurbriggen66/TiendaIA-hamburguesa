@@ -206,28 +206,26 @@ function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
           </button>
         </div>
 
-        <div className="modal-producto-tarjeta">
-          <div className="modal-producto-imagen">
-            {producto.imagen ? (
-              <>
-                <div
-                  className="modal-producto-imagen-fondo"
-                  style={{ backgroundImage: `url(${producto.imagen})` }}
-                  aria-hidden="true"
-                />
-                <img src={producto.imagen} alt={producto.nombre} className="modal-producto-imagen-real" />
-              </>
-            ) : (
-              <div className="menu-tarjeta-imagen-placeholder">🍔</div>
-            )}
-          </div>
+        <div className="modal-producto-imagen">
+          {producto.imagen ? (
+            <>
+              <div
+                className="modal-producto-imagen-fondo"
+                style={{ backgroundImage: `url(${producto.imagen})` }}
+                aria-hidden="true"
+              />
+              <img src={producto.imagen} alt={producto.nombre} className="modal-producto-imagen-real" />
+            </>
+          ) : (
+            <div className="menu-tarjeta-imagen-placeholder">🍔</div>
+          )}
+        </div>
 
-          <div className="modal-producto-tarjeta-texto">
-            {producto.descuento_activo && <span className="badge-descuento">🏷️ -{producto.descuento_pct}%</span>}
-            <span className="producto-categoria-tag">{producto.categoria_nombre}</span>
-            <h3>{producto.nombre}</h3>
-            {producto.descripcion && <p className="modal-producto-descripcion">{producto.descripcion}</p>}
-          </div>
+        <div className="modal-producto-tarjeta-texto">
+          {producto.descuento_activo && <span className="badge-descuento">🏷️ -{producto.descuento_pct}%</span>}
+          <span className="producto-categoria-tag">{producto.categoria_nombre}</span>
+          <h3>{producto.nombre}</h3>
+          {producto.descripcion && <p className="modal-producto-descripcion">{producto.descripcion}</p>}
         </div>
 
         <div className="modal-producto-acciones">
@@ -678,21 +676,13 @@ export default function Menu({ categorias, productos, onAgregar, productoDetalle
           color: var(--accent, #e8630c);
         }
 
-        /* Tarjeta principal (imagen + descripción): un solo bloque elevado del
-           mismo color que el fondo, con sombra dual clara/oscura. */
-        .modal-producto-tarjeta {
-          margin: 20px 20px 0;
-          border-radius: 26px;
-          background: var(--bg-suave);
-          box-shadow: var(--sombra-elevada);
-          overflow: hidden;
-        }
-
+        /* La imagen vuelve a ir a pantalla completa (edge-to-edge), como antes del
+           neumorfismo: solo la tarjeta de texto de abajo queda elevada. */
         .modal-producto-imagen {
           width: 100%;
-          height: 34vh;
-          min-height: 220px;
-          max-height: 360px;
+          height: 38vh;
+          min-height: 260px;
+          max-height: 420px;
           overflow: hidden;
           position: relative;
           background: linear-gradient(135deg, #f5efe8, #ece1d6);
@@ -722,8 +712,14 @@ export default function Menu({ categorias, productos, onAgregar, productoDetalle
           z-index: 2;
         }
 
+        /* Tarjeta de texto (nombre + descripción): elevada por su cuenta, ya
+           independiente de la imagen. */
         .modal-producto-tarjeta-texto {
+          margin: 20px 20px 0;
           padding: 20px 24px 24px;
+          border-radius: 22px;
+          background: var(--bg-suave);
+          box-shadow: var(--sombra-elevada);
           display: flex;
           flex-direction: column;
         }
