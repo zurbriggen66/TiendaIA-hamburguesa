@@ -57,8 +57,15 @@ class Producto(models.Model):
         return self.precio
 
     def ajustar_stock(self, delta_unidades):
+        # El stock nunca queda negativo: si un pedido consume más de lo que figura
+        # cargado, se corta en 0. Único lugar por donde pasan todos los movimientos
+        # automáticos (crear, cancelar y eliminar pedidos).
+        # ponytail: al cortar en 0 se pierde el sobrante, así que cancelar ese pedido
+        # devuelve un poco de más. Si hiciera falta exactitud, guardar el movimiento real
+        # por línea en vez de recalcularlo.
         for pi in self.detalle_insumos.select_related('insumo'):
-            pi.insumo.cantidad_disponible += pi.cantidad * delta_unidades
+            nuevo = pi.insumo.cantidad_disponible + pi.cantidad * delta_unidades
+            pi.insumo.cantidad_disponible = max(nuevo, 0)
             pi.insumo.save(update_fields=['cantidad_disponible'])
 
 
