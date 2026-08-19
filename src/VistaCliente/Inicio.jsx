@@ -67,6 +67,8 @@ export default function Inicio() {
     color_superficie: '#163a30',
     color_acento: '#e8630c',
     color_boton_agregar: '#ffc700',
+    tienda_abierta: true,
+    mensaje_cerrado: '',
   });
   const [categorias, setCategorias] = useState([]);
   const [productos, setProductos] = useState([]);
@@ -98,6 +100,9 @@ export default function Inicio() {
             color_superficie: ultimaConfig.color_superficie || configuracion.color_superficie,
             color_acento: ultimaConfig.color_acento || configuracion.color_acento,
             color_boton_agregar: ultimaConfig.color_boton_agregar || configuracion.color_boton_agregar,
+            // Ojo con "||" acá: tienda_abierta=false es un valor válido, no "sin dato".
+            tienda_abierta: ultimaConfig.tienda_abierta ?? configuracion.tienda_abierta,
+            mensaje_cerrado: ultimaConfig.mensaje_cerrado || configuracion.mensaje_cerrado,
           };
         }
         return null;
@@ -340,6 +345,16 @@ export default function Inicio() {
         onCerrarSesion={cerrarSesion}
       />
 
+      {!configuracion.tienda_abierta && (
+        <div className="tienda-cerrada-aviso">
+          <span className="tienda-cerrada-aviso-icono" aria-hidden="true">😴</span>
+          <div>
+            <strong>En este momento estamos cerrados</strong>
+            <p>{configuracion.mensaje_cerrado || 'Volvemos pronto, gracias por tu paciencia.'}</p>
+          </div>
+        </div>
+      )}
+
       <Hero configuracion={configuracion} />
 
       <div id="antojo-dia">
@@ -371,6 +386,8 @@ export default function Inicio() {
         <CarritoDrawer
           items={items}
           whatsapp={configuracion.whatsapp}
+          tiendaAbierta={configuracion.tienda_abierta}
+          mensajeCerrado={configuracion.mensaje_cerrado}
           sugeridos={sugeridosCarrito}
           onClose={() => setCarritoAbierto(false)}
           onCambiarCantidad={cambiarCantidad}

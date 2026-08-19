@@ -41,6 +41,11 @@ export default function Inicio() {
   const [gastosFijos, setGastosFijos] = useState([]);
   const [totalGastosFijos, setTotalGastosFijos] = useState(0);
 
+  const [configId, setConfigId] = useState(null);
+  const [tiendaAbierta, setTiendaAbierta] = useState(true);
+  const [mensajeCerrado, setMensajeCerrado] = useState('');
+  const [guardandoEstadoTienda, setGuardandoEstadoTienda] = useState(false);
+
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [localidades, setLocalidades] = useState([]);
@@ -58,7 +63,7 @@ export default function Inicio() {
   const cargarInicio = async () => {
     setCargando(true);
     try {
-      const [resHoy, resPorConfirmar, resRecientes, resProductos, resCategorias, resLocalidades, resFijos] = await Promise.all([
+      const [resHoy, resPorConfirmar, resRecientes, resProductos, resCategorias, resLocalidades, resFijos, resConfig] = await Promise.all([
         api.get('/estadisticas/hoy/'),
         // page_size alto: ambas listas se muestran enteras, no queremos que un día
         // movido las recorte a los 20 por defecto de la paginación.
@@ -68,8 +73,15 @@ export default function Inicio() {
         api.get('/categorias/'),
         api.get('/localidades/'),
         api.get('/gastos-fijos/alertas/'),
+        api.get('/configuracion/'),
       ]);
       const data = resHoy.data;
+      if (resConfig.data && resConfig.data.length > 0) {
+        const ultimaConfig = resConfig.data[resConfig.data.length - 1];
+        setConfigId(ultimaConfig.id);
+        setTiendaAbierta(ultimaConfig.tienda_abierta ?? true);
+        setMensajeCerrado(ultimaConfig.mensaje_cerrado || '');
+      }
       setVentasHoy(data.ventas_totales || 0);
       setTicketPromedio(data.ticket_promedio || 0);
       setTotalPedidosCaja(data.total_pedidos || 0);
@@ -120,6 +132,35 @@ export default function Inicio() {
       alert('No se pudo cancelar el pedido.');
     } finally {
       setConfirmando(null);
+    }
+  };
+
+  const cambiarEstadoTienda = async (abierta) => {
+    const anterior = tiendaAbierta;
+    setTiendaAbierta(abierta); // optimista: la UI responde al toque, no espera al servidor
+    setGuardandoEstadoTienda(true);
+    try {
+      if (configId) {
+        await api.patch(`/configuracion/${configId}/`, { tienda_abierta: abierta });
+      } else {
+        const { data } = await api.post('/configuracion/', { tienda_abierta: abierta });
+        setConfigId(data.id);
+      }
+    } catch (err) {
+      console.error('Error al cambiar el estado de la tienda:', err);
+      setTiendaAbierta(anterior);
+      alert('No se pudo guardar el cambio. Probá de nuevo.');
+    } finally {
+      setGuardandoEstadoTienda(false);
+    }
+  };
+
+  const guardarMensajeCerrado = async () => {
+    if (!configId) return;
+    try {
+      await api.patch(`/configuracion/${configId}/`, { mensaje_cerrado: mensajeCerrado });
+    } catch (err) {
+      console.error('Error al guardar el mensaje de cierre:', err);
     }
   };
 
@@ -179,6 +220,47 @@ export default function Inicio() {
       </header>
 
       <div className="scroll-area">
+        <div className={`inicio-tienda-toggle ${tiendaAbierta ? 'inicio-tienda-toggle-abierta' : 'inicio-tienda-toggle-cerrada'}`}>
+          <div className="inicio-tienda-toggle-info">
+            <span className="inicio-tienda-toggle-punto" aria-hidden="true" />
+            <div>
+              <strong>{tiendaAbierta ? 'Tienda abierta' : 'Tienda cerrada'}</strong>
+              <p>
+                {tiendaAbierta
+                  ? 'Tus clientes pueden pedir desde la web ahora mismo.'
+                  : 'La web no va a dejar entrar pedidos nuevos hasta que la vuelvas a abrir.'}
+              </p>
+            </div>
+          </div>
+          <label className="inicio-switch" aria-label={tiendaAbierta ? 'Cerrar la tienda' : 'Abrir la tienda'}>
+            <input
+              type="checkbox"
+              checked={tiendaAbierta}
+              disabled={guardandoEstadoTienda}
+              onChange={(e) => cambiarEstadoTienda(e.target.checked)}
+            />
+            <span className="inicio-switch-riel">
+              <span className="inicio-switch-perilla" />
+            </span>
+          </label>
+        </div>
+
+        {!tiendaAbierta && (
+          <div className="inicio-tienda-mensaje">
+            <label htmlFor="mensaje-cerrado">Mensaje para tus clientes mientras está cerrada</label>
+            <input
+              id="mensaje-cerrado"
+              type="text"
+              className="input-vibrante"
+              value={mensajeCerrado}
+              onChange={(e) => setMensajeCerrado(e.target.value)}
+              onBlur={guardarMensajeCerrado}
+              placeholder="Volvemos mañana a las 11hs"
+              maxLength={200}
+            />
+          </div>
+        )}
+
         <div className="inicio-resumen-grid">
           {/* Tarjeta: Reloj en vivo, o Pedidos por confirmar cuando hay alguno esperando */}
           {!cargando && !error && porConfirmar.length > 0 ? (
@@ -427,6 +509,117 @@ export default function Inicio() {
 
       <style>
         {`
+          .inicio-tienda-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            background: var(--surface, #163a30);
+            border: 1px solid var(--border, #2c5c4a);
+            border-radius: 16px;
+            padding: 18px 22px;
+            margin-bottom: 16px;
+            transition: border-color 0.2s ease;
+          }
+
+          .inicio-tienda-toggle-info {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+          }
+
+          .inicio-tienda-toggle-punto {
+            flex-shrink: 0;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4ade80;
+            box-shadow: 0 0 10px rgba(74, 222, 128, 0.7);
+          }
+
+          .inicio-tienda-toggle-cerrada .inicio-tienda-toggle-punto {
+            background: #f87171;
+            box-shadow: 0 0 10px rgba(248, 113, 113, 0.7);
+          }
+
+          .inicio-tienda-toggle-cerrada {
+            border-color: rgba(248, 113, 113, 0.4);
+          }
+
+          .inicio-tienda-toggle-info strong {
+            font-size: 1rem;
+          }
+
+          .inicio-tienda-toggle-info p {
+            margin: 2px 0 0;
+            font-size: 0.82rem;
+            color: var(--text-muted, rgba(255,255,255,0.5));
+          }
+
+          .inicio-switch {
+            flex-shrink: 0;
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+            cursor: pointer;
+          }
+
+          .inicio-switch input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            cursor: pointer;
+          }
+
+          .inicio-switch-riel {
+            position: absolute;
+            inset: 0;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.15);
+            transition: background 0.2s ease;
+          }
+
+          .inicio-switch input:checked + .inicio-switch-riel {
+            background: linear-gradient(135deg, #f4854a, #e8630c);
+          }
+
+          .inicio-switch-perilla {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #fff;
+            transition: transform 0.2s ease;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+          }
+
+          .inicio-switch input:checked + .inicio-switch-riel .inicio-switch-perilla {
+            transform: translateX(22px);
+          }
+
+          .inicio-switch input:disabled + .inicio-switch-riel {
+            opacity: 0.6;
+            cursor: not-allowed;
+          }
+
+          .inicio-tienda-mensaje {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 20px;
+          }
+
+          .inicio-tienda-mensaje label {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-muted, rgba(255,255,255,0.5));
+          }
+
           .inicio-resumen-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
