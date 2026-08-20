@@ -188,7 +188,71 @@ body {
 
 .sidebar-footer {
   padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   border-top: 1px solid var(--border);
+}
+
+.sidebar-cerrar-sesion {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+.sidebar-cerrar-sesion:hover {
+  color: #f87171;
+  border-color: #f87171;
+}
+
+/* Login del panel de administración */
+.admin-login-pantalla {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  padding: 24px;
+}
+
+.admin-login-card {
+  width: 100%;
+  max-width: 360px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 20px 40px -16px rgba(0, 0, 0, 0.5);
+}
+
+.admin-login-logo {
+  text-align: center;
+  font-family: 'Anton', 'Segoe UI', sans-serif;
+  letter-spacing: 0.02em;
+  color: #e8630c;
+  font-size: 1.3rem;
+  margin-bottom: 6px;
+}
+
+.admin-login-titulo {
+  text-align: center;
+  color: var(--text);
+  font-size: 1.05rem;
+  margin-bottom: 24px;
+}
+
+.admin-login-error {
+  color: #f87171;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: -8px 0 16px;
+}
+
+.admin-login-boton {
+  width: 100%;
+  margin-top: 4px;
 }
 
 /* Área de Contenido Principal */
