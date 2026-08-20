@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useReveal } from '../utils/useReveal';
+import { presentacionesConBase } from '../utils/presentaciones';
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
@@ -29,19 +30,6 @@ const precioBaseConDescuento = (producto, presentacion) => {
     candidatos.push(Math.round(base * (1 - Number(presentacion.descuento_pct) / 100)));
   }
   return candidatos.length > 0 ? Math.min(...candidatos) : base;
-};
-
-// Las presentaciones son variantes CON RECARGO sobre el producto (ej. "Doble" = la
-// hamburguesa + un medallón extra). Si el producto tiene alguna cargada pero ninguna
-// es igual o más barata que el precio de lista, se agrega "Simple" (el precio base)
-// como primera opción — si no, el cliente queda obligado a pagar siempre el recargo,
-// sin poder pedir el producto tal cual.
-const presentacionesConBase = (producto) => {
-  const reales = producto.presentaciones || [];
-  if (reales.length === 0) return [];
-  const masBarataReal = Math.min(...reales.map((p) => Number(p.precio)));
-  if (masBarataReal <= Number(producto.precio)) return reales;
-  return [{ id: null, nombre: 'CLASICA', precio: producto.precio }, ...reales];
 };
 
 const calcularPrecioTotal = (producto, extrasDisponibles, cantidadesExtras, cantidad, usarDescuento = true, presentacion = null) => {
