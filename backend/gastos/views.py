@@ -4,11 +4,13 @@ from django.db.models import ProtectedError
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from core.permissions import EsAdmin
 from .models import Insumo, Gasto, GastoFijo
 from .serializers import InsumoSerializer, GastoSerializer, GastoFijoSerializer
 
 
 class InsumoViewSet(viewsets.ModelViewSet):
+    permission_classes = [EsAdmin]
     queryset = Insumo.objects.all()
     serializer_class = InsumoSerializer
 
@@ -23,6 +25,7 @@ class InsumoViewSet(viewsets.ModelViewSet):
 
 
 class GastoViewSet(viewsets.ModelViewSet):
+    permission_classes = [EsAdmin]
     queryset = Gasto.objects.select_related('insumo')
     serializer_class = GastoSerializer
 
@@ -38,6 +41,7 @@ class GastoViewSet(viewsets.ModelViewSet):
 
 
 class GastoFijoViewSet(viewsets.ModelViewSet):
+    permission_classes = [EsAdmin]
     queryset = GastoFijo.objects.all()
     serializer_class = GastoFijoSerializer
 

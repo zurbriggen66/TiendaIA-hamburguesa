@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import api, { guardarTokenAdmin } from '../services/api';
 import { obtenerConfigImpresion, imprimirPedido } from '../utils/impresion';
 
 const INTERVALO_CONSULTA_MS = 15000;
@@ -101,6 +101,11 @@ export default function DashboardLayout() {
     navigate('/admin/pedidos');
   };
 
+  const cerrarSesionAdmin = () => {
+    guardarTokenAdmin(null);
+    window.location.href = '/admin';
+  };
+
   return (
     <div className="dashboard-container">
       <button
@@ -147,6 +152,9 @@ export default function DashboardLayout() {
           <a href="/" className="menu-item menu-item-externa">
             👁️ Ver tienda online
           </a>
+          <button type="button" className="menu-item menu-item-externa sidebar-cerrar-sesion" onClick={cerrarSesionAdmin}>
+            🚪 Cerrar sesión
+          </button>
         </div>
       </aside>
 

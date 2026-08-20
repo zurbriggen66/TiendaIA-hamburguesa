@@ -4,11 +4,15 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.permissions import EsAdmin
 from .models import AntojoDelDia
 from .serializers import AntojoDelDiaConfigSerializer
 
 
 class AntojoDelDiaView(APIView):
+    # Pública: la tienda la usa para mostrar el banner del "antojo del día".
+    permission_classes = []
+
     def get(self, request):
         antojo = (
             AntojoDelDia.objects
@@ -43,5 +47,6 @@ class AntojoDelDiaView(APIView):
 
 
 class AntojoDelDiaConfigViewSet(viewsets.ModelViewSet):
+    permission_classes = [EsAdmin]
     queryset = AntojoDelDia.objects.select_related('producto')
     serializer_class = AntojoDelDiaConfigSerializer
