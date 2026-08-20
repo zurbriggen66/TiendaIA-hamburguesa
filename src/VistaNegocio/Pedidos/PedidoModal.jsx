@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import api from '../../services/api';
+import { presentacionesConBase } from '../../utils/presentaciones';
 
 const COLORES_CHIP = ['chip-mostaza', 'chip-naranja', 'chip-tomate'];
 
@@ -73,7 +74,7 @@ export default function PedidoModal({ productos, categorias, localidades, onClos
   };
 
   const agregarProductoClick = (producto) => {
-    const presentacionDefault = producto.presentaciones?.[0]?.id ?? null;
+    const presentacionDefault = presentacionesConBase(producto)[0]?.id ?? null;
     setFilas((prev) => {
       const idx = prev.findIndex((f) => f.producto === String(producto.id) && f.extras.length === 0 && f.presentacion === presentacionDefault);
       if (idx !== -1) {
@@ -101,7 +102,7 @@ export default function PedidoModal({ productos, categorias, localidades, onClos
   const filasValidas = filas.filter((f) => f.producto && Number(f.cantidad) > 0);
 
   const presentacionDeFila = (producto, fila) =>
-    (producto?.presentaciones || []).find((p) => String(p.id) === String(fila.presentacion));
+    (producto ? presentacionesConBase(producto) : []).find((p) => String(p.id) === String(fila.presentacion));
 
   const totalEstimado = filasValidas.reduce((acc, f) => {
     const producto = productoPorId(f.producto);
@@ -308,7 +309,7 @@ export default function PedidoModal({ productos, categorias, localidades, onClos
                   {p.descuento_activo && <span className="badge-descuento badge-descuento-chica">🏷️ -{p.descuento_pct}%</span>}
                   <span>{p.nombre}</span>
                   {p.presentaciones && p.presentaciones.length > 0 ? (
-                    <strong>Desde {formatearPrecio(p.presentaciones[0].precio)}</strong>
+                    <strong>Desde {formatearPrecio(presentacionesConBase(p)[0].precio)}</strong>
                   ) : p.descuento_activo ? (
                     <strong>
                       <span className="precio-tachado">{formatearPrecio(p.precio)}</span>
@@ -345,11 +346,11 @@ export default function PedidoModal({ productos, categorias, localidades, onClos
                           {producto && producto.presentaciones && producto.presentaciones.length > 0 && (
                             <select
                               className="input-vibrante pedido-fila-presentacion"
-                              value={fila.presentacion || ''}
-                              onChange={(e) => actualizarFila(fila.key, { presentacion: Number(e.target.value) })}
+                              value={fila.presentacion ?? ''}
+                              onChange={(e) => actualizarFila(fila.key, { presentacion: e.target.value === '' ? null : Number(e.target.value) })}
                             >
-                              {producto.presentaciones.map((p) => (
-                                <option key={p.id} value={p.id}>{p.nombre}</option>
+                              {presentacionesConBase(producto).map((p) => (
+                                <option key={p.id ?? 'base'} value={p.id ?? ''}>{p.nombre}</option>
                               ))}
                             </select>
                           )}
