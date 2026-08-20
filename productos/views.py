@@ -2,11 +2,14 @@ from django.db.models import ProtectedError
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework import status
+from core.permissions import EsAdminOSoloLectura
 from .models import Categoria, Producto, Combo
 from .serializers import CategoriaSerializer, ProductoSerializer, ComboSerializer
 
 
 class CategoriaViewSet(viewsets.ModelViewSet):
+    # Lectura pública (la tienda muestra las categorías del menú); escribir es solo admin.
+    permission_classes = [EsAdminOSoloLectura]
     queryset = Categoria.objects.all()
     serializer_class = CategoriaSerializer
 
@@ -21,6 +24,7 @@ class CategoriaViewSet(viewsets.ModelViewSet):
 
 
 class ProductoViewSet(viewsets.ModelViewSet):
+    permission_classes = [EsAdminOSoloLectura]
     queryset = Producto.objects.prefetch_related('detalle_insumos__insumo')
     serializer_class = ProductoSerializer
 
@@ -42,6 +46,7 @@ class ProductoViewSet(viewsets.ModelViewSet):
 
 
 class ComboViewSet(viewsets.ModelViewSet):
+    permission_classes = [EsAdminOSoloLectura]
     queryset = Combo.objects.prefetch_related('items__producto')
     serializer_class = ComboSerializer
 

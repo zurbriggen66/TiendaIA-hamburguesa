@@ -83,6 +83,12 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
+    # Cerrado por defecto: cualquier endpoint nuevo que no declare permission_classes
+    # propios queda solo para el staff logueado. Lo público (menú, config del sitio,
+    # login, crear un pedido) se abre explícitamente en cada vista.
+    'DEFAULT_PERMISSION_CLASSES': [
+        'core.permissions.EsAdmin',
+    ],
 }
 
 MIDDLEWARE = [

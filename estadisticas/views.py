@@ -8,6 +8,7 @@ from django.utils.dateparse import parse_date
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.permissions import EsAdmin
 from pedidos.models import Pedido, DetallePedido, DetalleExtra, Pago, Caja
 from gastos.models import Gasto
 
@@ -15,6 +16,8 @@ MONTO = DecimalField(max_digits=12, decimal_places=2)
 
 
 class EstadisticasView(APIView):
+    permission_classes = [EsAdmin]
+
     def get(self, request):
         desde_periodo = parse_date(request.query_params.get('desde') or '')
         hasta_periodo = parse_date(request.query_params.get('hasta') or '')
@@ -187,6 +190,8 @@ class EstadisticasView(APIView):
 
 
 class HoyView(APIView):
+    permission_classes = [EsAdmin]
+
     def get(self, request):
         caja = Caja.objects.filter(cerrada_en__isnull=True).order_by('-abierta_en').first()
         pedidos_por_confirmar = Pedido.objects.filter(
@@ -240,6 +245,8 @@ class HoyView(APIView):
 
 
 class CobranzasView(APIView):
+    permission_classes = [EsAdmin]
+
     def get(self, request):
         desde_periodo = parse_date(request.query_params.get('desde') or '')
         hasta_periodo = parse_date(request.query_params.get('hasta') or '')

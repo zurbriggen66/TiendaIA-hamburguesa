@@ -6,10 +6,23 @@ from django.utils.dateparse import parse_date
 from rest_framework import mixins, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
+from core.permissions import EsAdmin, es_staff
 from .models import Pedido, Localidad, Pago, Caja
 from .serializers import PedidoSerializer, LocalidadSerializer, PagoSerializer, CajaSerializer, mover_stock_item
 from clientes.puntos import acreditar as acreditar_puntos
+
+
+class PedidoPermiso(BasePermission):
+    """Crear un pedido (POST) es público — así piden los clientes de la tienda, con o
+    sin cuenta. Todo lo demás (listar, ver el detalle, confirmar, cancelar, borrar)
+    es del panel de administración."""
+
+    def has_permission(self, request, view):
+        if request.method == 'POST':
+            return True
+        return es_staff(request)
 
 
 class PedidosPagination(PageNumberPagination):
@@ -21,6 +34,7 @@ class PedidosPagination(PageNumberPagination):
 
 
 class PedidoViewSet(viewsets.ModelViewSet):
+    permission_classes = [PedidoPermiso]
     queryset = Pedido.objects.all()
     serializer_class = PedidoSerializer
     pagination_class = PedidosPagination
@@ -91,16 +105,19 @@ class PedidoViewSet(viewsets.ModelViewSet):
 
 
 class LocalidadViewSet(viewsets.ModelViewSet):
+    permission_classes = [EsAdmin]
     queryset = Localidad.objects.all()
     serializer_class = LocalidadSerializer
 
 
 class PagoViewSet(viewsets.ModelViewSet):
+    permission_classes = [EsAdmin]
     queryset = Pago.objects.select_related('pedido')
     serializer_class = PagoSerializer
 
 
 class CajaViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSet):
+    permission_classes = [EsAdmin]
     queryset = Caja.objects.all()
     serializer_class = CajaSerializer
 

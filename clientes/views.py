@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.permissions import EsAdmin
 from .models import Cliente
 from .serializers import ClienteSerializer, RegistroSerializer
 
@@ -50,5 +51,6 @@ class MiCuentaView(APIView):
 class ClienteViewSet(viewsets.ReadOnlyModelViewSet):
     """Listado para el admin del negocio."""
 
+    permission_classes = [EsAdmin]
     queryset = Cliente.objects.select_related('usuario')
     serializer_class = ClienteSerializer
