@@ -5,9 +5,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core.permissions import EsAdmin
-from .models import Cliente
-from .serializers import ClienteSerializer, RegistroSerializer
+from core.permissions import EsAdmin, EsAdminOSoloLectura
+from .models import Cliente, Recompensa
+from .serializers import ClienteSerializer, RecompensaSerializer, RegistroSerializer
 
 
 def _respuesta_con_token(cliente):
@@ -54,3 +54,11 @@ class ClienteViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [EsAdmin]
     queryset = Cliente.objects.select_related('usuario')
     serializer_class = ClienteSerializer
+
+
+class RecompensaViewSet(viewsets.ModelViewSet):
+    """La tienda necesita leer el catálogo para ofrecerlo; editarlo es solo del admin."""
+
+    permission_classes = [EsAdminOSoloLectura]
+    queryset = Recompensa.objects.all()
+    serializer_class = RecompensaSerializer

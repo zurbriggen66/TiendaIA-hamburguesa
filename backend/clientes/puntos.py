@@ -36,6 +36,20 @@ def calcular_descuento(cliente, total):
     return puntos_que_entran, (Decimal(puntos_que_entran) * valor)
 
 
+def canjear_recompensa(cliente, recompensa):
+    """Descuenta los puntos del premio si al cliente le alcanzan.
+
+    El costo sale de la base, nunca del pedido que llega del frontend."""
+    if not cliente or not recompensa or not recompensa.activa:
+        return False
+    if cliente.puntos < recompensa.puntos:
+        return False
+
+    cliente.puntos -= recompensa.puntos
+    cliente.save(update_fields=['puntos'])
+    return True
+
+
 def acreditar(pedido):
     """Suma los puntos ganados por un pedido. Idempotente: si ya se acreditaron, no repite."""
     cliente = pedido.cliente_registrado

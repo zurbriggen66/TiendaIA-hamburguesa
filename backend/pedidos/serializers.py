@@ -5,7 +5,8 @@ from .models import Pedido, DetallePedido, DetalleExtra, Localidad, Pago, Caja
 from productos.models import Producto, Presentacion
 from antojo.models import AntojoDelDia
 from negocio.models import ConfiguracionSitio
-from clientes.puntos import calcular_descuento as calcular_descuento_puntos
+from clientes.models import Recompensa
+from clientes.puntos import calcular_descuento as calcular_descuento_puntos, canjear_recompensa
 
 
 class LocalidadSerializer(serializers.ModelSerializer):
@@ -162,6 +163,7 @@ class PedidoSerializer(serializers.ModelSerializer):
     cobrado = serializers.SerializerMethodField()
     estado_cobro = serializers.SerializerMethodField()
     usar_puntos = serializers.BooleanField(write_only=True, required=False, default=False)
+    recompensa_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
 
     class Meta:
         model = Pedido
@@ -170,6 +172,7 @@ class PedidoSerializer(serializers.ModelSerializer):
             'localidad', 'localidad_nombre', 'caja', 'origen', 'confirmado', 'costo_envio', 'descuento_pct',
             'hora_salida', 'nota', 'pagos', 'subtotal', 'total', 'cobrado', 'estado_cobro',
             'puntos_usados', 'descuento_puntos', 'usar_puntos',
+            'recompensa', 'recompensa_nombre', 'recompensa_id',
         ]
         extra_kwargs = {
             'localidad': {'required': False, 'allow_null': True},
@@ -178,6 +181,8 @@ class PedidoSerializer(serializers.ModelSerializer):
             # El monto del canje lo decide el servidor; el frontend solo pide usar_puntos.
             'puntos_usados': {'read_only': True},
             'descuento_puntos': {'read_only': True},
+            'recompensa': {'read_only': True},
+            'recompensa_nombre': {'read_only': True},
         }
 
     def get_subtotal(self, obj):
@@ -207,11 +212,18 @@ class PedidoSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     config.mensaje_cerrado or 'La tienda está cerrada en este momento. No se pueden recibir pedidos.'
                 )
+
+        # Un mismo saldo de puntos no puede gastarse dos veces en el mismo pedido.
+        if data.get('usar_puntos') and data.get('recompensa_id'):
+            raise serializers.ValidationError(
+                'Elegí una sola cosa: descuento con puntos o un premio, no las dos.'
+            )
         return data
 
     def create(self, validated_data):
         items_data = validated_data.pop('items')
         usar_puntos = validated_data.pop('usar_puntos', False)
+        recompensa_id = validated_data.pop('recompensa_id', None)
 
         # El pedido se asocia al cliente logueado (si lo hay), nunca a uno que venga por body.
         usuario = getattr(self.context.get('request'), 'user', None)
@@ -266,6 +278,17 @@ class PedidoSerializer(serializers.ModelSerializer):
                 pedido.save(update_fields=['puntos_usados', 'descuento_puntos'])
                 cliente.puntos -= puntos
                 cliente.save(update_fields=['puntos'])
+
+        # Canje de premio: el costo en puntos sale de la base, no del body.
+        if recompensa_id and cliente:
+            recompensa = Recompensa.objects.filter(id=recompensa_id, activa=True).first()
+            if not recompensa:
+                raise serializers.ValidationError({'recompensa_id': 'Ese premio no existe o ya no está disponible.'})
+            if not canjear_recompensa(cliente, recompensa):
+                raise serializers.ValidationError({'recompensa_id': 'No te alcanzan los puntos para ese premio.'})
+            pedido.recompensa = recompensa
+            pedido.recompensa_nombre = recompensa.nombre
+            pedido.save(update_fields=['recompensa', 'recompensa_nombre'])
 
         return pedido
 
