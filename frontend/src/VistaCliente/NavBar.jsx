@@ -248,6 +248,73 @@ export default function NavBar({ configuracion, totalItems, onPedir, cliente, on
           display: flex !important;
         }
 
+        /* === DESKTOP (>=900px) ===
+           Hasta acá la barra era el layout de celular estirado: en una pantalla ancha
+           el menú seguía escondido tras la hamburguesa y sobraba espacio vacío. Desde
+           900px los links se despliegan a la izquierda y el logo queda centrado entre
+           ellos y las acciones. */
+        @media (min-width: 900px) {
+          .nav-bar-pro .nav-toggle-mobil { display: none !important; }
+
+          .nav-bar-pro .nav-links {
+            position: static !important;
+            display: flex !important;
+            flex-direction: row !important;
+            width: auto !important;
+            grid-column: 1 !important;
+            grid-row: 1 !important;
+            justify-self: start !important;
+            align-items: center !important;
+            gap: 30px !important;
+            padding: 0 !important;
+            background: none !important;
+            box-shadow: none !important;
+          }
+
+          .nav-bar-pro .nav-links a {
+            position: relative;
+            font-size: .78rem;
+            font-weight: 700;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            padding: 4px 0;
+          }
+
+          /* El subrayado que se dibuja al pasar por encima repite el punteado del
+             ticket que imprime el local: el mismo gesto gráfico en toda la marca. */
+          .nav-bar-pro .nav-links a::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            border-bottom: 2px dotted currentColor;
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform .25s ease;
+          }
+
+          .nav-bar-pro .nav-links a:hover::after,
+          .nav-bar-pro .nav-links a:focus-visible::after { transform: scaleX(1); }
+
+          /* En desktop el acceso a la cuenta ya vive en la barra: en el menú sobra. */
+          .nav-bar-pro .nav-links .nav-cuenta,
+          .nav-bar-pro .nav-links a[href="#"]:last-child { display: none !important; }
+
+          .nav-logo-img { max-height: 62px !important; }
+        }
+
+        /* === MOBILE angosto ===
+           A 360px el logo quedaba pegado a la pastilla de registro. Se achica el logo
+           y se recorta el aire lateral para que los tres bloques respiren. */
+        @media (max-width: 420px) {
+          .nav-bar-pro { padding: 10px 12px !important; gap: 10px 10px !important; }
+          .nav-bar-pro .nav-toggle-mobil { width: 40px !important; height: 40px !important; font-size: 19px !important; }
+          .nav-logo-img { max-height: 42px !important; max-width: 120px !important; }
+          .nav-bar-pro .nav-acciones { gap: 6px; }
+          .nav-bar-pro .nav-btn-carrito { width: 40px; height: 40px; }
+        }
+
         .nav-bar-pro {
           display: grid !important;
           grid-template-columns: 1fr auto 1fr !important;
