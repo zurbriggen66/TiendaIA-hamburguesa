@@ -4295,3 +4295,142 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .medallon { animation: none; }
 }
+
+/* === PREMIOS POR PUNTOS (Premios.jsx) ===
+   La tarjeta imita la comanda impresa del local: papel, corte dentado arriba y abajo,
+   y los puntos en la misma tipografía de impresora que sale en el ticket real. */
+.premios {
+  padding: 60px 18px 70px;
+  display: flex;
+  justify-content: center;
+}
+
+.premios-ticket {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  background: #f7f3ea;
+  color: #241a13;
+  padding: 34px 26px 30px;
+  box-shadow: 0 26px 60px rgba(0, 0, 0, .45);
+}
+
+/* Corte dentado abajo: el ticket sale del rollo y se arranca por ahí. Va solo en un
+   borde a propósito — con los dos, el papel deja de leerse como papel. */
+.premios-ticket::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -9px;
+  width: 100%;
+  height: 10px;
+  background: radial-gradient(circle at 6px 0, transparent 0 6px, #f7f3ea 6px) repeat-x;
+  background-size: 16px 10px;
+}
+
+.premios-encabezado { text-align: center; }
+
+.premios-eyebrow {
+  font-size: .68rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: #a2958a;
+}
+
+.premios-titulo {
+  margin: 8px 0 10px;
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  line-height: 1.05;
+  color: #241a13;
+}
+
+.premios-bajada {
+  margin: 0 auto;
+  max-width: 34ch;
+  font-size: .88rem;
+  line-height: 1.5;
+  color: #6f6259;
+}
+
+.premios-lista {
+  list-style: none;
+  margin: 26px 0 0;
+  padding: 20px 0 4px;
+  border-top: 2px dashed #ddd2c4;
+}
+
+.premios-fila {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 11px 0;
+}
+
+.premios-fila + .premios-fila { border-top: 1px dashed #e5dbcd; }
+
+.premios-nombre {
+  font-size: .95rem;
+  font-weight: 600;
+  color: #241a13;
+}
+
+/* Los puntitos que unen el nombre con el precio, como en una carta impresa */
+.premios-puntos-linea {
+  flex: 1;
+  border-bottom: 1px dotted #cdbfae;
+  transform: translateY(-3px);
+}
+
+.premios-puntos {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  font-family: 'Courier New', ui-monospace, monospace;
+  font-size: .92rem;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #241a13;
+}
+
+.premios-puntos small {
+  font-family: inherit;
+  font-size: .68rem;
+  font-weight: 400;
+  letter-spacing: .02em;
+}
+
+.premios-estado { color: #a2958a; }
+.premios-estado-ok { color: #15803d; font-weight: 700; }
+
+.premios-fila-lista .premios-nombre { color: #15803d; }
+
+.premios-pie {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 2px dashed #ddd2c4;
+}
+
+.premios-cta { width: 100%; max-width: 280px; padding: 13px; }
+
+.premios-pie-nota {
+  font-size: .74rem;
+  color: #a2958a;
+}
+
+.premios-pie-nota-sola {
+  margin: 22px 0 0;
+  padding-top: 18px;
+  border-top: 2px dashed #ddd2c4;
+  text-align: center;
+}
+
+@media (max-width: 420px) {
+  .premios { padding: 44px 14px 52px; }
+  .premios-ticket { padding: 28px 18px 24px; }
+  .premios-nombre { font-size: .88rem; }
+}

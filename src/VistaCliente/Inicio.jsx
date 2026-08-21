@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import api, { leerToken, guardarToken } from '../services/api';
 import { aclararColor, colorContraste } from '../utils/colores';
 import CuentaModal from './CuentaModal';
+import Premios from './Premios';
 import NavBar from './NavBar';
 import Hero from './Hero';
 import AntojoDelDia from './AntojoDelDia';
@@ -371,6 +372,8 @@ export default function Inicio() {
         onAbrirProducto={abrirProducto}
         onCerrarProducto={cerrarProducto}
       />
+
+      <Premios cliente={cliente} onRegistrarse={() => setMostrarCuenta(true)} />
 
       {totalItems > 0 && (
         <button type="button" className="carrito-barra-flotante" onClick={() => setCarritoAbierto(true)}>
