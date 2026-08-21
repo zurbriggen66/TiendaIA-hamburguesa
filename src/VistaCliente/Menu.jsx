@@ -1,6 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useReveal } from '../utils/useReveal';
 import { presentacionesConBase } from '../utils/presentaciones';
+import { medallonesDe } from '../utils/medallones';
+
+// Indicador sutil de cuántos medallones trae cada presentación: discos apilados,
+// que es lo que el cliente ve al morder. Sin texto extra, solo la pista visual.
+function Medallones({ nombre }) {
+  const cantidad = medallonesDe(nombre);
+  if (!cantidad) return null;
+  return (
+    <span
+      className="medallones"
+      title={`${cantidad} ${cantidad === 1 ? 'medallón' : 'medallones'} de carne`}
+      aria-label={`${cantidad} ${cantidad === 1 ? 'medallón' : 'medallones'} de carne`}
+    >
+      {Array.from({ length: cantidad }, (_, i) => (
+        <span key={i} className="medallon" style={{ '--i': i }} />
+      ))}
+    </span>
+  );
+}
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
@@ -80,6 +99,7 @@ function SelectorPresentaciones({ producto, presentaciones, presentacionId, onEl
             <span className="presentacion-selector-check" aria-hidden="true" />
             <span className="presentacion-selector-nombre">
               {p.nombre}
+              <Medallones nombre={p.nombre} />
               {conDescuento && <span className="badge-descuento badge-descuento-chica">🏷️ -{Math.max(producto.descuento_pct || 0, p.descuento_pct || 0)}%</span>}
             </span>
             <span className="presentacion-selector-precio">

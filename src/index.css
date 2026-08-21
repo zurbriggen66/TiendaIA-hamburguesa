@@ -4038,3 +4038,260 @@ body {
     flex-basis: 100%;
   }
 }
+/* Premios por puntos */
+.pedido-premio {
+  border-color: rgba(251, 191, 36, .5);
+  background: rgba(251, 191, 36, .1);
+}
+
+.carrito-premio {
+  background: rgba(74, 222, 128, .08);
+  border-color: rgba(74, 222, 128, .35);
+}
+
+.carrito-premio-elegido {
+  border-color: #4ade80;
+  background: rgba(74, 222, 128, .18);
+}
+
+.recompensa-inactiva {
+  opacity: .55;
+}
+
+/* === REGISTRO DE CLIENTES (CuentaModal.jsx) === */
+.cuenta-fondo {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 20, 16, .72);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  z-index: 1200;
+  animation: cuentaFondo .25s ease-out;
+}
+
+@keyframes cuentaFondo { from { opacity: 0; } to { opacity: 1; } }
+
+.cuenta-card {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  max-height: 92vh;
+  overflow-y: auto;
+  background: #fffdfb;
+  color: #241a13;
+  border-radius: 22px;
+  padding: 26px 24px 22px;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, .45);
+  animation: cuentaEntra .38s cubic-bezier(.34, 1.4, .64, 1);
+}
+
+@keyframes cuentaEntra {
+  from { opacity: 0; transform: translateY(22px) scale(.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.cuenta-cerrar {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: #f2ece5;
+  color: #6f6259;
+  font-size: 15px;
+  cursor: pointer;
+}
+.cuenta-cerrar:hover { background: #e7ded4; }
+
+.cuenta-encabezado { text-align: center; }
+
+.cuenta-emoji {
+  display: inline-block;
+  font-size: 2.4rem;
+  animation: cuentaFlota 2.8s ease-in-out infinite;
+}
+
+@keyframes cuentaFlota {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50% { transform: translateY(-7px) rotate(4deg); }
+}
+
+.cuenta-encabezado h3 {
+  margin: 6px 0 6px;
+  font-size: 1.32rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.cuenta-encabezado p {
+  margin: 0;
+  font-size: .88rem;
+  color: #6f6259;
+  line-height: 1.5;
+}
+
+/* Los tres pasos del programa, que aparecen escalonados */
+.cuenta-pasos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 18px 0 6px;
+}
+
+.cuenta-paso {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  opacity: 0;
+  animation: cuentaPaso .45s ease-out forwards;
+}
+.cuenta-paso:nth-child(1) { animation-delay: .12s; }
+.cuenta-paso:nth-child(3) { animation-delay: .3s; }
+.cuenta-paso:nth-child(5) { animation-delay: .48s; }
+
+.cuenta-paso span { font-size: 1.5rem; }
+.cuenta-paso small { font-size: .68rem; color: #8a7c70; text-transform: uppercase; letter-spacing: .05em; }
+
+.cuenta-flecha {
+  color: #d9cec3;
+  font-size: 1rem;
+  opacity: 0;
+  animation: cuentaPaso .45s ease-out forwards;
+}
+.cuenta-flecha:nth-child(2) { animation-delay: .22s; }
+.cuenta-flecha:nth-child(4) { animation-delay: .4s; }
+
+@keyframes cuentaPaso {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.cuenta-tabs {
+  display: flex;
+  gap: 6px;
+  background: #f2ece5;
+  border-radius: 999px;
+  padding: 4px;
+  margin: 18px 0 16px;
+}
+
+.cuenta-tabs button {
+  flex: 1;
+  border: none;
+  background: none;
+  border-radius: 999px;
+  padding: 9px 10px;
+  font-size: .82rem;
+  font-weight: 700;
+  color: #8a7c70;
+  cursor: pointer;
+  transition: background .2s ease, color .2s ease;
+}
+
+.cuenta-tabs .cuenta-tab-activa {
+  background: #fff;
+  color: #241a13;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .1);
+}
+
+.cuenta-form .form-label { color: #6f6259; }
+
+.cuenta-form .input-vibrante {
+  background: #f7f2ec;
+  border-color: #e6dcd1;
+  color: #241a13;
+}
+.cuenta-form .input-vibrante:focus { border-color: #f97316; background: #fff; }
+
+.cuenta-btn { width: 100%; margin-top: 6px; padding: 13px; font-size: .95rem; }
+
+.cuenta-pie {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: .75rem;
+  color: #a2958a;
+}
+
+.cuenta-error {
+  margin: 2px 0 8px;
+  font-size: .82rem;
+  color: #dc2626;
+  background: #fee2e2;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+/* Pantalla de bienvenida tras registrarse */
+.cuenta-card-exito { text-align: center; padding: 40px 26px 34px; overflow: hidden; }
+
+.cuenta-estrella-grande {
+  font-size: 3.4rem;
+  animation: cuentaEstrella .7s cubic-bezier(.34, 1.6, .64, 1);
+}
+
+@keyframes cuentaEstrella {
+  0% { transform: scale(0) rotate(-40deg); }
+  70% { transform: scale(1.25) rotate(8deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+.cuenta-card-exito h3 { margin: 10px 0 6px; font-size: 1.4rem; font-weight: 800; }
+.cuenta-exito-texto { margin: 0; color: #6f6259; font-size: .92rem; }
+
+.cuenta-confeti { position: absolute; inset: 0; pointer-events: none; }
+
+.cuenta-confeti span {
+  position: absolute;
+  top: 12%;
+  left: calc(12% + var(--i) * 19%);
+  font-size: 1.1rem;
+  opacity: 0;
+  animation: cuentaConfeti 1.6s ease-out forwards;
+  animation-delay: calc(var(--i) * .09s);
+}
+
+@keyframes cuentaConfeti {
+  0% { opacity: 0; transform: translateY(0) scale(.5); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(190px) rotate(150deg) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cuenta-card, .cuenta-emoji, .cuenta-paso, .cuenta-flecha,
+  .cuenta-estrella-grande, .cuenta-confeti span { animation: none; opacity: 1; }
+}
+
+/* Medallones: discos apilados que insinúan la carne, sin texto extra */
+.medallones {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 7px;
+  vertical-align: middle;
+}
+
+.medallon {
+  width: 9px;
+  height: 5px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #7b4a2c, #4a2a17);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25);
+  animation: medallonEntra .3s ease-out backwards;
+  animation-delay: calc(var(--i) * .07s);
+}
+
+@keyframes medallonEntra {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .medallon { animation: none; }
+}
