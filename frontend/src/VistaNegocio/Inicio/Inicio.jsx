@@ -49,6 +49,11 @@ export default function Inicio() {
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [localidades, setLocalidades] = useState([]);
+  // Ocultar el monto sirve cuando hay clientes mirando la pantalla. Se recuerda
+  // entre visitas; si el navegador bloquea localStorage, simplemente arranca visible.
+  const [montoOculto, setMontoOculto] = useState(() => {
+    try { return localStorage.getItem('antojo_caja_oculta') === '1'; } catch { return false; }
+  });
   const [mostrarAbrirCaja, setMostrarAbrirCaja] = useState(false);
   const [mostrarCerrarCaja, setMostrarCerrarCaja] = useState(false);
   const [mostrarNuevoPedido, setMostrarNuevoPedido] = useState(false);
@@ -198,6 +203,14 @@ export default function Inicio() {
     }
   };
 
+  const alternarMonto = () => {
+    setMontoOculto((prev) => {
+      const siguiente = !prev;
+      try { localStorage.setItem('antojo_caja_oculta', siguiente ? '1' : '0'); } catch { /* sin storage */ }
+      return siguiente;
+    });
+  };
+
   const porVencer = gastosFijos.filter((g) => g.esta_por_vencer);
   const hayVencidos = gastosFijos.some((g) => g.dias_restantes < 0);
   const faltaJuntar = Math.max(0, totalGastosFijos - Number(ventasHoy || 0));
@@ -331,6 +344,15 @@ export default function Inicio() {
             <div className="inicio-card-encabezado">
               <span className="inicio-card-icono">💰</span>
               <h3 className="inicio-card-titulo">Caja actual</h3>
+              <button
+                type="button"
+                className="inicio-ojito"
+                onClick={alternarMonto}
+                title={montoOculto ? 'Mostrar el monto' : 'Ocultar el monto'}
+                aria-label={montoOculto ? 'Mostrar el monto' : 'Ocultar el monto'}
+              >
+                {montoOculto ? '🙈' : '👁️'}
+              </button>
             </div>
             {!cargando && !error && !cajaAbierta ? (
               <>
@@ -344,7 +366,7 @@ export default function Inicio() {
               </>
             ) : (
               <>
-                <p className="inicio-monto-grande">{formatearPrecio(ventasHoy)}</p>
+                <p className="inicio-monto-grande">{montoOculto ? '•••••' : formatearPrecio(ventasHoy)}</p>
                 <p className="inicio-card-subtexto">
                   {cargando ? (
                     <span className="inicio-punteo-cargando">Actualizando</span>
@@ -704,6 +726,17 @@ export default function Inicio() {
             font-size: 1.9rem;
             color: rgba(255, 255, 255, 0.9);
           }
+
+          .inicio-ojito {
+            margin-left: auto;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            opacity: .65;
+            padding: 2px 4px;
+          }
+          .inicio-ojito:hover { opacity: 1; }
 
           .inicio-monto-grande {
             font-size: 2.4rem;

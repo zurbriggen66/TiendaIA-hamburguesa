@@ -66,6 +66,12 @@ class Pedido(models.Model):
     descuento_puntos = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     # Evita acreditar dos veces si se confirma un pedido ya confirmado.
     puntos_acreditados = models.BooleanField(default=False)
+    # Premio canjeado con puntos. El nombre se copia al canjear (igual que precio_unitario
+    # en las líneas): si después se edita o borra el premio, el historial no cambia.
+    recompensa = models.ForeignKey(
+        'clientes.Recompensa', null=True, blank=True, on_delete=models.SET_NULL, related_name='pedidos',
+    )
+    recompensa_nombre = models.CharField(max_length=120, blank=True)
     hora_salida = models.TimeField(null=True, blank=True)
     nota = models.TextField(blank=True)
     estado = models.CharField(max_length=20, choices=ESTADOS, default='pendiente')

@@ -81,6 +81,10 @@ export default function PedidoCard({ pedido, onCobrar, onDetalle, onImprimir, on
         <p className="pedido-nota">📝 {pedido.nota}</p>
       )}
 
+      {pedido.recompensa_nombre && (
+        <p className="pedido-nota pedido-premio">🎁 Premio canjeado: {pedido.recompensa_nombre}</p>
+      )}
+
       <ul className="pedido-items-lista">
         {pedido.items.map((item) => (
           <li key={item.id}>
