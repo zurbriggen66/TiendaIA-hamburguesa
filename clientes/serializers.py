@@ -3,7 +3,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
-from .models import Cliente
+from .models import Cliente, Recompensa
 
 
 class RegistroSerializer(serializers.Serializer):
@@ -51,3 +51,14 @@ class ClienteSerializer(serializers.ModelSerializer):
         config = ConfiguracionSitio.objects.last()
         valor = config.valor_punto if config else 1
         return obj.puntos * valor
+
+
+class RecompensaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recompensa
+        fields = ['id', 'nombre', 'puntos', 'activa', 'creado']
+
+    def validate_puntos(self, value):
+        if value <= 0:
+            raise serializers.ValidationError('El premio tiene que costar al menos 1 punto.')
+        return value
