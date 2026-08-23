@@ -17,15 +17,20 @@ class AntojoDelDiaView(APIView):
         antojo = (
             AntojoDelDia.objects
             .filter(activo=True, producto__isnull=False)
-            .select_related('producto', 'producto__categoria')
+            .select_related('producto', 'producto__categoria', 'presentacion')
             .first()
         )
         if not antojo or not antojo.esta_vigente():
             return Response(None)
 
         producto = antojo.producto
+        presentacion = antojo.presentacion
+        # Si el antojo apunta a una variante puntual (ej. "Doble"), el precio de lista
+        # sobre el que se calcula el descuento es el de esa variante, no el de la
+        # hamburguesa simple.
+        precio_lista = presentacion.precio if presentacion else producto.precio
         descuento = Decimal(antojo.descuento_pct) / Decimal(100)
-        precio_con_descuento = (producto.precio * (Decimal(1) - descuento)).quantize(Decimal('1'))
+        precio_con_descuento = (precio_lista * (Decimal(1) - descuento)).quantize(Decimal('1'))
 
         imagen_url = None
         if producto.imagen:
@@ -41,7 +46,8 @@ class AntojoDelDiaView(APIView):
                 'imagen': imagen_url,
                 'categoria_nombre': producto.categoria.nombre,
             },
-            'precio_original': producto.precio,
+            'presentacion': {'id': presentacion.id, 'nombre': presentacion.nombre} if presentacion else None,
+            'precio_original': precio_lista,
             'precio_con_descuento': precio_con_descuento,
         })
 
