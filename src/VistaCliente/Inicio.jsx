@@ -79,6 +79,7 @@ export default function Inicio() {
   const [cliente, setCliente] = useState(null);
   const [mostrarCuenta, setMostrarCuenta] = useState(false);
   const [cargando, setCargando] = useState(true);
+  const [antojo, setAntojo] = useState(null);
 
   useEffect(() => {
     let activo = true;
@@ -114,15 +115,20 @@ export default function Inicio() {
 
     const obtenerMenu = async () => {
       try {
-        const [resCategorias, resProductos, resCombos] = await Promise.all([
+        const [resCategorias, resProductos, resCombos, resAntojo] = await Promise.all([
           api.get('/categorias/'),
           api.get('/productos/'),
           api.get('/combos/'),
+          api.get('/antojo-del-dia/'),
         ]);
         if (!activo) return;
         setCategorias(resCategorias.data);
         setProductos(resProductos.data);
         setCombos(resCombos.data.filter((c) => c.activo));
+        // El mismo antojo se usa acá y en el banner (AntojoDelDia.jsx): un solo fetch
+        // para que ambos lados coincidan siempre en qué producto/variante y descuento
+        // corresponde, sin pedirlo dos veces.
+        setAntojo(resAntojo.data);
       } catch (error) {
         console.error("Error al cargar el menú:", error);
       }
@@ -358,7 +364,7 @@ export default function Inicio() {
       <Hero configuracion={configuracion} />
 
       <div id="antojo-dia">
-        <AntojoDelDia onAgregar={agregarAlCarrito} />
+        <AntojoDelDia antojo={antojo} onAgregar={agregarAlCarrito} />
       </div>
 
       <Combos combos={combos} onAgregar={agregarComboAlCarrito} />
@@ -370,6 +376,7 @@ export default function Inicio() {
         productoDetalleId={productoDetalleId}
         onAbrirProducto={abrirProducto}
         onCerrarProducto={cerrarProducto}
+        antojo={antojo}
       />
 
       {totalItems > 0 && (

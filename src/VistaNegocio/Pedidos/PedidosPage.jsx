@@ -37,6 +37,7 @@ export default function PedidosPage() {
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [localidades, setLocalidades] = useState([]);
+  const [antojo, setAntojo] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [cargandoMas, setCargandoMas] = useState(false);
   const [hayMas, setHayMas] = useState(false);
@@ -57,14 +58,16 @@ export default function PedidosPage() {
   // se carga una sola vez, en vez de repetirse cada vez que cambia el período elegido.
   const cargarCatalogo = useCallback(async () => {
     try {
-      const [resProductos, resCategorias, resLocalidades] = await Promise.all([
+      const [resProductos, resCategorias, resLocalidades, resAntojo] = await Promise.all([
         api.get('/productos/'),
         api.get('/categorias/'),
         api.get('/localidades/'),
+        api.get('/antojo-del-dia/'),
       ]);
       setProductos(resProductos.data);
       setCategorias(resCategorias.data);
       setLocalidades(resLocalidades.data);
+      setAntojo(resAntojo.data);
     } catch (error) {
       console.error('Error al cargar productos/categorías/localidades:', error);
     }
@@ -346,6 +349,7 @@ export default function PedidosPage() {
           productos={productos}
           categorias={categorias}
           localidades={localidades}
+          antojo={antojo}
           onClose={() => setMostrarModal(false)}
           onSaved={() => { setMostrarModal(false); cargarDatos(); }}
         />

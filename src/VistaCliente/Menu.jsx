@@ -1,40 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useReveal } from '../utils/useReveal';
 import { presentacionesConBase } from '../utils/presentaciones';
+import { precioBaseSinDescuento, tieneDescuento, mejorPorcentajeDescuento, precioBaseConDescuento } from '../utils/precios';
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
 
-// Con presentación elegida, la base es el precio de esa presentación en vez del precio
-// de lista del producto (que pasa a ser sólo un valor de referencia sin usar).
-const precioBaseSinDescuento = (producto, presentacion) => Number(presentacion ? presentacion.precio : producto.precio);
-
-// Si la presentación elegida suma un insumo con descuento activo (ej. "Doble" con un
-// medallón en oferta), ese % también compite con el descuento del producto — gana el
-// que le dé más descuento al cliente, igual que hace el servidor al cobrar el pedido.
-const tieneDescuento = (producto, presentacion) =>
-  Boolean(producto.descuento_activo || (presentacion && Number(presentacion.descuento_pct) > 0));
-
-const precioBaseConDescuento = (producto, presentacion) => {
-  const base = precioBaseSinDescuento(producto, presentacion);
-  if (!presentacion) {
-    // Sin presentación, se respeta el precio_actual que ya viene calculado (y redondeado)
-    // por el servidor.
-    return producto.descuento_activo ? Number(producto.precio_actual) : base;
-  }
-  const candidatos = [];
-  if (producto.descuento_activo) {
-    candidatos.push(Math.round(base * (1 - Number(producto.descuento_pct) / 100)));
-  }
-  if (Number(presentacion.descuento_pct) > 0) {
-    candidatos.push(Math.round(base * (1 - Number(presentacion.descuento_pct) / 100)));
-  }
-  return candidatos.length > 0 ? Math.min(...candidatos) : base;
-};
-
-const calcularPrecioTotal = (producto, extrasDisponibles, cantidadesExtras, cantidad, usarDescuento = true, presentacion = null) => {
+const calcularPrecioTotal = (producto, extrasDisponibles, cantidadesExtras, cantidad, usarDescuento = true, presentacion = null, antojo = null) => {
   const costoExtras = extrasDisponibles.reduce((acc, e) => acc + Number(e.precio) * (cantidadesExtras[e.id] || 0), 0);
-  const precioUnidad = usarDescuento ? precioBaseConDescuento(producto, presentacion) : precioBaseSinDescuento(producto, presentacion);
+  const precioUnidad = usarDescuento
+    ? precioBaseConDescuento(producto, presentacion, antojo)
+    : precioBaseSinDescuento(producto, presentacion);
   return (precioUnidad + costoExtras) * cantidad;
 };
 
@@ -61,14 +37,14 @@ function SelectorExtras({ extrasDisponibles, cantidadesExtras, onCambiarCantidad
   );
 }
 
-function SelectorPresentaciones({ producto, presentaciones, presentacionId, onElegir }) {
+function SelectorPresentaciones({ producto, presentaciones, presentacionId, onElegir, antojo }) {
   if (!presentaciones || presentaciones.length === 0) return null;
 
   return (
     <div className="menu-tarjeta-presentaciones">
       <span className="presentaciones-titulo">Presentaciones</span>
       {presentaciones.map((p) => {
-        const conDescuento = tieneDescuento(producto, p);
+        const conDescuento = tieneDescuento(producto, p, antojo);
         return (
           <button
             type="button"
@@ -80,11 +56,11 @@ function SelectorPresentaciones({ producto, presentaciones, presentacionId, onEl
             <span className="presentacion-selector-check" aria-hidden="true" />
             <span className="presentacion-selector-nombre">
               {p.nombre}
-              {conDescuento && <span className="badge-descuento badge-descuento-chica">🏷️ -{Math.max(producto.descuento_pct || 0, p.descuento_pct || 0)}%</span>}
+              {conDescuento && <span className="badge-descuento badge-descuento-chica">🏷️ -{mejorPorcentajeDescuento(producto, p, antojo)}%</span>}
             </span>
             <span className="presentacion-selector-precio">
               {conDescuento && <span className="precio-tachado">{formatearPrecio(p.precio)}</span>}
-              {formatearPrecio(precioBaseConDescuento(producto, p))}
+              {formatearPrecio(precioBaseConDescuento(producto, p, antojo))}
             </span>
           </button>
         );
@@ -93,8 +69,13 @@ function SelectorPresentaciones({ producto, presentaciones, presentacionId, onEl
   );
 }
 
-function TarjetaProducto({ producto, onVerDetalle }) {
+function TarjetaProducto({ producto, onVerDetalle, antojo }) {
   const [ref, visible] = useReveal();
+  // La tarjeta muestra la variante más barata sin elegir nada todavía (igual que
+  // arranca el detalle del producto), para que el "antojo del día" en una variante
+  // puntual (ej. "Doble") también se refleje acá si esa es la más barata disponible.
+  const presentacionBase = presentacionesConBase(producto)[0] || null;
+  const conDescuento = tieneDescuento(producto, presentacionBase, antojo);
   return (
     <div ref={ref} className={`menu-tarjeta reveal ${visible ? 'reveal-visible' : ''}`}>
       <div
@@ -114,8 +95,8 @@ function TarjetaProducto({ producto, onVerDetalle }) {
         {producto.categoria_nombre && (
           <span className="menu-tarjeta-categoria-flotante">{producto.categoria_nombre}</span>
         )}
-        {producto.descuento_activo && (
-          <span className="badge-descuento menu-tarjeta-badge-descuento">🏷️ -{producto.descuento_pct}%</span>
+        {conDescuento && (
+          <span className="badge-descuento menu-tarjeta-badge-descuento">🏷️ -{mejorPorcentajeDescuento(producto, presentacionBase, antojo)}%</span>
         )}
         <h3 className="menu-tarjeta-titulo-flotante fuente-impacto">{producto.nombre}</h3>
       </div>
@@ -123,7 +104,12 @@ function TarjetaProducto({ producto, onVerDetalle }) {
         {producto.descripcion && <p className="menu-tarjeta-descripcion">{producto.descripcion}</p>}
         <div className="menu-tarjeta-divisor" aria-hidden="true" />
         <div className="menu-tarjeta-footer">
-          <span className="menu-tarjeta-precio">{formatearPrecio(producto.precio)}</span>
+          <span className="menu-tarjeta-precio">
+            {conDescuento && (
+              <span className="precio-tachado">{formatearPrecio(precioBaseSinDescuento(producto, presentacionBase))}</span>
+            )}
+            {' '}{formatearPrecio(precioBaseConDescuento(producto, presentacionBase, antojo))}
+          </span>
           <button type="button" className="menu-tarjeta-toppings" onClick={() => onVerDetalle(producto)}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
               <path d="M8 7V6a4 4 0 118 0v1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" fill="none" />
@@ -137,7 +123,7 @@ function TarjetaProducto({ producto, onVerDetalle }) {
   );
 }
 
-function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
+function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar, antojo }) {
   const [cantidad, setCantidad] = useState(1);
   const [cantidadesExtras, setCantidadesExtras] = useState({});
   const [presentacionId, setPresentacionId] = useState(null);
@@ -175,7 +161,7 @@ function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
     const extras = extrasDisponibles
       .filter((e) => (cantidadesExtras[e.id] || 0) > 0)
       .map((e) => ({ ...e, cantidad: cantidadesExtras[e.id] }));
-    const precioBase = precioBaseConDescuento(producto, presentacionSeleccionada);
+    const precioBase = precioBaseConDescuento(producto, presentacionSeleccionada, antojo);
     onAgregar({
       ...producto,
       precio: precioBase,
@@ -210,7 +196,9 @@ function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
         </div>
 
         <div className="modal-producto-tarjeta-texto">
-          {producto.descuento_activo && <span className="badge-descuento">🏷️ -{producto.descuento_pct}%</span>}
+          {tieneDescuento(producto, presentacionSeleccionada, antojo) && (
+            <span className="badge-descuento">🏷️ -{mejorPorcentajeDescuento(producto, presentacionSeleccionada, antojo)}%</span>
+          )}
           <span className="producto-categoria-tag">{producto.categoria_nombre}</span>
           <h3>{producto.nombre}</h3>
           {producto.descripcion && <p className="modal-producto-descripcion">{producto.descripcion}</p>}
@@ -222,16 +210,17 @@ function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
             presentaciones={presentacionesConBase(producto)}
             presentacionId={presentacionId}
             onElegir={setPresentacionId}
+            antojo={antojo}
           />
 
           <SelectorExtras extrasDisponibles={extrasDisponibles} cantidadesExtras={cantidadesExtras} onCambiarCantidad={cambiarCantidadExtra} />
 
           <div className="menu-tarjeta-footer">
             <span className="menu-tarjeta-precio">
-              {tieneDescuento(producto, presentacionSeleccionada) && (
+              {tieneDescuento(producto, presentacionSeleccionada, antojo) && (
                 <span className="precio-tachado">{formatearPrecio(calcularPrecioTotal(producto, extrasDisponibles, cantidadesExtras, cantidad, false, presentacionSeleccionada))}</span>
               )}
-              {formatearPrecio(calcularPrecioTotal(producto, extrasDisponibles, cantidadesExtras, cantidad, true, presentacionSeleccionada))}
+              {formatearPrecio(calcularPrecioTotal(producto, extrasDisponibles, cantidadesExtras, cantidad, true, presentacionSeleccionada, antojo))}
             </span>
             <div className="menu-tarjeta-cantidad">
               <button type="button" onClick={() => setCantidad((c) => Math.max(1, c - 1))}>−</button>
@@ -249,7 +238,7 @@ function ModalProducto({ producto, extrasDisponibles, onCerrar, onAgregar }) {
   );
 }
 
-export default function Menu({ categorias, productos, onAgregar, productoDetalleId, onAbrirProducto, onCerrarProducto }) {
+export default function Menu({ categorias, productos, onAgregar, productoDetalleId, onAbrirProducto, onCerrarProducto, antojo }) {
   const [categoriaActiva, setCategoriaActiva] = useState('todas');
   // El producto abierto en el modal/página de detalle lo controla Inicio.jsx (vive
   // sincronizado con la URL /producto/:id para que cada producto tenga link propio).
@@ -404,6 +393,7 @@ export default function Menu({ categorias, productos, onAgregar, productoDetalle
               key={producto.id}
               producto={producto}
               onVerDetalle={(p) => onAbrirProducto(p.id)}
+              antojo={antojo}
             />
           ))}
         </div>
@@ -414,6 +404,7 @@ export default function Menu({ categorias, productos, onAgregar, productoDetalle
         extrasDisponibles={extrasParaProducto(productoDetalle)}
         onCerrar={onCerrarProducto}
         onAgregar={onAgregar}
+        antojo={antojo}
       />
 
       <style>{`

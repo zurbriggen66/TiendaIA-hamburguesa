@@ -16,6 +16,7 @@ export default function AntojoConfigPage() {
   const [configId, setConfigId] = useState(null);
   const [productos, setProductos] = useState([]);
   const [productoId, setProductoId] = useState('');
+  const [presentacionId, setPresentacionId] = useState('');
   const [descuentoPct, setDescuentoPct] = useState(15);
   const [activo, setActivo] = useState(false);
   const [activoHasta, setActivoHasta] = useState('');
@@ -35,6 +36,7 @@ export default function AntojoConfigPage() {
           const config = resConfig.data[resConfig.data.length - 1];
           setConfigId(config.id);
           setProductoId(config.producto || '');
+          setPresentacionId(config.presentacion || '');
           setDescuentoPct(config.descuento_pct);
           setActivo(config.activo);
           setActivoHasta(aDatetimeLocal(config.activo_hasta));
@@ -48,6 +50,12 @@ export default function AntojoConfigPage() {
     cargar();
   }, []);
 
+  // Si cambia el producto, la variante elegida (de otro producto) deja de tener sentido.
+  const elegirProducto = (id) => {
+    setProductoId(id);
+    setPresentacionId('');
+  };
+
   const guardar = async (e) => {
     e.preventDefault();
     if (activo && !productoId) {
@@ -57,6 +65,7 @@ export default function AntojoConfigPage() {
 
     const datos = {
       producto: productoId || null,
+      presentacion: presentacionId || null,
       descuento_pct: Number(descuentoPct) || 0,
       activo,
       activo_hasta: activoHasta ? new Date(activoHasta).toISOString() : null,
@@ -80,6 +89,8 @@ export default function AntojoConfigPage() {
   };
 
   const productoElegido = productos.find((p) => String(p.id) === String(productoId));
+  const presentacionElegida = (productoElegido?.presentaciones || []).find((p) => String(p.id) === String(presentacionId));
+  const precioLista = presentacionElegida ? presentacionElegida.precio : productoElegido?.precio;
 
   return (
     <>
@@ -101,13 +112,28 @@ export default function AntojoConfigPage() {
             <form onSubmit={guardar}>
               <div className="form-group">
                 <label className="form-label">Producto</label>
-                <select className="input-vibrante" value={productoId} onChange={(e) => setProductoId(e.target.value)}>
+                <select className="input-vibrante" value={productoId} onChange={(e) => elegirProducto(e.target.value)}>
                   <option value="">Elegir producto...</option>
                   {productos.map((p) => (
                     <option key={p.id} value={p.id}>{p.nombre} — {formatearPrecio(p.precio)}</option>
                   ))}
                 </select>
               </div>
+
+              {productoElegido && productoElegido.presentaciones && productoElegido.presentaciones.length > 0 && (
+                <div className="form-group">
+                  <label className="form-label">Variante (opcional)</label>
+                  <select className="input-vibrante" value={presentacionId} onChange={(e) => setPresentacionId(e.target.value)}>
+                    <option value="">Cualquier variante (la de siempre)</option>
+                    {productoElegido.presentaciones.map((p) => (
+                      <option key={p.id} value={p.id}>{p.nombre} — {formatearPrecio(p.precio)}</option>
+                    ))}
+                  </select>
+                  <p className="form-ayuda">
+                    Si elegís una (ej. "Doble"), el descuento aplica solo a esa variante puntual. Sin elegir ninguna, aplica a cualquiera que pida el cliente.
+                  </p>
+                </div>
+              )}
 
               <div className="form-group">
                 <label className="form-label">Porcentaje de descuento</label>
@@ -123,8 +149,8 @@ export default function AntojoConfigPage() {
 
               {productoElegido && Number(descuentoPct) > 0 && (
                 <p className="aviso-sin-insumos">
-                  Precio con descuento: {formatearPrecio(productoElegido.precio * (1 - Number(descuentoPct) / 100))}
-                  {' '}(antes {formatearPrecio(productoElegido.precio)})
+                  Precio con descuento: {formatearPrecio(precioLista * (1 - Number(descuentoPct) / 100))}
+                  {' '}(antes {formatearPrecio(precioLista)})
                 </p>
               )}
 

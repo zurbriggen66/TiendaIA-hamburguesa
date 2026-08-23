@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import api from '../../services/api';
 import { presentacionesConBase } from '../../utils/presentaciones';
+import { precioBaseConDescuento, tieneDescuento, mejorPorcentajeDescuento } from '../../utils/precios';
 
 const COLORES_CHIP = ['chip-mostaza', 'chip-naranja', 'chip-tomate'];
 
@@ -12,16 +13,7 @@ const nuevaFila = (productoId, presentacionId = null) => ({ key: ++contadorFila,
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
 
-// Con presentación elegida el precio base es el de esa presentación (el % de descuento
-// del producto se sigue aplicando igual, sólo para la estimación que se ve acá — el
-// precio real que se cobra siempre lo recalcula el servidor).
-const precioEfectivo = (producto, presentacion) => {
-  const base = presentacion ? Number(presentacion.precio) : Number(producto.precio);
-  if (!producto.descuento_activo) return base;
-  return presentacion ? Math.round(base * (1 - Number(producto.descuento_pct) / 100)) : Number(producto.precio_actual);
-};
-
-export default function PedidoModal({ productos, categorias, localidades, onClose, onSaved }) {
+export default function PedidoModal({ productos, categorias, localidades, antojo, onClose, onSaved }) {
   const [cliente, setCliente] = useState('');
   const [telefono, setTelefono] = useState('');
   const [tipoEntrega, setTipoEntrega] = useState('retiro');
@@ -106,7 +98,7 @@ export default function PedidoModal({ productos, categorias, localidades, onClos
 
   const totalEstimado = filasValidas.reduce((acc, f) => {
     const producto = productoPorId(f.producto);
-    const precioUnidad = (producto ? precioEfectivo(producto, presentacionDeFila(producto, f)) : 0) + costoExtrasFila(f);
+    const precioUnidad = (producto ? precioBaseConDescuento(producto, presentacionDeFila(producto, f), antojo) : 0) + costoExtrasFila(f);
     return acc + precioUnidad * Number(f.cantidad);
   }, 0);
 
@@ -299,27 +291,29 @@ export default function PedidoModal({ productos, categorias, localidades, onClos
             )}
 
             <div className="pedido-producto-picker-grid">
-              {productosFiltrados.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  className="pedido-producto-picker-item"
-                  onClick={() => agregarProductoClick(p)}
-                >
-                  {p.descuento_activo && <span className="badge-descuento badge-descuento-chica">🏷️ -{p.descuento_pct}%</span>}
-                  <span>{p.nombre}</span>
-                  {p.presentaciones && p.presentaciones.length > 0 ? (
-                    <strong>Desde {formatearPrecio(presentacionesConBase(p)[0].precio)}</strong>
-                  ) : p.descuento_activo ? (
+              {productosFiltrados.map((p) => {
+                const presentacionMasBarata = presentacionesConBase(p)[0] || null;
+                const conDescuento = tieneDescuento(p, presentacionMasBarata, antojo);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className="pedido-producto-picker-item"
+                    onClick={() => agregarProductoClick(p)}
+                  >
+                    {conDescuento && <span className="badge-descuento badge-descuento-chica">🏷️ -{mejorPorcentajeDescuento(p, presentacionMasBarata, antojo)}%</span>}
+                    <span>{p.nombre}</span>
                     <strong>
-                      <span className="precio-tachado">{formatearPrecio(p.precio)}</span>
-                      {' '}{formatearPrecio(p.precio_actual)}
+                      {conDescuento && (
+                        <span className="precio-tachado">{formatearPrecio(presentacionMasBarata ? presentacionMasBarata.precio : p.precio)}</span>
+                      )}
+                      {' '}
+                      {p.presentaciones && p.presentaciones.length > 0 ? 'Desde ' : ''}
+                      {formatearPrecio(precioBaseConDescuento(p, presentacionMasBarata, antojo))}
                     </strong>
-                  ) : (
-                    <strong>{formatearPrecio(p.precio)}</strong>
-                  )}
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
 
             {filas.length === 0 ? (
@@ -338,10 +332,10 @@ export default function PedidoModal({ productos, categorias, localidades, onClos
                         <div className="pedido-fila-nombre">
                           <strong>{producto ? producto.nombre : 'Producto'}</strong>
                           <span>
-                            {producto && !presentacion && producto.descuento_activo && (
-                              <span className="precio-tachado">{formatearPrecio(producto.precio)}</span>
+                            {producto && tieneDescuento(producto, presentacion, antojo) && (
+                              <span className="precio-tachado">{formatearPrecio(presentacion ? presentacion.precio : producto.precio)}</span>
                             )}
-                            {' '}{producto ? formatearPrecio(precioEfectivo(producto, presentacion)) : ''}
+                            {' '}{producto ? formatearPrecio(precioBaseConDescuento(producto, presentacion, antojo)) : ''}
                           </span>
                           {producto && producto.presentaciones && producto.presentaciones.length > 0 && (
                             <select
