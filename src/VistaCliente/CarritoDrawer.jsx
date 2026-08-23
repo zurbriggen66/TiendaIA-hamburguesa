@@ -39,6 +39,8 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
   const [nombre, setNombre] = useState(cliente?.nombre || '');
   const [telefono, setTelefono] = useState(cliente?.telefono || '');
   const [usarPuntos, setUsarPuntos] = useState(false);
+  const [recompensaId, setRecompensaId] = useState(null);
+  const [recompensas, setRecompensas] = useState([]);
   const [tipoEntrega, setTipoEntrega] = useState('retiro');
   const [direccion, setDireccion] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -51,6 +53,14 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
   // igual rebota/se desplaza al tocar. Fijar el body en su posición actual es lo único
   // que lo inmoviliza de forma confiable en todos los navegadores; al cerrar, se restaura
   // el scroll exactamente donde estaba.
+  // Los premios solo importan si hay alguien logueado con puntos.
+  useEffect(() => {
+    if (!cliente) return;
+    api.get('/recompensas/')
+      .then((res) => setRecompensas(res.data))
+      .catch(() => setRecompensas([]));
+  }, [cliente]);
+
   useEffect(() => {
     const scrollY = window.scrollY;
     const { body } = document;
@@ -75,6 +85,10 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
   const total = items.reduce((acc, linea) => acc + precioUnitarioLinea(linea) * linea.cantidad, 0);
   // Solo para mostrar: el descuento real lo recalcula y topea el backend.
   const descuentoPuntos = Math.min(Number(cliente?.puntos_en_pesos) || 0, total);
+  // Solo se ofrecen los premios que el cliente puede pagar con lo que tiene.
+  const recompensasDisponibles = cliente
+    ? recompensas.filter((r) => r.activa && r.puntos <= cliente.puntos)
+    : [];
 
   const lineaSugerido = (productoId) =>
     items.find((l) => l.tipo === 'producto' && l.sugerido && l.item.id === productoId);
@@ -108,6 +122,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
     try {
       await api.post('/pedidos/', {
         usar_puntos: usarPuntos,
+        recompensa_id: recompensaId,
         cliente: nombre.trim(),
         telefono: telefono.trim(),
         tipo_entrega: tipoEntrega,
@@ -220,13 +235,35 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
             </div>
 
             {cliente && cliente.puntos > 0 && (
-              <label className="carrito-puntos">
-                <input type="checkbox" checked={usarPuntos} onChange={(e) => setUsarPuntos(e.target.checked)} />
-                <span>
-                  ⭐ Usar mis {cliente.puntos} puntos
-                  <small> (hasta −{formatearPrecio(descuentoPuntos)})</small>
-                </span>
-              </label>
+              <>
+                <label className="carrito-puntos">
+                  <input
+                    type="checkbox"
+                    checked={usarPuntos}
+                    onChange={(e) => { setUsarPuntos(e.target.checked); if (e.target.checked) setRecompensaId(null); }}
+                  />
+                  <span>
+                    ⭐ Usar mis {cliente.puntos} puntos
+                    <small> (hasta −{formatearPrecio(descuentoPuntos)})</small>
+                  </span>
+                </label>
+
+                {/* Premios que le alcanzan. Descuento y premio son excluyentes: el
+                    backend rechaza los dos juntos, así que acá se deselecciona el otro. */}
+                {recompensasDisponibles.map((r) => (
+                  <label key={r.id} className={`carrito-puntos carrito-premio ${recompensaId === r.id ? 'carrito-premio-elegido' : ''}`}>
+                    <input
+                      type="checkbox"
+                      checked={recompensaId === r.id}
+                      onChange={(e) => { setRecompensaId(e.target.checked ? r.id : null); if (e.target.checked) setUsarPuntos(false); }}
+                    />
+                    <span>
+                      🎁 {r.nombre}
+                      <small> ({r.puntos} puntos)</small>
+                    </span>
+                  </label>
+                ))}
+              </>
             )}
 
             <div className="pedido-resumen">

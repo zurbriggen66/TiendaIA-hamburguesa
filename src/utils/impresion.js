@@ -72,6 +72,7 @@ function construirBloqueTicket(pedido) {
         <span>${formatearPrecio(pedido.total)}</span>
       </div>
       ${pedido.nota ? `<div class="ticket-linea"></div><div class="ticket-nota">NOTA: ${escapeHtml(pedido.nota)}</div>` : ''}
+      ${pedido.recompensa_nombre ? `<div class="ticket-linea"></div><div class="ticket-nota">PREMIO: ${escapeHtml(pedido.recompensa_nombre)}</div>` : ''}
       <div class="ticket-linea"></div>
       <div class="ticket-footer">¡Gracias por tu pedido!</div>
     </div>`;
@@ -108,6 +109,7 @@ function construirBloqueTicketCocina(pedido) {
       <div class="ticket-linea"></div>
       ${filasItems}
       ${pedido.nota ? `<div class="ticket-linea"></div><div class="ticket-cocina-nota">${escapeHtml(pedido.nota)}</div>` : ''}
+      ${pedido.recompensa_nombre ? `<div class="ticket-linea"></div><div class="ticket-cocina-nota">PREMIO: ${escapeHtml(pedido.recompensa_nombre)}</div>` : ''}
     </div>`;
 }
 

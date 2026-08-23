@@ -24,6 +24,26 @@ export default function NavBar({ configuracion, totalItems, onPedir, cliente, on
         <img src={configuracion.logo} alt="Antojo Burger" className="nav-logo-img" />
       </a>
 
+      <div className="nav-acciones">
+      {/* Acceso a la cuenta siempre visible: escondido dentro del menú hamburguesa
+          nadie se registraba. Logueado muestra los puntos, que es el gancho. */}
+      {cliente ? (
+        <button
+          type="button"
+          className="nav-btn-cuenta nav-btn-cuenta-activa"
+          onClick={onCerrarSesion}
+          title="Cerrar sesión"
+        >
+          <span className="nav-btn-cuenta-estrella" aria-hidden="true">⭐</span>
+          <span className="nav-btn-cuenta-pts">{cliente.puntos}</span>
+        </button>
+      ) : (
+        <button type="button" className="nav-btn-cuenta" onClick={onAbrirCuenta}>
+          <span className="nav-btn-cuenta-brillo" aria-hidden="true" />
+          <span className="nav-btn-cuenta-texto">Registrate</span>
+        </button>
+      )}
+
       <button type="button" className="nav-btn-carrito" onClick={onPedir} aria-label="Ver carrito">
         <svg width="21" height="21" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M8 7V6a4 4 0 118 0v1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" fill="none" />
@@ -33,6 +53,7 @@ export default function NavBar({ configuracion, totalItems, onPedir, cliente, on
         </svg>
         {totalItems > 0 && <span className="nav-btn-carrito-badge">{totalItems}</span>}
       </button>
+      </div>
 
       <div className={`nav-links${menuAbierto ? ' abierto' : ''}`}>
         <a href="#menu" onClick={scrollA('menu')}>Menú</a>
@@ -102,10 +123,16 @@ export default function NavBar({ configuracion, totalItems, onPedir, cliente, on
           box-shadow: none !important;
         }
 
-        .nav-bar-pro .nav-btn-carrito {
+        .nav-bar-pro .nav-acciones {
           grid-column: 3 !important;
-          grid-row: 1 !important; /* Ancla el carrito en la primera fila */
+          grid-row: 1 !important;
           justify-self: end !important;
+          display: flex !important;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .nav-bar-pro .nav-btn-carrito {
           position: relative !important;
           width: 46px;
           height: 46px;
@@ -119,6 +146,68 @@ export default function NavBar({ configuracion, totalItems, onPedir, cliente, on
           justify-content: center;
           cursor: pointer;
           box-shadow: none;
+        }
+
+        /* Botón de registro: pastilla con un brillo que barre cada tanto, para que
+           llame la atención sin ser un cartel parpadeante. */
+        .nav-btn-cuenta {
+          position: relative;
+          overflow: hidden;
+          border: 1px solid rgba(255, 255, 255, 0.28);
+          background: rgba(255, 255, 255, 0.06);
+          color: #fff;
+          border-radius: 999px;
+          padding: 9px 16px;
+          font-size: 0.78rem;
+          font-weight: 700;
+          letter-spacing: .04em;
+          text-transform: uppercase;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: transform .2s ease, border-color .2s ease, background .2s ease;
+        }
+
+        .nav-btn-cuenta:hover {
+          transform: translateY(-1px);
+          border-color: rgba(255, 255, 255, .6);
+          background: rgba(255, 255, 255, .13);
+        }
+
+        .nav-btn-cuenta-brillo {
+          position: absolute;
+          top: 0;
+          left: -60%;
+          width: 45%;
+          height: 100%;
+          background: linear-gradient(100deg, transparent, rgba(255,255,255,.35), transparent);
+          animation: navBrillo 4.5s ease-in-out infinite;
+        }
+
+        @keyframes navBrillo {
+          0%, 60% { left: -60%; }
+          85%, 100% { left: 130%; }
+        }
+
+        .nav-btn-cuenta-texto { position: relative; z-index: 1; }
+
+        /* Ya registrado: la pastilla muestra los puntos. */
+        .nav-btn-cuenta-activa {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: linear-gradient(135deg, rgba(251,191,36,.22), rgba(251,191,36,.1));
+          border-color: rgba(251, 191, 36, .5);
+        }
+
+        .nav-btn-cuenta-estrella { font-size: .9rem; }
+        .nav-btn-cuenta-pts { font-size: .85rem; }
+
+        @media (prefers-reduced-motion: reduce) {
+          .nav-btn-cuenta-brillo { animation: none; }
+        }
+
+        @media (max-width: 480px) {
+          .nav-btn-cuenta { padding: 8px 11px; font-size: .68rem; }
         }
 
         .nav-btn-carrito-badge {
@@ -157,6 +246,73 @@ export default function NavBar({ configuracion, totalItems, onPedir, cliente, on
 
         .nav-bar-pro .nav-links.abierto {
           display: flex !important;
+        }
+
+        /* === DESKTOP (>=900px) ===
+           Hasta acá la barra era el layout de celular estirado: en una pantalla ancha
+           el menú seguía escondido tras la hamburguesa y sobraba espacio vacío. Desde
+           900px los links se despliegan a la izquierda y el logo queda centrado entre
+           ellos y las acciones. */
+        @media (min-width: 900px) {
+          .nav-bar-pro .nav-toggle-mobil { display: none !important; }
+
+          .nav-bar-pro .nav-links {
+            position: static !important;
+            display: flex !important;
+            flex-direction: row !important;
+            width: auto !important;
+            grid-column: 1 !important;
+            grid-row: 1 !important;
+            justify-self: start !important;
+            align-items: center !important;
+            gap: 30px !important;
+            padding: 0 !important;
+            background: none !important;
+            box-shadow: none !important;
+          }
+
+          .nav-bar-pro .nav-links a {
+            position: relative;
+            font-size: .78rem;
+            font-weight: 700;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            padding: 4px 0;
+          }
+
+          /* El subrayado que se dibuja al pasar por encima repite el punteado del
+             ticket que imprime el local: el mismo gesto gráfico en toda la marca. */
+          .nav-bar-pro .nav-links a::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            border-bottom: 2px dotted currentColor;
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform .25s ease;
+          }
+
+          .nav-bar-pro .nav-links a:hover::after,
+          .nav-bar-pro .nav-links a:focus-visible::after { transform: scaleX(1); }
+
+          /* En desktop el acceso a la cuenta ya vive en la barra: en el menú sobra. */
+          .nav-bar-pro .nav-links .nav-cuenta,
+          .nav-bar-pro .nav-links a[href="#"]:last-child { display: none !important; }
+
+          .nav-logo-img { max-height: 62px !important; }
+        }
+
+        /* === MOBILE angosto ===
+           A 360px el logo quedaba pegado a la pastilla de registro. Se achica el logo
+           y se recorta el aire lateral para que los tres bloques respiren. */
+        @media (max-width: 420px) {
+          .nav-bar-pro { padding: 10px 12px !important; gap: 10px 10px !important; }
+          .nav-bar-pro .nav-toggle-mobil { width: 40px !important; height: 40px !important; font-size: 19px !important; }
+          .nav-logo-img { max-height: 42px !important; max-width: 120px !important; }
+          .nav-bar-pro .nav-acciones { gap: 6px; }
+          .nav-bar-pro .nav-btn-carrito { width: 40px; height: 40px; }
         }
 
         .nav-bar-pro {
