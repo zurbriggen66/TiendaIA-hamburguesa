@@ -5,6 +5,12 @@ from productos.models import Producto
 
 class AntojoDelDia(models.Model):
     producto = models.ForeignKey(Producto, null=True, blank=True, on_delete=models.SET_NULL)
+    # Opcional: si se elige, el antojo (y su descuento) aplica solo a esta variante
+    # puntual (ej. "Doble"), no a la hamburguesa en general. Vacío = aplica a
+    # cualquier variante que pida el cliente, como era antes.
+    presentacion = models.ForeignKey(
+        'productos.Presentacion', null=True, blank=True, on_delete=models.SET_NULL,
+    )
     descuento_pct = models.PositiveIntegerField(default=15)
     activo = models.BooleanField(default=False)
     # Vacío = sin vencimiento (se apaga a mano, como era antes).
