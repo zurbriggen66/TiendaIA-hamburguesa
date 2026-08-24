@@ -1966,6 +1966,49 @@ body {
   letter-spacing: 0.03em;
 }
 
+.stock-card-restock {
+  margin-top: 10px;
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: #4ade80;
+  font-weight: 700;
+  font-size: 0.78rem;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.stock-card-restock:hover {
+  background: rgba(74, 222, 128, 0.12);
+  border-color: #4ade80;
+}
+
+/* Historial de compras dentro de RestockModal */
+.restock-historial {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.restock-historial-fila {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.restock-historial-fila span:last-child {
+  color: var(--text);
+  font-weight: 700;
+}
+
 .gastos-tabla {
   display: flex;
   flex-direction: column;

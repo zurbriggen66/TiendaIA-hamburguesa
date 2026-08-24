@@ -23,6 +23,39 @@ class InsumoViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+    @action(detail=True, methods=['get'])
+    def historial(self, request, pk=None):
+        """Compras registradas de este insumo (Gasto con categoria='insumos' que lo
+        referencia), para ver cuánto se le viene pagando y cuándo fue la última vez."""
+        insumo = self.get_object()
+        compras = insumo.gastos.filter(categoria='insumos').order_by('-fecha')
+
+        total_gastado = sum((c.monto for c in compras), Decimal('0'))
+        total_cantidad = sum((c.cantidad or Decimal('0') for c in compras), Decimal('0'))
+        precio_promedio = (total_gastado / total_cantidad) if total_cantidad else None
+
+        ultima = compras.first()
+        ultimo_precio = (ultima.monto / ultima.cantidad) if ultima and ultima.cantidad else None
+
+        return Response({
+            'total_gastado': total_gastado,
+            'total_cantidad': total_cantidad,
+            'precio_promedio_unidad': precio_promedio,
+            'ultimo_precio_unidad': ultimo_precio,
+            'compras': [
+                {
+                    'id': c.id,
+                    'fecha': c.fecha,
+                    'cantidad': c.cantidad,
+                    'monto': c.monto,
+                    'precio_unidad': (c.monto / c.cantidad) if c.cantidad else None,
+                    'metodo_pago_label': c.get_metodo_pago_display(),
+                    'descripcion': c.descripcion,
+                }
+                for c in compras[:20]
+            ],
+        })
+
 
 class GastoViewSet(viewsets.ModelViewSet):
     permission_classes = [EsAdmin]

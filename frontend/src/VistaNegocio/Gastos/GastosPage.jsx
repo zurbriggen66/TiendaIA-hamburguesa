@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import api from '../../services/api';
 import GastoModal from './GastoModal';
 import InsumoModal from './InsumoModal';
+import RestockModal from './RestockModal';
 import GastoFijoModal from './GastoFijoModal';
 import GastoFijoPagarModal from './GastoFijoPagarModal';
 
@@ -20,6 +21,7 @@ export default function GastosPage() {
   const [cargando, setCargando] = useState(true);
   const [mostrarGastoModal, setMostrarGastoModal] = useState(false);
   const [modalInsumo, setModalInsumo] = useState(null);
+  const [modalRestock, setModalRestock] = useState(null);
   const [modalGastoFijo, setModalGastoFijo] = useState(null);
   const [modalPagar, setModalPagar] = useState(null);
   const [tab, setTab] = useState('stock');
@@ -168,6 +170,14 @@ export default function GastosPage() {
                       <span className="stock-card-nombre">{insumo.nombre}</span>
                       <strong className="stock-card-cantidad">{insumo.cantidad_disponible}</strong>
                       <span className="stock-card-unidad">{insumo.unidad}</span>
+                      <button
+                        type="button"
+                        className="stock-card-restock"
+                        onClick={(e) => { e.stopPropagation(); setModalRestock(insumo); }}
+                        title={`Sumar stock de ${insumo.nombre}`}
+                      >
+                        + Stock
+                      </button>
                     </div>
                   );
                 })}
@@ -284,6 +294,14 @@ export default function GastosPage() {
           insumo={modalInsumo.insumo}
           onClose={() => setModalInsumo(null)}
           onSaved={() => { setModalInsumo(null); cargarDatos(); }}
+        />
+      )}
+
+      {modalRestock && (
+        <RestockModal
+          insumo={modalRestock}
+          onClose={() => setModalRestock(null)}
+          onSaved={() => { setModalRestock(null); cargarDatos(); }}
         />
       )}
 

@@ -100,6 +100,15 @@ class EstadisticasView(APIView):
             .order_by('-cantidad_total')[:5]
         )
 
+        # En qué insumos se fue más plata del período (compras registradas desde
+        # "Gastos" o el restock rápido del Stock, ambos crean un Gasto categoria='insumos').
+        insumos_mas_comprados_qs = (
+            gastos_qs.filter(categoria='insumos', insumo__isnull=False)
+            .values('insumo__id', 'insumo__nombre', 'insumo__unidad')
+            .annotate(cantidad_total=Sum('cantidad'), total=Sum('monto'))
+            .order_by('-total')[:5]
+        )
+
         # En qué se fue la plata de los gastos: por rubro y por medio de pago.
         # Mismo criterio que CobranzasView.por_metodo (se omiten los que dan 0).
         etiquetas_categoria = dict(Gasto.CATEGORIAS)
@@ -185,6 +194,16 @@ class EstadisticasView(APIView):
                     'total': p['total'],
                 }
                 for p in productos_mas_vendidos_qs
+            ],
+            'insumos_mas_comprados': [
+                {
+                    'insumo_id': i['insumo__id'],
+                    'insumo_nombre': i['insumo__nombre'],
+                    'unidad': i['insumo__unidad'],
+                    'cantidad_total': i['cantidad_total'],
+                    'total': i['total'],
+                }
+                for i in insumos_mas_comprados_qs
             ],
         })
 
