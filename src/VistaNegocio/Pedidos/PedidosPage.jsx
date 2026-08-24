@@ -64,7 +64,9 @@ export default function PedidosPage() {
         api.get('/localidades/'),
         api.get('/antojo-del-dia/'),
       ]);
-      setProductos(resProductos.data);
+      // Un producto oculto (activo=false) no se ofrece para pedidos nuevos, pero sigue
+      // existiendo para los pedidos viejos que ya lo tienen cargado.
+      setProductos(resProductos.data.filter((p) => p.activo !== false));
       setCategorias(resCategorias.data);
       setLocalidades(resLocalidades.data);
       setAntojo(resAntojo.data);

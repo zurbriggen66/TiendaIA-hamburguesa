@@ -56,7 +56,27 @@ export default function ProductosPage() {
     } catch (error) {
       console.error('Error al eliminar el producto:', error);
       const detalle = error.response?.data?.detail;
+      // Un producto que ya apareció en algún pedido o combo no se puede borrar (lo
+      // protege la base para no romper ese historial) — ofrecemos ocultarlo en su lugar.
+      if (
+        detalle
+        && (detalle.includes('pedidos') || detalle.includes('combos'))
+        && window.confirm(`${detalle}\n\n¿Querés ocultarlo de la tienda en su lugar? Deja de poder pedirse, pero no se borra el historial.`)
+      ) {
+        ocultarProducto(producto);
+        return;
+      }
       alert(detalle || 'No se pudo eliminar el producto.');
+    }
+  };
+
+  const ocultarProducto = async (producto) => {
+    try {
+      await api.patch(`/productos/${producto.id}/`, { activo: !producto.activo });
+      cargarDatos();
+    } catch (error) {
+      console.error('Error al ocultar/mostrar el producto:', error);
+      alert('No se pudo cambiar la visibilidad del producto.');
     }
   };
 
@@ -117,7 +137,8 @@ export default function ProductosPage() {
         ) : (
           <div className="productos-grid">
             {productosFiltrados.map((prod) => (
-              <div key={prod.id} className="producto-card">
+              <div key={prod.id} className={`producto-card ${prod.activo === false ? 'producto-card-oculta' : ''}`}>
+                {prod.activo === false && <span className="badge-oculto">🙈 Oculto</span>}
                 {prod.destacado && <span className="badge-destacado">⭐ Destacado</span>}
                 {prod.es_extra && <span className="badge-extra">🍟 Extra</span>}
                 {prod.descuento_activo && <span className="badge-descuento">🏷️ -{prod.descuento_pct}%</span>}
@@ -146,6 +167,13 @@ export default function ProductosPage() {
                     )}
                     <div className="producto-acciones">
                       <button type="button" title="Descuento por tiempo" onClick={() => setModalDescuento(prod)}>🏷️</button>
+                      <button
+                        type="button"
+                        title={prod.activo === false ? 'Mostrar en la tienda' : 'Ocultar de la tienda'}
+                        onClick={() => ocultarProducto(prod)}
+                      >
+                        {prod.activo === false ? '🙈' : '👁️'}
+                      </button>
                       <button type="button" onClick={() => setModalProducto({ producto: prod })}>✎</button>
                       <button type="button" onClick={() => eliminarProducto(prod)}>🗑</button>
                     </div>

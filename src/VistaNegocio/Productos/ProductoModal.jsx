@@ -25,6 +25,7 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
   );
   const [destacado, setDestacado] = useState(producto ? producto.destacado : false);
   const [esExtra, setEsExtra] = useState(producto ? producto.es_extra : false);
+  const [activo, setActivo] = useState(producto ? producto.activo !== false : true);
   const [sugeridoCarrito, setSugeridoCarrito] = useState(producto ? producto.sugerido_carrito : false);
   const [descuentoCarritoPct, setDescuentoCarritoPct] = useState(
     producto && producto.descuento_carrito_pct ? producto.descuento_carrito_pct : ''
@@ -132,6 +133,7 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
     formData.append('categoria', categoriaId);
     formData.append('destacado', destacado);
     formData.append('es_extra', esExtra);
+    formData.append('activo', activo);
     formData.append('sugerido_carrito', sugeridoCarrito);
     formData.append('descuento_carrito_pct', sugeridoCarrito ? descuentoCarritoPct : 0);
     if (imagen) formData.append('imagen', imagen);
@@ -264,6 +266,20 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
               />
               <span>🍟 Es un extra / topping (se vende por separado)</span>
             </label>
+          </div>
+
+          <div className="form-group">
+            <label className="checkbox-vibrante">
+              <input
+                type="checkbox"
+                checked={activo}
+                onChange={(e) => setActivo(e.target.checked)}
+              />
+              <span>👁️ Visible en la tienda</span>
+            </label>
+            <p className="form-ayuda">
+              Desmarcalo para dejar de ofrecerlo sin borrarlo (útil si ya tiene pedidos y no se puede eliminar).
+            </p>
           </div>
 
           <div className="form-group">

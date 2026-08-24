@@ -269,8 +269,11 @@ export default function Menu({ categorias, productos, onAgregar, productoDetalle
   const reanudarCintaRef = useRef(null);
   const arrastreRef = useRef({ activo: false, inicioX: 0, inicioScroll: 0, movido: false });
 
-  const principales = productos.filter((p) => !p.es_extra);
-  const extrasTodos = productos.filter((p) => p.es_extra);
+  // Un producto oculto (activo=false) sigue en la base para no romper pedidos viejos
+  // que lo referencian, pero ya no se muestra ni se puede pedir de nuevo.
+  const productosVisibles = productos.filter((p) => p.activo !== false);
+  const principales = productosVisibles.filter((p) => !p.es_extra);
+  const extrasTodos = productosVisibles.filter((p) => p.es_extra);
   const extrasParaProducto = (producto) => (producto ? extrasTodos.filter((e) => e.categoria === producto.categoria) : []);
 
   const productosFiltrados = (categoriaActiva === 'todas'
