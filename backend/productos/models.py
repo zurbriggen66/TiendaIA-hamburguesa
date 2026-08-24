@@ -25,6 +25,10 @@ class Producto(models.Model):
     imagen = models.ImageField(upload_to='productos/productos/', null=True, blank=True)
     destacado = models.BooleanField(default=False)
     es_extra = models.BooleanField(default=False)
+    # Ocultar de la tienda sin borrar: un producto con pedidos o extras ya vendidos
+    # no se puede eliminar (PROTECT en DetallePedido/DetalleExtra), así que "darlo
+    # de baja" es apagar esto en vez de borrarlo.
+    activo = models.BooleanField(default=True)
     insumos = models.ManyToManyField('gastos.Insumo', through='ProductoInsumo', blank=True, related_name='productos')
     descuento_pct = models.PositiveIntegerField(default=0)
     descuento_hasta = models.DateTimeField(null=True, blank=True)
