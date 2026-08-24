@@ -284,6 +284,34 @@ export default function EstadisticasPage() {
                 })}
               </div>
             )}
+
+            <div className="seccion-header">
+              <h3>Insumos con más gasto</h3>
+            </div>
+            {datos.insumos_mas_comprados.length === 0 ? (
+              <p className="estado-vacio-chico">Todavía no registraste compras de insumos.</p>
+            ) : (
+              <div className="ranking-productos">
+                {datos.insumos_mas_comprados.map((ins, i) => {
+                  const maxTotal = datos.insumos_mas_comprados[0].total;
+                  const porcentaje = Math.max((ins.total / maxTotal) * 100, 6);
+                  return (
+                    <div key={ins.insumo_id} className="ranking-fila">
+                      <span className="ranking-puesto">#{i + 1}</span>
+                      <div className="ranking-info">
+                        <div className="ranking-nombre-linea">
+                          <strong>{ins.insumo_nombre}</strong>
+                          <span>{ins.cantidad_total} {ins.unidad} · {formatearPrecio(ins.total)}</span>
+                        </div>
+                        <div className="ranking-barra-fondo">
+                          <div className="ranking-barra" style={{ '--bar-width': `${porcentaje}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </>
         )}
       </div>
