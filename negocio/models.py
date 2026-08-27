@@ -1,5 +1,12 @@
 from django.db import models
 
+
+def permisos_empleado_default():
+    """Lo mínimo para atender el mostrador: recibir, despachar, cobrar e imprimir
+    pedidos. Sin montos de caja ni gastos. El dueño lo ajusta desde el panel."""
+    return ['inicio', 'pedidos', 'cobrar_pedidos', 'eliminar_pedidos']
+
+
 class ConfiguracionSitio(models.Model):
     # Usamos blank=True y null=True para que no de error si aún no subieron la imagen
     logo = models.ImageField(upload_to='sitio/logos/', null=True, blank=True)
@@ -39,6 +46,12 @@ class ConfiguracionSitio(models.Model):
         max_length=200, blank=True, default='Volvemos pronto, gracias por tu paciencia.'
     )
     color_boton_agregar = models.CharField(max_length=7, default='#ffc700')
+
+    # Qué ve y qué puede hacer el panel cuando está en "modo empleado" (el dueño
+    # presta la tablet del mostrador). Lista de claves: las secciones del admin más
+    # unos permisos finos (ver_montos, abrir_cerrar_caja, ...). El catálogo completo
+    # vive en frontend/src/utils/modoEmpleado.js — es un bloqueo visual, no de API.
+    permisos_empleado = models.JSONField(default=permisos_empleado_default, blank=True)
 
     def __str__(self):
         return "Configuración General del Sitio"
