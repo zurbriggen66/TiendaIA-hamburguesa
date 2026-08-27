@@ -4,6 +4,7 @@ import Inicio from './VistaCliente/Inicio';
 import Dashboard from './VistaNegocio/Dashboard/Dashboard';
 import DashboardLayout from './VistaNegocio/DashboardLayout';
 import RequiereAdmin from './VistaNegocio/RequiereAdmin';
+import { ModoProvider } from './VistaNegocio/ModoContext';
 import InicioPage from './VistaNegocio/Inicio/Inicio';
 import ProductosPage from './VistaNegocio/Productos/ProductosPage';
 import PedidosPage from './VistaNegocio/Pedidos/PedidosPage';
@@ -22,7 +23,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Inicio />} />
         <Route path="/producto/:id" element={<Inicio />} />
-        <Route path="/admin" element={<RequiereAdmin><DashboardLayout /></RequiereAdmin>}>
+        <Route path="/admin" element={<RequiereAdmin><ModoProvider><DashboardLayout /></ModoProvider></RequiereAdmin>}>
           <Route index element={<Dashboard />} />
           <Route path="inicio" element={<InicioPage />} />
           <Route path="cajas" element={<CajasPage />} />

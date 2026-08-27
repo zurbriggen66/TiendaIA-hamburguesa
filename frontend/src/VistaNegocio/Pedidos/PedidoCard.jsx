@@ -26,7 +26,19 @@ const formatearPrecio = (precio) =>
 const formatearFechaHora = (iso) =>
   new Date(iso).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
 
-export default function PedidoCard({ pedido, onCobrar, onDetalle, onImprimir, onEliminar, onAvanzarEstado, onCancelar }) {
+// puedeCobrar/puedeEliminar existen para el modo empleado (ver utils/modoEmpleado.js).
+// Van en true por defecto, así los usos que ya existían no cambian en nada.
+export default function PedidoCard({
+  pedido,
+  onCobrar,
+  onDetalle,
+  onImprimir,
+  onEliminar,
+  onAvanzarEstado,
+  onCancelar,
+  puedeCobrar = true,
+  puedeEliminar = true,
+}) {
   return (
     <div className="pedido-card">
       <div className="pedido-card-header">
@@ -41,24 +53,28 @@ export default function PedidoCard({ pedido, onCobrar, onDetalle, onImprimir, on
       </div>
 
       <div className="pedido-acciones-toolbar">
-        <button
-          type="button"
-          className={`pedido-accion pedido-accion-cobrar ${pedido.estado_cobro !== 'pagado' ? 'pedido-accion-cobrar-pendiente' : ''}`}
-          title={pedido.estado_cobro === 'pagado' ? 'Ver o corregir el cobro' : 'Cobrar pedido'}
-          onClick={() => onCobrar(pedido)}
-        >
-          <span aria-hidden="true">💰</span>
-          {pedido.estado_cobro === 'pagado' ? 'Cobrado' : 'Cobrar'}
-        </button>
+        {puedeCobrar && (
+          <button
+            type="button"
+            className={`pedido-accion pedido-accion-cobrar ${pedido.estado_cobro !== 'pagado' ? 'pedido-accion-cobrar-pendiente' : ''}`}
+            title={pedido.estado_cobro === 'pagado' ? 'Ver o corregir el cobro' : 'Cobrar pedido'}
+            onClick={() => onCobrar(pedido)}
+          >
+            <span aria-hidden="true">💰</span>
+            {pedido.estado_cobro === 'pagado' ? 'Cobrado' : 'Cobrar'}
+          </button>
+        )}
         <button type="button" className="pedido-accion pedido-accion-detalle" title="Ver detalles del pedido" onClick={() => onDetalle(pedido)}>
           <span aria-hidden="true">📝</span>Detalle
         </button>
         <button type="button" className="pedido-accion pedido-accion-imprimir" title="Imprimir ticket" onClick={() => onImprimir(pedido)}>
           <span aria-hidden="true">🖨️</span>Imprimir
         </button>
-        <button type="button" className="pedido-accion pedido-accion-eliminar" title="Eliminar pedido" onClick={() => onEliminar(pedido)}>
-          <span aria-hidden="true">🗑</span>Eliminar
-        </button>
+        {puedeEliminar && (
+          <button type="button" className="pedido-accion pedido-accion-eliminar" title="Eliminar pedido" onClick={() => onEliminar(pedido)}>
+            <span aria-hidden="true">🗑</span>Eliminar
+          </button>
+        )}
       </div>
 
       <div className="pedido-entrega-info">
@@ -124,7 +140,7 @@ export default function PedidoCard({ pedido, onCobrar, onDetalle, onImprimir, on
               {ETIQUETA_SIGUIENTE[pedido.estado]}
             </button>
           )}
-          {pedido.estado !== 'entregado' && pedido.estado !== 'cancelado' && (
+          {puedeEliminar && pedido.estado !== 'entregado' && pedido.estado !== 'cancelado' && (
             <button type="button" className="btn-cancelar-pedido" onClick={() => onCancelar(pedido)}>
               Cancelar
             </button>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
 import api from '../../services/api';
+import { PERMISOS_DEFAULT, PERMISOS_FINOS, SECCIONES } from '../../utils/modoEmpleado';
+import { useModo } from '../ModoContext';
 
 function CampoColor({ label, value, onChange }) {
   return (
@@ -26,6 +28,10 @@ function CampoColor({ label, value, onChange }) {
 }
 
 export default function Dashboard() {
+  const { esEmpleado, actualizarPermisos } = useModo();
+  const [permisosEmpleado, setPermisosEmpleado] = useState(PERMISOS_DEFAULT);
+  const [guardandoPermisos, setGuardandoPermisos] = useState(false);
+
   const [logo, setLogo] = useState(null);
   const [logoPrecarga, setLogoPrecarga] = useState(null);
   const [portada, setPortada] = useState(null);
@@ -62,6 +68,9 @@ export default function Dashboard() {
           setColorSuperficie(ultimaConfig.color_superficie || '#163a30');
           setColorAcento(ultimaConfig.color_acento || '#e8630c');
           setColorBotonAgregar(ultimaConfig.color_boton_agregar || '#ffc700');
+          if (Array.isArray(ultimaConfig.permisos_empleado)) {
+            setPermisosEmpleado(ultimaConfig.permisos_empleado);
+          }
         }
       } catch (error) {
         console.error("Error al cargar el panel:", error);
@@ -142,6 +151,36 @@ export default function Dashboard() {
     } catch (error) {
       console.error("Error al guardar:", error);
       alert('Hubo un problema al guardar las imágenes.');
+    }
+  };
+
+  const alternarPermiso = (clave) => {
+    setPermisosEmpleado((previos) =>
+      previos.includes(clave) ? previos.filter((p) => p !== clave) : [...previos, clave]
+    );
+  };
+
+  // Guardado aparte del de las imágenes: aquel arma un FormData (por los archivos)
+  // y convertiría la lista de permisos en texto plano. Acá va un PATCH JSON, igual
+  // que hace ClientesPage con la config del programa de puntos.
+  const guardarPermisos = async () => {
+    setGuardandoPermisos(true);
+    try {
+      if (configId) {
+        await api.patch(`/configuracion/${configId}/`, { permisos_empleado: permisosEmpleado });
+      } else {
+        // Panel recién instalado: todavía no hay fila de configuración. Se crea acá
+        // con el resto de los valores por defecto, igual que hace guardarCambios.
+        const { data } = await api.post('/configuracion/', { permisos_empleado: permisosEmpleado });
+        setConfigId(data.id);
+      }
+      actualizarPermisos(permisosEmpleado);
+      alert('Listo: se guardó lo que puede ver y hacer el empleado.');
+    } catch (error) {
+      console.error('Error al guardar los permisos del empleado:', error);
+      alert('Hubo un problema al guardar los permisos.');
+    } finally {
+      setGuardandoPermisos(false);
     }
   };
 
@@ -314,6 +353,55 @@ export default function Dashboard() {
               </div>
             </form>
         </div>
+
+        {/* Sólo el dueño configura el modo empleado. */}
+        {!esEmpleado && (
+          <div className="form-card">
+            <h3 className="form-card-title">👤 Modo empleado</h3>
+            <p className="form-ayuda" style={{ marginTop: 0 }}>
+              Marcá qué ve y qué puede hacer el panel cuando pasás a modo empleado desde Inicio.
+              Lo que quede sin marcar no aparece. Para volver a modo dueño hay que poner la contraseña.
+            </p>
+
+            <div className="form-group">
+              <label className="form-label">Secciones que puede ver</label>
+              <div className="insumos-checkbox-lista">
+                {SECCIONES.map((seccion) => (
+                  <label key={seccion.clave} className="checkbox-vibrante checkbox-insumo">
+                    <input
+                      type="checkbox"
+                      checked={permisosEmpleado.includes(seccion.clave)}
+                      onChange={() => alternarPermiso(seccion.clave)}
+                    />
+                    <span>{seccion.etiqueta}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Qué puede hacer</label>
+              <div className="insumos-checkbox-lista">
+                {PERMISOS_FINOS.map((permiso) => (
+                  <label key={permiso.clave} className="checkbox-vibrante checkbox-insumo" title={permiso.ayuda}>
+                    <input
+                      type="checkbox"
+                      checked={permisosEmpleado.includes(permiso.clave)}
+                      onChange={() => alternarPermiso(permiso.clave)}
+                    />
+                    <span>{permiso.etiqueta}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="form-actions-right">
+              <button type="button" className="btn-vibrante" onClick={guardarPermisos} disabled={guardandoPermisos}>
+                {guardandoPermisos ? 'Guardando...' : 'Guardar permisos'}
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="form-card qr-carta-card">
           <h3 className="form-card-title">Carta QR para el local</h3>
