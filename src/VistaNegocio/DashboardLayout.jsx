@@ -1,7 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import api, { guardarTokenAdmin } from '../services/api';
 import { obtenerConfigImpresion, imprimirPedido } from '../utils/impresion';
+import { useModo } from './ModoContext';
+import { seccionDeRuta } from '../utils/modoEmpleado';
+import AdminLogin from './AdminLogin';
 
 const INTERVALO_CONSULTA_MS = 15000;
 
@@ -36,9 +39,12 @@ export default function DashboardLayout() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const { esEmpleado, puede, seccionesVisibles, volverAModoDueno } = useModo();
+
   const [pedidosNuevos, setPedidosNuevos] = useState(0);
   const [toast, setToast] = useState(null);
   const [sidebarAbierta, setSidebarAbierta] = useState(false);
+  const [pidiendoCredenciales, setPidiendoCredenciales] = useState(false);
   const idsVistos = useRef(new Set());
   const primeraConsulta = useRef(true);
 
@@ -106,6 +112,44 @@ export default function DashboardLayout() {
     window.location.href = '/admin';
   };
 
+  // Volver a dueño exige la contraseña de verdad: el AdminLogin la valida contra
+  // /admin-login/, no alcanza con que el token siga guardado.
+  if (pidiendoCredenciales) {
+    return (
+      <AdminLogin
+        onIngreso={() => {
+          volverAModoDueno();
+          setPidiendoCredenciales(false);
+        }}
+      />
+    );
+  }
+
+  // Guard de rutas en un solo lugar: tipear a mano una URL prohibida redirige a la
+  // primera sección habilitada en vez de renderizarla.
+  const seccionActual = seccionDeRuta(location.pathname);
+  if (seccionActual && !puede(seccionActual.clave)) {
+    const destino = seccionesVisibles[0];
+    if (destino) return <Navigate to={destino.ruta} replace />;
+    return (
+      <div className="dashboard-container">
+        <main className="main-content">
+          <div className="estado-vacio" style={{ padding: '48px 24px', textAlign: 'center' }}>
+            <p>El dueño todavía no habilitó ninguna sección para el modo empleado.</p>
+            <button type="button" className="btn-vibrante" onClick={() => setPidiendoCredenciales(true)}>
+              🔒 Volver a modo dueño
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  const gruposVisibles = seccionesVisibles.reduce((acc, seccion) => {
+    (acc[seccion.grupo] ||= []).push(seccion);
+    return acc;
+  }, {});
+
   return (
     <div className="dashboard-container">
       <button
@@ -126,25 +170,28 @@ export default function DashboardLayout() {
             🍔 ANTOJO Admin
           </div>
 
+          {/* El menú sale del catálogo de secciones (utils/modoEmpleado.js) filtrado
+              por los permisos: en modo dueño están todas, en modo empleado solo las
+              que el dueño habilitó. */}
           <nav className="sidebar-menu">
-            <div className="menu-section-title">Inicio</div>
-            <NavLink to="/admin/inicio" className={linkClass}>Inicio</NavLink>
-            <NavLink to="/admin/cajas" className={linkClass}>🗄️ Caja</NavLink>
-
-            <div className="menu-section-title">Gestión</div>
-            <NavLink to="/admin/productos" className={linkClass}>Productos & Stock</NavLink>
-            <NavLink to="/admin/estadisticas" className={linkClass}>Estadísticas</NavLink>
-            <NavLink to="/admin" end className={linkClass}>Diseño & Colores</NavLink>
-            <NavLink to="/admin/pedidos" className={linkClass}>
-              Ventas & Pedidos
-              {pedidosNuevos > 0 && <span className="sidebar-badge">{pedidosNuevos}</span>}
-            </NavLink>
-            <NavLink to="/admin/combos" className={linkClass}>Combos</NavLink>
-            <NavLink to="/admin/antojo" className={linkClass}>🔥 Antojo del día</NavLink>
-            <NavLink to="/admin/cobranzas" className={linkClass}>💰 Cobranzas</NavLink>
-            <NavLink to="/admin/clientes" className={linkClass}>⭐ Clientes</NavLink>
-            <NavLink to="/admin/gastos" className={linkClass}>Gastos</NavLink>
-            <NavLink to="/admin/impresion" className={linkClass}>🖨️ Impresión</NavLink>
+            {Object.entries(gruposVisibles).map(([grupo, secciones]) => (
+              <React.Fragment key={grupo}>
+                <div className="menu-section-title">{grupo}</div>
+                {secciones.map((seccion) => (
+                  <NavLink
+                    key={seccion.clave}
+                    to={seccion.ruta}
+                    end={seccion.exacta}
+                    className={linkClass}
+                  >
+                    {seccion.etiqueta}
+                    {seccion.clave === 'pedidos' && pedidosNuevos > 0 && (
+                      <span className="sidebar-badge">{pedidosNuevos}</span>
+                    )}
+                  </NavLink>
+                ))}
+              </React.Fragment>
+            ))}
           </nav>
         </div>
 
@@ -152,9 +199,22 @@ export default function DashboardLayout() {
           <a href="/" className="menu-item menu-item-externa">
             👁️ Ver tienda online
           </a>
-          <button type="button" className="menu-item menu-item-externa sidebar-cerrar-sesion" onClick={cerrarSesionAdmin}>
-            🚪 Cerrar sesión
-          </button>
+          {/* En modo empleado se cambia "Cerrar sesión" por "Volver a modo dueño":
+              así el empleado siempre tiene salida sin poder desloguear la tablet a
+              mitad del turno (volver a entrar necesitaría al dueño). */}
+          {esEmpleado ? (
+            <button
+              type="button"
+              className="menu-item menu-item-externa sidebar-cerrar-sesion"
+              onClick={() => setPidiendoCredenciales(true)}
+            >
+              🔒 Volver a modo dueño
+            </button>
+          ) : (
+            <button type="button" className="menu-item menu-item-externa sidebar-cerrar-sesion" onClick={cerrarSesionAdmin}>
+              🚪 Cerrar sesión
+            </button>
+          )}
         </div>
       </aside>
 

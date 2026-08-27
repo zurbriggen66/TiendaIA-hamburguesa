@@ -8,6 +8,7 @@ import PedidoCard from '../Pedidos/PedidoCard';
 import PedidoPagoModal from '../Pedidos/PedidoPagoModal';
 import PedidoEnvioDescuentoModal from '../Pedidos/PedidoEnvioDescuentoModal';
 import { imprimirPedido } from '../../utils/impresion';
+import { useModo } from '../ModoContext';
 
 const formatearPrecio = (valor) =>
   new Intl.NumberFormat('es-AR', {
@@ -26,6 +27,9 @@ const formatearHora = (fecha) =>
 const ORDEN_ESTADOS = ['pendiente', 'en_preparacion', 'listo', 'entregado'];
 
 export default function Inicio() {
+  const { esEmpleado, puede, entrarModoEmpleado } = useModo();
+  const verMontos = puede('ver_montos');
+
   const [reloj, setReloj] = useState(new Date());
   const [ventasHoy, setVentasHoy] = useState(0);
   const [ticketPromedio, setTicketPromedio] = useState(0);
@@ -77,7 +81,9 @@ export default function Inicio() {
         api.get('/productos/'),
         api.get('/categorias/'),
         api.get('/localidades/'),
-        api.get('/gastos-fijos/alertas/'),
+        // En modo empleado sin permiso de montos la tarjeta de gastos fijos no se
+        // dibuja, así que ni pedimos los datos.
+        verMontos ? api.get('/gastos-fijos/alertas/') : Promise.resolve({ data: {} }),
         api.get('/configuracion/'),
       ]);
       const data = resHoy.data;
@@ -233,6 +239,26 @@ export default function Inicio() {
       </header>
 
       <div className="scroll-area">
+        {/* Interruptor de modo. Pasar a empleado es instantáneo (es bajar permisos);
+            volver a dueño pide la contraseña desde el menú lateral. */}
+        <div className={`inicio-modo ${esEmpleado ? 'inicio-modo-empleado' : ''}`}>
+          <div className="inicio-modo-texto">
+            <strong>{esEmpleado ? '🧑‍🍳 Modo empleado' : '👑 Modo dueño'}</strong>
+            <p>
+              {esEmpleado
+                ? 'Estás viendo solo lo que el dueño habilitó. Para volver, usá "Volver a modo dueño" en el menú.'
+                : 'Vas a prestar la tablet? Pasá a modo empleado y se ocultan la plata y las secciones que no configuraste.'}
+            </p>
+          </div>
+          {esEmpleado ? (
+            <span className="inicio-modo-chip">Activo</span>
+          ) : (
+            <button type="button" className="inicio-modo-boton" onClick={entrarModoEmpleado}>
+              Pasar a modo empleado
+            </button>
+          )}
+        </div>
+
         <div className={`inicio-tienda-toggle ${tiendaAbierta ? 'inicio-tienda-toggle-abierta' : 'inicio-tienda-toggle-cerrada'}`}>
           <div className="inicio-tienda-toggle-info">
             <span className="inicio-tienda-toggle-punto" aria-hidden="true" />
@@ -344,40 +370,50 @@ export default function Inicio() {
             <div className="inicio-card-encabezado">
               <span className="inicio-card-icono">💰</span>
               <h3 className="inicio-card-titulo">Caja actual</h3>
-              <button
-                type="button"
-                className="inicio-ojito"
-                onClick={alternarMonto}
-                title={montoOculto ? 'Mostrar el monto' : 'Ocultar el monto'}
-                aria-label={montoOculto ? 'Mostrar el monto' : 'Ocultar el monto'}
-              >
-                {montoOculto ? '🙈' : '👁️'}
-              </button>
+              {/* Sin permiso de montos el ojito no aparece: el monto queda tapado y
+                  no hay forma de destaparlo desde la interfaz. */}
+              {verMontos && (
+                <button
+                  type="button"
+                  className="inicio-ojito"
+                  onClick={alternarMonto}
+                  title={montoOculto ? 'Mostrar el monto' : 'Ocultar el monto'}
+                  aria-label={montoOculto ? 'Mostrar el monto' : 'Ocultar el monto'}
+                >
+                  {montoOculto ? '🙈' : '👁️'}
+                </button>
+              )}
             </div>
             {!cargando && !error && !cajaAbierta ? (
               <>
                 <p className="inicio-sin-caja">Sin caja abierta</p>
-                <p className="inicio-card-subtexto">
-                  <Link to="/admin/cajas" className="inicio-link-caja">ver historial de cajas →</Link>
-                </p>
-                <button type="button" className="btn-vibrante inicio-btn-caja" onClick={() => setMostrarAbrirCaja(true)}>
-                  Abrir caja
-                </button>
+                {verMontos && (
+                  <p className="inicio-card-subtexto">
+                    <Link to="/admin/cajas" className="inicio-link-caja">ver historial de cajas →</Link>
+                  </p>
+                )}
+                {puede('abrir_cerrar_caja') && (
+                  <button type="button" className="btn-vibrante inicio-btn-caja" onClick={() => setMostrarAbrirCaja(true)}>
+                    Abrir caja
+                  </button>
+                )}
               </>
             ) : (
               <>
-                <p className="inicio-monto-grande">{montoOculto ? '•••••' : formatearPrecio(ventasHoy)}</p>
+                <p className="inicio-monto-grande">{montoOculto || !verMontos ? '•••••' : formatearPrecio(ventasHoy)}</p>
                 <p className="inicio-card-subtexto">
                   {cargando ? (
                     <span className="inicio-punteo-cargando">Actualizando</span>
                   ) : (
                     <>
-                      Abierta desde las {cajaInfo ? formatearHora(cajaInfo.abierta_en) : '--:--'} ·{' '}
-                      <Link to="/admin/cajas" className="inicio-link-caja">ver caja →</Link>
+                      Abierta desde las {cajaInfo ? formatearHora(cajaInfo.abierta_en) : '--:--'}
+                      {verMontos && (
+                        <> · <Link to="/admin/cajas" className="inicio-link-caja">ver caja →</Link></>
+                      )}
                     </>
                   )}
                 </p>
-                {!cargando && (
+                {!cargando && verMontos && (
                   <div className="inicio-caja-stats">
                     <div>
                       <span>Ticket promedio</span>
@@ -389,10 +425,14 @@ export default function Inicio() {
                     </div>
                   </div>
                 )}
+                {/* "+ Nuevo pedido" queda siempre: es como el empleado carga un
+                    pedido telefónico. Cerrar caja es el arqueo del turno. */}
                 <div className="inicio-caja-acciones">
-                  <button type="button" className="inicio-btn-cerrar-caja" onClick={() => setMostrarCerrarCaja(true)}>
-                    Cerrar caja
-                  </button>
+                  {puede('abrir_cerrar_caja') && (
+                    <button type="button" className="inicio-btn-cerrar-caja" onClick={() => setMostrarCerrarCaja(true)}>
+                      Cerrar caja
+                    </button>
+                  )}
                   <button type="button" className="btn-vibrante inicio-btn-caja" onClick={() => setMostrarNuevoPedido(true)}>
                     + Nuevo pedido
                   </button>
@@ -401,8 +441,9 @@ export default function Inicio() {
             )}
           </div>
 
-          {/* Tarjeta: Gastos fijos por pagar — solo si hay alguno cargado */}
-          {!cargando && !error && gastosFijos.length > 0 && (
+          {/* Tarjeta: Gastos fijos por pagar — solo si hay alguno cargado y si el
+              modo actual puede ver montos (en modo empleado suele estar apagado) */}
+          {!cargando && !error && verMontos && gastosFijos.length > 0 && (
             <div className={`inicio-card inicio-card-gastos-fijos ${hayVencidos ? 'inicio-card-alerta' : ''}`}>
               <div className="inicio-card-encabezado">
                 <span className="inicio-card-icono">📅</span>
@@ -480,6 +521,8 @@ export default function Inicio() {
                   onEliminar={eliminarPedidoReciente}
                   onAvanzarEstado={avanzarEstadoReciente}
                   onCancelar={cancelarPedidoReciente}
+                  puedeCobrar={puede('cobrar_pedidos')}
+                  puedeEliminar={puede('eliminar_pedidos')}
                 />
               ))}
             </div>
@@ -531,6 +574,81 @@ export default function Inicio() {
 
       <style>
         {`
+          .inicio-modo {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            background: var(--surface, #163a30);
+            border: 1px solid var(--border, #2c5c4a);
+            border-radius: 16px;
+            padding: 18px 22px;
+            margin-bottom: 16px;
+          }
+
+          .inicio-modo-empleado {
+            border-color: #f59e0b;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(245, 158, 11, 0.04));
+          }
+
+          .inicio-modo-texto strong {
+            display: block;
+            font-size: 1.05rem;
+            color: var(--text, #f5ede7);
+          }
+
+          .inicio-modo-texto p {
+            margin: 4px 0 0;
+            font-size: 0.82rem;
+            line-height: 1.4;
+            color: var(--text-muted, #9fb8ad);
+            max-width: 52ch;
+          }
+
+          .inicio-modo-boton {
+            flex-shrink: 0;
+            border: none;
+            border-radius: 999px;
+            padding: 13px 24px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #ffffff;
+            background: linear-gradient(135deg, #f4854a, #e8630c);
+            cursor: pointer;
+            box-shadow: 0 10px 22px -12px rgba(232, 99, 12, 0.9);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+          }
+          .inicio-modo-boton:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 14px 26px -12px rgba(232, 99, 12, 0.9);
+          }
+
+          .inicio-modo-chip {
+            flex-shrink: 0;
+            border-radius: 999px;
+            padding: 8px 18px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #78350f;
+            background: #fbbf24;
+          }
+
+          @media (max-width: 640px) {
+            .inicio-modo {
+              flex-direction: column;
+              align-items: stretch;
+              gap: 14px;
+            }
+            .inicio-modo-boton,
+            .inicio-modo-chip {
+              width: 100%;
+              text-align: center;
+            }
+          }
+
           .inicio-tienda-toggle {
             display: flex;
             align-items: center;

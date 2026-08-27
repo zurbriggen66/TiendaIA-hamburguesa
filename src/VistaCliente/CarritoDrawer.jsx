@@ -10,7 +10,7 @@ const precioUnitarioLinea = (linea) =>
 const textoExtras = (extras) =>
   (extras || []).map((e) => `${e.cantidad > 1 ? `${e.cantidad}x ` : ''}${e.nombre}`).join(', ');
 
-function armarMensajeWhatsapp({ nombre, telefono, tipoEntrega, direccion, items, total }) {
+function armarMensajeWhatsapp({ nombre, telefono, tipoEntrega, direccion, items, total, nota }) {
   const lineas = [
     '🍔 *Nuevo pedido - ANTOJO Burger*',
     '',
@@ -32,8 +32,13 @@ function armarMensajeWhatsapp({ nombre, telefono, tipoEntrega, direccion, items,
     lineas.push(`${linea.cantidad}x ${linea.item.nombre}${presentacionTexto}${extrasTexto}${etiquetaSugerido} - ${formatearPrecio(precioUnitarioLinea(linea) * linea.cantidad)}`);
   });
   lineas.push('', `*Total: ${formatearPrecio(total)}*`);
+  if (nota && nota.trim()) {
+    lineas.push('', `📝 *Nota: ${nota.trim()}*`);
+  }
   return lineas.join('\n');
 }
+
+const NOTA_MAX = 200;
 
 export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onCambiarCantidad, onQuitar, onAgregarSugerido, onVaciar, cliente, onClienteActualizado, tiendaAbierta = true, mensajeCerrado }) {
   const [nombre, setNombre] = useState(cliente?.nombre || '');
@@ -43,6 +48,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
   const [recompensas, setRecompensas] = useState([]);
   const [tipoEntrega, setTipoEntrega] = useState('retiro');
   const [direccion, setDireccion] = useState('');
+  const [nota, setNota] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [exito, setExito] = useState(false);
   const [errores, setErrores] = useState({});
@@ -113,7 +119,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
     // formulario. Si se abre después de un `await` (ej. la llamada a la API),
     // los navegadores (sobre todo Safari/iOS) pierden el "gesto de usuario" y
     // bloquean la ventana en silencio, sin ningún error visible.
-    const mensaje = armarMensajeWhatsapp({ nombre, telefono, tipoEntrega, direccion, items, total });
+    const mensaje = armarMensajeWhatsapp({ nombre, telefono, tipoEntrega, direccion, items, total, nota });
     const url = `https://wa.me/${whatsapp}?text=${encodeURIComponent(mensaje)}`;
     const ventana = window.open(url, '_blank', 'noopener,noreferrer');
     // Si el navegador igual bloqueó la ventana, dejamos un enlace visible como respaldo.
@@ -127,6 +133,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
         telefono: telefono.trim(),
         tipo_entrega: tipoEntrega,
         direccion: tipoEntrega === 'delivery' ? direccion.trim() : '',
+        nota: nota.trim(),
         origen: 'web',
         items: items.map((linea) =>
           linea.tipo === 'combo'
@@ -391,6 +398,22 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
                 <p className="pedido-aviso">🛵 El envío tiene un costo adicional que coordinamos por WhatsApp.</p>
               </>
             )}
+
+            <div className="pedido-seccion">
+              <div className="pedido-seccion-titulo">
+                <span className="pedido-seccion-icono pedido-seccion-icono-nota">📝</span>
+                <span>¿Algo para agregar?</span>
+              </div>
+              <textarea
+                className="pedido-textarea"
+                value={nota}
+                onChange={(e) => setNota(e.target.value.slice(0, NOTA_MAX))}
+                placeholder="Ej: sin cebolla, bien cocida, tocar timbre 2 veces..."
+                rows={2}
+                maxLength={NOTA_MAX}
+              />
+              <span className="pedido-nota-contador">{nota.length}/{NOTA_MAX}</span>
+            </div>
 
             {tiendaAbierta ? (
               <>
@@ -935,6 +958,40 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           margin-top: 6px;
           font-size: 0.76rem;
           color: #ef4444;
+          font-weight: 600;
+        }
+
+        .pedido-seccion-icono-nota {
+          background: #fef3c7;
+        }
+
+        .pedido-textarea {
+          width: 100%;
+          padding: 12px 14px;
+          border-radius: 12px;
+          border: 1.5px solid #eef0f3;
+          background: #ffffff;
+          font-size: 0.9rem;
+          font-family: inherit;
+          color: #1a2333;
+          resize: none;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .pedido-textarea::placeholder {
+          color: #9aa4b2;
+        }
+        .pedido-textarea:focus {
+          outline: none;
+          border-color: #e8630c;
+          box-shadow: 0 0 0 3px rgba(232, 99, 12, 0.12);
+        }
+
+        .pedido-nota-contador {
+          display: block;
+          margin-top: 6px;
+          text-align: right;
+          font-size: 0.72rem;
+          color: #9aa4b2;
           font-weight: 600;
         }
 
