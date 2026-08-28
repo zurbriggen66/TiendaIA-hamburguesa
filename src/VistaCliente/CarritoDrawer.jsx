@@ -10,7 +10,7 @@ const precioUnitarioLinea = (linea) =>
 const textoExtras = (extras) =>
   (extras || []).map((e) => `${e.cantidad > 1 ? `${e.cantidad}x ` : ''}${e.nombre}`).join(', ');
 
-function armarMensajeWhatsapp({ nombre, telefono, tipoEntrega, direccion, items, total, nota }) {
+function armarMensajeWhatsapp({ nombre, telefono, tipoEntrega, direccion, zona, costoEnvio, items, total, nota }) {
   const lineas = [
     '🍔 *Nuevo pedido - ANTOJO Burger*',
     '',
@@ -20,7 +20,7 @@ function armarMensajeWhatsapp({ nombre, telefono, tipoEntrega, direccion, items,
   ];
   if (tipoEntrega === 'delivery') {
     lineas.push(`Dirección: ${direccion}`);
-    lineas.push('(El envío tiene un costo adicional a coordinar)');
+    if (zona) lineas.push(`Zona: ${zona} (envío ${formatearPrecio(costoEnvio)})`);
   }
   lineas.push('', 'Productos:');
   items.forEach((linea) => {
@@ -48,6 +48,8 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
   const [recompensas, setRecompensas] = useState([]);
   const [tipoEntrega, setTipoEntrega] = useState('retiro');
   const [direccion, setDireccion] = useState('');
+  const [localidades, setLocalidades] = useState([]);
+  const [localidadId, setLocalidadId] = useState('');
   const [nota, setNota] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [exito, setExito] = useState(false);
@@ -66,6 +68,12 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
       .then((res) => setRecompensas(res.data))
       .catch(() => setRecompensas([]));
   }, [cliente]);
+
+  useEffect(() => {
+    api.get('/localidades/')
+      .then((res) => setLocalidades(res.data))
+      .catch(() => setLocalidades([]));
+  }, []);
 
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -88,7 +96,12 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
     };
   }, []);
 
-  const total = items.reduce((acc, linea) => acc + precioUnitarioLinea(linea) * linea.cantidad, 0);
+  const subtotal = items.reduce((acc, linea) => acc + precioUnitarioLinea(linea) * linea.cantidad, 0);
+  const localidadElegida = localidades.find((l) => String(l.id) === String(localidadId));
+  // El precio lo pone el admin al cargar la zona; acá solo se muestra. El backend
+  // lo vuelve a leer de la base al crear el pedido.
+  const costoEnvio = tipoEntrega === 'delivery' ? Number(localidadElegida?.costo_envio || 0) : 0;
+  const total = subtotal + costoEnvio;
   // Solo para mostrar: el descuento real lo recalcula y topea el backend.
   const descuentoPuntos = Math.min(Number(cliente?.puntos_en_pesos) || 0, total);
   // Solo se ofrecen los premios que el cliente puede pagar con lo que tiene.
@@ -107,6 +120,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
     if (!nombre.trim()) nuevosErrores.nombre = 'Falta tu nombre';
     if (!telefono.trim()) nuevosErrores.telefono = 'Falta tu teléfono';
     if (tipoEntrega === 'delivery' && !direccion.trim()) nuevosErrores.direccion = 'Falta la dirección de entrega';
+    if (tipoEntrega === 'delivery' && !localidadId) nuevosErrores.localidad = 'Elegí a qué zona lo mandamos';
 
     if (Object.keys(nuevosErrores).length > 0) {
       setErrores(nuevosErrores);
@@ -119,7 +133,10 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
     // formulario. Si se abre después de un `await` (ej. la llamada a la API),
     // los navegadores (sobre todo Safari/iOS) pierden el "gesto de usuario" y
     // bloquean la ventana en silencio, sin ningún error visible.
-    const mensaje = armarMensajeWhatsapp({ nombre, telefono, tipoEntrega, direccion, items, total, nota });
+    const mensaje = armarMensajeWhatsapp({
+      nombre, telefono, tipoEntrega, direccion, items, total, nota,
+      zona: localidadElegida?.nombre, costoEnvio,
+    });
     const url = `https://wa.me/${whatsapp}?text=${encodeURIComponent(mensaje)}`;
     const ventana = window.open(url, '_blank', 'noopener,noreferrer');
     // Si el navegador igual bloqueó la ventana, dejamos un enlace visible como respaldo.
@@ -133,6 +150,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
         telefono: telefono.trim(),
         tipo_entrega: tipoEntrega,
         direccion: tipoEntrega === 'delivery' ? direccion.trim() : '',
+        localidad: tipoEntrega === 'delivery' ? localidadId : null,
         nota: nota.trim(),
         origen: 'web',
         items: items.map((linea) =>
@@ -276,8 +294,14 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
             <div className="pedido-resumen">
               <div className="pedido-resumen-fila">
                 <span>Subtotal</span>
-                <span>{formatearPrecio(total)}</span>
+                <span>{formatearPrecio(subtotal)}</span>
               </div>
+              {tipoEntrega === 'delivery' && (
+                <div className="pedido-resumen-fila">
+                  <span>Envío{localidadElegida ? ` a ${localidadElegida.nombre}` : ''}</span>
+                  <span>{localidadElegida ? formatearPrecio(costoEnvio) : 'elegí la zona'}</span>
+                </div>
+              )}
               {usarPuntos && descuentoPuntos > 0 && (
                 <div className="pedido-resumen-fila pedido-resumen-descuento">
                   <span>Descuento por puntos</span>
@@ -386,6 +410,21 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
             {tipoEntrega === 'delivery' && (
               <>
                 <div className="pedido-campo">
+                  <select
+                    className={`pedido-input ${errores.localidad ? 'pedido-input-error' : ''}`}
+                    value={localidadId}
+                    onChange={(e) => { setLocalidadId(e.target.value); setErrores((prev) => ({ ...prev, localidad: undefined })); }}
+                  >
+                    <option value="">¿A qué zona lo mandamos?</option>
+                    {localidades.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.nombre} — {formatearPrecio(l.costo_envio)}
+                      </option>
+                    ))}
+                  </select>
+                  {errores.localidad && <span className="pedido-error-texto">{errores.localidad}</span>}
+                </div>
+                <div className="pedido-campo">
                   <input
                     type="text"
                     className={`pedido-input ${errores.direccion ? 'pedido-input-error' : ''}`}
@@ -395,7 +434,9 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
                   />
                   {errores.direccion && <span className="pedido-error-texto">{errores.direccion}</span>}
                 </div>
-                <p className="pedido-aviso">🛵 El envío tiene un costo adicional que coordinamos por WhatsApp.</p>
+                {localidades.length === 0 && (
+                  <p className="pedido-aviso">🛵 El envío lo coordinamos por WhatsApp.</p>
+                )}
               </>
             )}
 
