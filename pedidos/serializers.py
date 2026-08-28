@@ -232,6 +232,13 @@ class PedidoSerializer(serializers.ModelSerializer):
         usar_puntos = validated_data.pop('usar_puntos', False)
         recompensa_id = validated_data.pop('recompensa_id', None)
 
+        # El costo de envio de un pedido web sale de la localidad cargada en el admin,
+        # nunca del body: si no, el cliente podria mandar costo_envio=0. En el admin se
+        # sigue pudiendo cargar a mano (PedidoEnvioDescuentoModal).
+        localidad = validated_data.get('localidad')
+        if validated_data.get('origen') == 'web':
+            validated_data['costo_envio'] = localidad.costo_envio if localidad else 0
+
         # El pedido se asocia al cliente logueado (si lo hay), nunca a uno que venga por body.
         usuario = getattr(self.context.get('request'), 'user', None)
         cliente = getattr(usuario, 'cliente', None) if usuario and usuario.is_authenticated else None
