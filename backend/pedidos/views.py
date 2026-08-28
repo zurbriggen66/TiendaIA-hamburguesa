@@ -8,7 +8,7 @@ from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
-from core.permissions import EsAdmin, es_staff
+from core.permissions import EsAdmin, EsAdminOSoloLectura, es_staff
 from .models import Pedido, Localidad, Pago, Caja
 from .serializers import PedidoSerializer, LocalidadSerializer, PagoSerializer, CajaSerializer, mover_stock_item
 from clientes.puntos import acreditar as acreditar_puntos
@@ -105,7 +105,9 @@ class PedidoViewSet(viewsets.ModelViewSet):
 
 
 class LocalidadViewSet(viewsets.ModelViewSet):
-    permission_classes = [EsAdmin]
+    # Lectura publica: la tienda web necesita listar las zonas y su costo de envio
+    # para que el cliente elija a donde se lo mandan. Escribir sigue siendo del admin.
+    permission_classes = [EsAdminOSoloLectura]
     queryset = Localidad.objects.all()
     serializer_class = LocalidadSerializer
 
