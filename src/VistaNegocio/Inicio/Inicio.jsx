@@ -344,6 +344,10 @@ export default function Inicio() {
                         {confirmando === pedido.id ? 'Confirmando...' : '✓ Confirmar pedido'}
                       </button>
                     </div>
+                    {/* La nota del cliente se ve acá o no se ve en ningún lado: los
+                        pedidos web se confirman desde esta tarjeta. Va a lo ancho del
+                        item (el contenedor ya es flex-wrap). */}
+                    {pedido.nota && <p className="inicio-pedido-nota">📝 {pedido.nota}</p>}
                   </div>
                 ))}
               </div>
@@ -574,6 +578,19 @@ export default function Inicio() {
 
       <style>
         {`
+          .inicio-pedido-nota {
+            width: 100%;
+            margin: 2px 0 0;
+            padding: 6px 10px;
+            border-radius: 8px;
+            background: rgba(245, 158, 11, 0.14);
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text, #f5ede7);
+            line-height: 1.35;
+          }
+
           .inicio-modo {
             display: flex;
             align-items: center;

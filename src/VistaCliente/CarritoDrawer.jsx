@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../services/api';
+import api, { leerToken } from '../services/api';
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
@@ -53,6 +53,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
   const [nota, setNota] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [exito, setExito] = useState(false);
+  const [guardadoOk, setGuardadoOk] = useState(true);
   const [errores, setErrores] = useState({});
   const [linkWhatsapp, setLinkWhatsapp] = useState(null);
 
@@ -142,36 +143,54 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
     // Si el navegador igual bloqueó la ventana, dejamos un enlace visible como respaldo.
     setLinkWhatsapp(!ventana || ventana.closed ? url : null);
 
+    // Con XHR comun, al saltar a WhatsApp el celular manda la pagina a segundo plano
+    // y corta la request: el mensaje sale pero el pedido nunca se registra (y la nota
+    // se pierde con el). `keepalive` hace que el navegador termine de enviarla igual.
+    const token = leerToken();
+    const cuerpo = {
+      usar_puntos: usarPuntos,
+      recompensa_id: recompensaId,
+      cliente: nombre.trim(),
+      telefono: telefono.trim(),
+      tipo_entrega: tipoEntrega,
+      direccion: tipoEntrega === 'delivery' ? direccion.trim() : '',
+      localidad: tipoEntrega === 'delivery' ? localidadId : null,
+      nota: nota.trim(),
+      origen: 'web',
+      items: items.map((linea) =>
+        linea.tipo === 'combo'
+          ? { combo: linea.item.id, cantidad: linea.cantidad }
+          : {
+              producto: linea.item.id,
+              presentacion: linea.item.presentacion_id || null,
+              cantidad: linea.cantidad,
+              extras: (linea.extras || []).map((e) => ({ producto: e.id, cantidad: e.cantidad })),
+              sugerido_carrito: !!linea.sugerido,
+            }
+      ),
+    };
+
     try {
-      await api.post('/pedidos/', {
-        usar_puntos: usarPuntos,
-        recompensa_id: recompensaId,
-        cliente: nombre.trim(),
-        telefono: telefono.trim(),
-        tipo_entrega: tipoEntrega,
-        direccion: tipoEntrega === 'delivery' ? direccion.trim() : '',
-        localidad: tipoEntrega === 'delivery' ? localidadId : null,
-        nota: nota.trim(),
-        origen: 'web',
-        items: items.map((linea) =>
-          linea.tipo === 'combo'
-            ? { combo: linea.item.id, cantidad: linea.cantidad }
-            : {
-                producto: linea.item.id,
-                presentacion: linea.item.presentacion_id || null,
-                cantidad: linea.cantidad,
-                extras: (linea.extras || []).map((e) => ({ producto: e.id, cantidad: e.cantidad })),
-                sugerido_carrito: !!linea.sugerido,
-              }
-        ),
+      const respuesta = await fetch(`${api.defaults.baseURL}/pedidos/`, {
+        method: 'POST',
+        keepalive: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Token ${token}` } : {}),
+        },
+        body: JSON.stringify(cuerpo),
       });
+      if (!respuesta.ok) throw new Error(`HTTP ${respuesta.status}`);
+      setGuardadoOk(true);
       // Si canjeó puntos, refrescamos el saldo que muestra la barra.
       if (usarPuntos && cliente) {
         api.get('/clientes/mi-cuenta/').then((r) => onClienteActualizado?.(r.data)).catch(() => {});
       }
     } catch (error) {
-      // No bloqueamos el envío por WhatsApp aunque falle el guardado en el sistema.
+      // No bloqueamos el envío por WhatsApp, pero tampoco decimos que salió todo bien:
+      // el local no tiene el pedido y hay que avisarle al cliente.
       console.error('Error al registrar el pedido:', error);
+      setGuardadoOk(false);
     }
 
     setEnviando(false);
@@ -199,8 +218,12 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
 
         {exito ? (
           <div className="pedido-exito">
-            <span className="pedido-exito-icono">✅</span>
-            <p>¡Pedido enviado! Te vamos a contactar por WhatsApp para confirmarlo.</p>
+            <span className="pedido-exito-icono">{guardadoOk ? '✅' : '⚠️'}</span>
+            <p>
+              {guardadoOk
+                ? '¡Pedido enviado! Te vamos a contactar por WhatsApp para confirmarlo.'
+                : 'Tu pedido salió por WhatsApp, pero no pudimos registrarlo en el sistema. Confirmalo por ese chat así no se pierde.'}
+            </p>
             {linkWhatsapp && (
               <a
                 href={linkWhatsapp}
