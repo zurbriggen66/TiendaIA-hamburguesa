@@ -40,11 +40,20 @@ SECRET_KEY = os.environ.get(
 # Por defecto queda APAGADO (seguro) a menos que el .env diga explícitamente lo contrario.
 DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['www.odettiautomotores.online', 'odettiautomotores.online', 'webapp-3159337.pythonanywhere.com', 'localhost', '127.0.0.1']
+# Los dominios de produccion se cargan del .env (DJANGO_ALLOWED_HOSTS, separados por coma)
+# para no tocar codigo al cambiar de servidor.
+_hosts = [h.strip() for h in os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(',') if h.strip()]
+ALLOWED_HOSTS = ['localhost', '127.0.0.1'] + _hosts
+
+# Sin esto el login del admin por https devuelve "CSRF verification failed".
+CSRF_TRUSTED_ORIGINS = ['https://' + h for h in _hosts]
 
 # Endurecimiento de seguridad que solo aplica cuando DEBUG está apagado (producción) —
 # en local (DEBUG=True) se dejan desactivados para no romper el runserver por http.
 if not DEBUG:
+    # Detras de nginx, Django ve http en el socket. Sin esta linea SECURE_SSL_REDIRECT
+    # entra en loop infinito de redirects. nginx manda el header via proxy_params (ver MIGRACION.md).
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
@@ -126,12 +135,25 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+if os.environ.get('DB_NAME'):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ['DB_NAME'],
+            'USER': os.environ['DB_USER'],
+            'PASSWORD': os.environ['DB_PASSWORD'],
+            'HOST': os.environ.get('DB_HOST', 'localhost'),
+            'PORT': os.environ.get('DB_PORT', '5432'),
+            'CONN_MAX_AGE': 60,
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -181,6 +203,7 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r'^https://tienda-ia-hamburguesa.*\.vercel\.app$',
 ]
+CORS_ALLOWED_ORIGINS += [o.strip() for o in os.environ.get('CORS_EXTRA_ORIGINS', '').split(',') if o.strip()]
 
 # En desarrollo, Vite cambia de puerto solo si el 5173 está ocupado (5174, 5175...).
 # Sin esto, la API rechaza al frontend por CORS y todo falla con "Network Error".
