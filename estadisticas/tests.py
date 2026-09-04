@@ -1,9 +1,11 @@
 from decimal import Decimal
 
+from django.contrib.auth.models import User
 from django.test import TestCase
 
+from gastos.models import Gasto, Insumo
 from pedidos.models import Caja, DetallePedido, Pago, Pedido
-from productos.models import Categoria, Producto
+from productos.models import Categoria, Producto, ProductoInsumo
 
 
 class EstadisticasPorCajaTests(TestCase):
@@ -14,6 +16,11 @@ class EstadisticasPorCajaTests(TestCase):
         return pedido
 
     def setUp(self):
+        # /api/estadisticas/ es EsAdmin: sin login la vista responde 403 y el .json()
+        # de abajo no trae ninguna de estas claves.
+        User.objects.create_user('duenio', password='x', is_staff=True)
+        self.client.login(username='duenio', password='x')
+
         categoria = Categoria.objects.create(nombre='Hamburguesas')
         self.producto = Producto.objects.create(categoria=categoria, nombre='Clásica', precio=1000)
         self.caja_1 = Caja.objects.create(dia='2026-08-13')
@@ -32,3 +39,60 @@ class EstadisticasPorCajaTests(TestCase):
 
         metodos = {f['metodo']: Decimal(str(f['total'])) for f in datos['ventas_por_metodo']}
         self.assertEqual(metodos, {'efectivo': Decimal('1000'), 'transferencia': Decimal('500')})
+
+
+class CostoDeProductoTests(TestCase):
+    """Cuanto cuesta en insumos hacer un producto.
+
+    La receta ya existia (ProductoInsumo) y las compras tambien (Gasto con insumo y
+    cantidad). Lo que faltaba era cruzarlas: costo unitario = monto / cantidad de la
+    ultima compra, por la receta.
+    """
+
+    def setUp(self):
+        User.objects.create_user('duenio', password='x', is_staff=True)
+        self.client.login(username='duenio', password='x')
+
+        categoria = Categoria.objects.create(nombre='Hamburguesas')
+        self.pan = Insumo.objects.create(nombre='PAN', unidad='unidades')
+        self.carne = Insumo.objects.create(nombre='CARNE', unidad='unidades')
+        self.lechuga = Insumo.objects.create(nombre='LECHUGA', unidad='kg')
+
+        self.producto = Producto.objects.create(categoria=categoria, nombre='ARGENTA', precio=10000)
+        ProductoInsumo.objects.create(producto=self.producto, insumo=self.pan, cantidad=1)
+        ProductoInsumo.objects.create(producto=self.producto, insumo=self.carne, cantidad=2)
+        ProductoInsumo.objects.create(producto=self.producto, insumo=self.lechuga, cantidad=Decimal('0.2'))
+
+        # 10 panes por $5.000 = $500 c/u ; 50 medallones por $50.000 = $1.000 c/u
+        Gasto.objects.create(categoria='insumos', descripcion='panaderia', monto=5000, insumo=self.pan, cantidad=10)
+        Gasto.objects.create(categoria='insumos', descripcion='carnicero', monto=50000, insumo=self.carne, cantidad=50)
+        # la lechuga queda sin ninguna compra cargada a proposito
+
+    def test_el_costo_unitario_sale_de_la_ultima_compra_no_de_un_promedio(self):
+        self.assertEqual(self.pan.costo_unitario(), Decimal('500'))
+
+        Gasto.objects.create(categoria='insumos', descripcion='aumento', monto=12000, insumo=self.pan, cantidad=10)
+
+        self.assertEqual(self.pan.costo_unitario(), Decimal('1200'))
+
+    def test_un_insumo_sin_compras_no_tiene_costo_conocido(self):
+        # None y no 0: sumar cero haria ver el producto mas rentable de lo que es.
+        self.assertIsNone(self.lechuga.costo_unitario())
+
+    def test_suma_la_receta_y_avisa_que_insumos_no_tienen_costo(self):
+        datos = self.client.get('/api/estadisticas/').json()
+
+        fila = next(c for c in datos['costos_productos'] if c['producto_nombre'] == 'ARGENTA')
+        # 1 pan ($500) + 2 medallones ($2.000). La lechuga no suma: no tiene compras.
+        self.assertEqual(Decimal(str(fila['costo'])), Decimal('2500'))
+        self.assertEqual(Decimal(str(fila['ganancia'])), Decimal('7500'))
+        self.assertEqual(fila['margen_pct'], 75.0)
+        self.assertEqual(fila['insumos_sin_costo'], ['LECHUGA'])
+
+    def test_el_costo_del_periodo_es_la_receta_por_lo_vendido(self):
+        pedido = Pedido.objects.create(confirmado=True)
+        DetallePedido.objects.create(pedido=pedido, producto=self.producto, cantidad=3, precio_unitario=10000)
+
+        datos = self.client.get('/api/estadisticas/').json()
+
+        self.assertEqual(Decimal(str(datos['costo_insumos_periodo'])), Decimal('7500'))

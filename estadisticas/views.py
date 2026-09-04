@@ -10,7 +10,8 @@ from rest_framework.views import APIView
 
 from core.permissions import EsAdmin
 from pedidos.models import Pedido, DetallePedido, DetalleExtra, Pago, Caja
-from gastos.models import Gasto
+from gastos.models import Gasto, Insumo
+from productos.models import Producto, ProductoInsumo
 
 MONTO = DecimalField(max_digits=12, decimal_places=2)
 
@@ -109,6 +110,68 @@ class EstadisticasView(APIView):
             .order_by('-total')[:5]
         )
 
+        # ---- Costo en insumos de cada producto ----
+        # La receta ya existe (ProductoInsumo) y el costo de cada insumo sale de sus
+        # compras (Insumo.costo_unitario). Lo unico que faltaba era cruzarlos.
+        # ponytail: una query por insumo para su ultima compra (~15). Si algun dia pesa,
+        # resolverlo con un solo GROUP BY sobre gastos ordenado por fecha.
+        costos_insumo = {
+            insumo.id: insumo.costo_unitario()
+            for insumo in Insumo.objects.filter(usado_en_productos__isnull=False).distinct()
+        }
+
+        recetas = defaultdict(list)
+        for linea in ProductoInsumo.objects.values('producto_id', 'insumo_id', 'cantidad', 'insumo__nombre'):
+            recetas[linea['producto_id']].append(linea)
+
+        costo_por_producto = {}
+        faltantes_por_producto = {}
+        for producto_id, lineas in recetas.items():
+            costo = Decimal('0')
+            faltan = []
+            for linea in lineas:
+                unitario = costos_insumo.get(linea['insumo_id'])
+                if unitario is None:
+                    # Sin compras cargadas no se sabe cuanto cuesta. Sumar cero haria
+                    # ver el producto mas rentable de lo que es, asi que se avisa.
+                    faltan.append(linea['insumo__nombre'])
+                else:
+                    costo += linea['cantidad'] * unitario
+            costo_por_producto[producto_id] = costo.quantize(Decimal('0.01'))
+            faltantes_por_producto[producto_id] = faltan
+
+        costos_productos = []
+        for producto in Producto.objects.filter(id__in=costo_por_producto):
+            costo = costo_por_producto[producto.id]
+            ganancia = producto.precio - costo
+            costos_productos.append({
+                'producto_id': producto.id,
+                'producto_nombre': producto.nombre,
+                'precio': producto.precio,
+                'costo': costo,
+                'ganancia': ganancia,
+                # Margen sobre la venta: de cada $100 que cobra, cuanto le queda.
+                'margen_pct': round(float(ganancia / producto.precio * 100), 1) if producto.precio else None,
+                'insumos_sin_costo': faltantes_por_producto[producto.id],
+            })
+        # Peor margen primero: lo que el dueño necesita ver es lo que le deja perdida,
+        # no el orden alfabetico. Los sin precio (margen None) van al final.
+        costos_productos.sort(key=lambda c: (c['margen_pct'] is None, c['margen_pct']))
+
+        # Lo que costaron en insumos los productos vendidos en el periodo. Se valua al
+        # costo de reposicion de hoy, no al del dia de la venta: sirve para decidir
+        # precios, no para contabilidad historica.
+        vendidos_periodo = (
+            items_validos.filter(producto__isnull=False)
+            .values('producto__id')
+            .annotate(cantidad_total=Sum('cantidad'))
+        )
+        costo_insumos_periodo = sum(
+            (Decimal(fila['cantidad_total']) * costo_por_producto.get(fila['producto__id'], Decimal('0'))
+             for fila in vendidos_periodo),
+            Decimal('0'),
+        )
+
         # En qué se fue la plata de los gastos: por rubro y por medio de pago.
         # Mismo criterio que CobranzasView.por_metodo (se omiten los que dan 0).
         etiquetas_categoria = dict(Gasto.CATEGORIAS)
@@ -177,6 +240,8 @@ class EstadisticasView(APIView):
         return Response({
             'ventas_totales': ventas_totales,
             'gastos_totales': gastos_totales,
+            'costo_insumos_periodo': costo_insumos_periodo,
+            'costos_productos': costos_productos,
             'ganancia_neta': ventas_totales - gastos_totales,
             'total_pedidos': total_pedidos,
             'ticket_promedio': ticket_promedio,
