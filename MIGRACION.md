@@ -6,11 +6,12 @@ ANTOJO entra como **dos servicios más** en el compose que ya corre, copiando el
 | | Hoy | Después |
 |---|---|---|
 | Back | PA, `~/TiendaIA-hamburguesa/backend`, SQLite | contenedor `tienda-ia-antojo-api` → `api-antojo.tiendaia.cloud` |
-| Front | Vercel | `../ANTOJO-FRONT/dist` servido por el nginx del stack → `antojo.tiendaia.cloud` |
+| Front | Vercel | `../ANTOJO-FRONT/dist` servido por el nginx del stack → `antojoburguer.tiendaia.cloud` |
 | Base | SQLite | base `antojo` dentro de `tienda-ia-postgres-prod` |
 
-Si querés otros subdominios, cambiá `antojo.tiendaia.cloud` / `api-antojo.tiendaia.cloud`
-en todo el archivo antes de empezar.
+El dominio real del frontend terminó siendo `antojoburguer.tiendaia.cloud` (no `antojo`,
+que es lo que dice el resto de este documento por error de origen — el DNS ya está creado
+así, no lo cambiamos). `ANTOJO_DOMAIN` en el `.env` de la VPS vale `antojoburguer.tiendaia.cloud`.
 
 Todos los comandos son como root en la VPS. `$DEPLOY` = `/opt/tienda-ia/TIENDA-IA-DEPLOY`.
 
@@ -37,7 +38,7 @@ git push
 | A | `antojo` | 2.24.69.234 |
 | A | `api-antojo` | 2.24.69.234 |
 
-Verificá con `dig +short antojo.tiendaia.cloud api-antojo.tiendaia.cloud`. Certbot no puede
+Verificá con `dig +short antojoburguer.tiendaia.cloud api-antojo.tiendaia.cloud`. Certbot no puede
 emitir hasta que resuelvan, así que hacelo primero.
 
 **c)** En PA, guardar el estado de migraciones para comparar después. Importa porque el
@@ -69,6 +70,8 @@ Ya están en `/root/`: `datos.json` (656K) y `media.tar.gz` (230M).
 ## 2. Clonar los repos y poner los datos en su lugar
 
 ```bash
+# sudo -u, NO `su - github-runner`: `su -` te lleva al home del usuario y los
+# clones terminan en /home/github-runner en vez de aca.
 cd /opt/tienda-ia
 sudo -u github-runner git clone https://github.com/TIENDA-IA/ANTOJO-BACK.git
 sudo -u github-runner git clone https://github.com/TIENDA-IA/ANTOJO-FRONT.git
@@ -151,7 +154,7 @@ Dominios en el `.env` raiz:
 cd /opt/tienda-ia/TIENDA-IA-DEPLOY
 cat >> .env <<'EOF'
 
-ANTOJO_DOMAIN=antojo.tiendaia.cloud
+ANTOJO_DOMAIN=antojoburguer.tiendaia.cloud
 ANTOJO_API_DOMAIN=api-antojo.tiendaia.cloud
 EOF
 ```
@@ -270,12 +273,12 @@ docker compose logs -f certbot
 Cuando diga `Certificate is ready`, nginx recarga solo (por el `reload.flag`, hasta 15s).
 
 ```bash
-curl -sI https://antojo.tiendaia.cloud
+curl -sI https://antojoburguer.tiendaia.cloud
 curl -sI https://api-antojo.tiendaia.cloud/api/
 ```
 
 Después, a mano:
-- `https://antojo.tiendaia.cloud` → carga el menú **con las fotos**. Si el menú carga pero
+- `https://antojoburguer.tiendaia.cloud` → carga el menú **con las fotos**. Si el menú carga pero
   sin imágenes, el problema son los mounts del 4.2.
 - `https://api-antojo.tiendaia.cloud/admin/` → entrás con tu usuario de siempre (vino en el
   dump) y el admin se ve con estilos. Si se ve sin CSS, falló el `collectstatic`.
@@ -284,7 +287,7 @@ Después, a mano:
 
 ## 9. Cutover
 
-1. Probar el flujo real en `https://antojo.tiendaia.cloud`: ver menú → crear un pedido → verlo en el admin.
+1. Probar el flujo real en `https://antojoburguer.tiendaia.cloud`: ver menú → crear un pedido → verlo en el admin.
 2. Si el dominio de los clientes hoy apunta a Vercel, recién ahora movés ese DNS.
 3. Apagar la web app en PythonAnywhere y el proyecto en Vercel.
 
@@ -315,3 +318,56 @@ cd /opt/tienda-ia/ANTOJO-FRONT && sudo -u github-runner sh -c "git pull && npm c
 ```
 
 El front no necesita reiniciar nada: nginx sirve el `dist/` nuevo al toque.
+
+---
+
+## 11. Resincronizar mientras PA sigue vivo
+
+El cliente sigue operando en PythonAnywhere mientras la VPS está en paralelo (todavía no
+pasamos el paso 9). Cada vez que haga falta traer pedidos/datos nuevos, **no** uses
+`loaddata` solo — se limita a insertar/actualizar por PK, así que nunca borra lo que se
+eliminó en PA. Mejor vaciar y recargar entero:
+
+**En PythonAnywhere** (igual que la primera vez):
+
+```bash
+cd ~/TiendaIA-hamburguesa/backend
+python manage.py dumpdata --natural-foreign --indent 2 \
+  -e contenttypes -e auth.permission -e admin.logentry -e sessions.session \
+  > ~/datos.json
+tar czf ~/media.tar.gz media/
+scp ~/datos.json ~/media.tar.gz root@2.24.69.234:~/
+```
+
+**En la VPS:**
+
+```bash
+mv /root/datos.json /root/media.tar.gz /opt/tienda-ia/ANTOJO-BACK/
+rm -rf /opt/tienda-ia/ANTOJO-BACK/media
+tar xzf /opt/tienda-ia/ANTOJO-BACK/media.tar.gz -C /opt/tienda-ia/ANTOJO-BACK/
+
+cd /opt/tienda-ia/TIENDA-IA-DEPLOY
+docker compose exec antojo-api python manage.py flush --noinput
+docker compose exec antojo-api python manage.py loaddata datos.json
+```
+
+`flush` vacía todas las tablas de las apps Y resetea las secuencias en el mismo paso
+(no hace falta `sqlsequencereset` aparte), sin tocar `django_migrations` — así que no hace
+falta volver a migrar. Repetible tantas veces como haga falta hasta el cutover real (paso 9).
+
+## 12. Estado actual (2026-09-03)
+
+Hecho: DNS, repos clonados, base `antojo` creada, `.env`/`.env.antojo-api` armados, front
+buildeado, `docker compose up -d` corrido, migraciones aplicadas limpias contra Postgres,
+`datos.json` (2136 objetos) cargado, secuencias reseteadas, el sitio responde en
+`antojoburguer.tiendaia.cloud`.
+
+Pendiente antes de confiar en esta carga puntual: el chequeo de conteos PA vs VPS (paso 7)
+no se corrió — no importa, porque mañana se va a resincronizar de cero con el flujo de la
+sección 11 de todos modos. **No hacer cutover (paso 9) sin antes correr ese chequeo al
+menos una vez sobre la carga que se vaya a dejar como definitiva.**
+
+Dato de la sesión: la password de Postgres que se usó para el usuario `antojo` en el
+paso 3 fue una temporal débil — cambiarla (`ALTER USER antojo WITH PASSWORD '...'` +
+actualizar `DB_PASSWORD` en `.env.antojo-api` + `docker compose up -d --force-recreate
+antojo-api`) antes del cutover real, no hace falta ahora mientras es un paralelo de prueba.
