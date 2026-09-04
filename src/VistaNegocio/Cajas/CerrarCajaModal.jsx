@@ -39,6 +39,13 @@ export default function CerrarCajaModal({ caja, onClose, onSaved }) {
             <br />
             Ventas: <strong>{formatearPrecio(caja.total_ventas)}</strong> en{' '}
             <strong>{caja.total_pedidos}</strong> pedido{caja.total_pedidos === 1 ? '' : 's'}.
+            {Number(caja.total_propinas) > 0 && (
+              <>
+                <br />
+                Propinas: <strong>{formatearPrecio(caja.total_propinas)}</strong> — están en el
+                cajón pero no son venta, por eso van aparte.
+              </>
+            )}
           </p>
 
           <div className="form-group">
