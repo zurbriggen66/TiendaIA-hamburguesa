@@ -371,3 +371,51 @@ Dato de la sesión: la password de Postgres que se usó para el usuario `antojo`
 paso 3 fue una temporal débil — cambiarla (`ALTER USER antojo WITH PASSWORD '...'` +
 actualizar `DB_PASSWORD` en `.env.antojo-api` + `docker compose up -d --force-recreate
 antojo-api`) antes del cutover real, no hace falta ahora mientras es un paralelo de prueba.
+
+---
+
+## Apéndice: re-sincronizar desde un db.sqlite3
+
+Igual que la sección 11, pero el dump sale de un archivo sqlite que te pasaron en vez de la
+consola de PythonAnywhere. Sirve cuando el cliente te manda la base o ya no tenés acceso a PA.
+
+Subir el archivo con el nombre exacto `db.sqlite3` — es el que espera el fallback de
+`settings.py` cuando `DB_NAME` viene vacío:
+
+```bash
+scp db.sqlite3 root@2.24.69.234:/opt/tienda-ia/ANTOJO-BACK/db.sqlite3
+```
+
+Generar el dump adentro del contenedor. No hace falta PythonAnywhere ni Django instalado en
+ningún lado: el contenedor ya tiene el código y las deps, y `settings.py` cae al backend
+SQLite si le vaciás `DB_NAME`:
+
+```bash
+cd /opt/tienda-ia/TIENDA-IA-DEPLOY
+docker compose exec -e DB_NAME= antojo-api sh -c   "python manage.py dumpdata --natural-foreign --indent 2      -e contenttypes -e auth.permission -e admin.logentry -e sessions.session      > /app/datos.json"
+```
+
+Desde ahí seguís con el `flush` + `loaddata` de la sección 11, sin cambios.
+
+Antes de subir el sqlite conviene contar las filas en el archivo de origen, para tener contra
+qué comparar después de cargar:
+
+```bash
+sqlite3 db.sqlite3 "select 'users', count(*) from auth_user
+  union all select 'productos', count(*) from productos_producto
+  union all select 'pedidos', count(*) from pedidos_pedido;"
+```
+
+Al terminar:
+
+```bash
+rm /opt/tienda-ia/ANTOJO-BACK/db.sqlite3 /opt/tienda-ia/ANTOJO-BACK/datos.json
+```
+
+El `rm` no es cosmético: si el `db.sqlite3` queda en el checkout y algún día falta `DB_NAME`
+en el env, Django arranca contra ese archivo en vez de fallar, y el cliente trabaja horas
+sobre una base fantasma.
+
+**El `media/` no viaja en el sqlite.** Si el cliente subió fotos nuevas desde la última
+sincronización, esas filas apuntan a archivos que no existen y los productos salen sin
+imagen. El `media/` hay que traerlo aparte, como en la sección 11.
