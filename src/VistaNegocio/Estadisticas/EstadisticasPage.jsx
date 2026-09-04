@@ -178,6 +178,10 @@ export default function EstadisticasPage() {
                 <span>Gastos totales</span>
                 <strong>{formatearPrecio(datos.gastos_totales)}</strong>
               </div>
+              <div className="resumen-tile resumen-tile-insumos">
+                <span>Insumos de lo vendido</span>
+                <strong>{formatearPrecio(datos.costo_insumos_periodo || 0)}</strong>
+              </div>
               <div className={`resumen-tile ${datos.ganancia_neta >= 0 ? 'resumen-tile-ganancia-positiva' : 'resumen-tile-ganancia-negativa'}`}>
                 <span>Ganancia neta</span>
                 <strong>{formatearPrecio(datos.ganancia_neta)}</strong>
@@ -282,6 +286,51 @@ export default function EstadisticasPage() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            <div className="seccion-header">
+              <h3>Cuánto te cuesta cada producto</h3>
+            </div>
+            {(datos.costos_productos || []).length === 0 ? (
+              <p className="estado-vacio-chico">
+                Cargá qué insumos usa cada producto (en Productos) y registrá sus compras
+                para ver acá cuánto te cuesta hacerlo.
+              </p>
+            ) : (
+              <div className="ranking-productos">
+                {datos.costos_productos.map((p) => (
+                  <div key={p.producto_id} className="ranking-fila">
+                    <div className="ranking-info">
+                      <div className="ranking-nombre-linea">
+                        <strong>{p.producto_nombre}</strong>
+                        <span>
+                          {p.margen_pct === null ? 'sin precio' : `${p.margen_pct}% de margen`}
+                        </span>
+                      </div>
+                      <div className="ranking-nombre-linea">
+                        <span>
+                          Cobrás {formatearPrecio(p.precio)} · insumos {formatearPrecio(p.costo)}
+                          {' '}· te queda {formatearPrecio(p.ganancia)}
+                        </span>
+                      </div>
+                      {p.insumos_sin_costo.length > 0 && (
+                        <div className="ranking-nombre-linea">
+                          <span>
+                            ⚠️ Falta cargar la compra de {p.insumos_sin_costo.join(', ')}:
+                            {' '}te cuesta más de lo que dice acá.
+                          </span>
+                        </div>
+                      )}
+                      <div className="ranking-barra-fondo">
+                        <div
+                          className="ranking-barra"
+                          style={{ '--bar-width': `${Math.min(Math.max(p.margen_pct ?? 0, 2), 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
