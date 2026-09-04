@@ -140,7 +140,13 @@ class Pago(models.Model):
 
     pedido = models.ForeignKey(Pedido, related_name='pagos', on_delete=models.CASCADE)
     metodo = models.CharField(max_length=20, choices=METODOS)
+    # Lo que se aplica AL PEDIDO. Nunca puede pasarse del total (lo valida el
+    # serializer): si el cliente entrega de más, el sobrante es vuelto o propina,
+    # no venta. Mezclarlos era lo que hacía que la caja no cerrara nunca.
     monto = models.DecimalField(max_digits=10, decimal_places=2)
+    # Lo que el cliente deja y no se devuelve como vuelto. Entra al cajón igual que
+    # el monto, pero no es venta del pedido: por eso va aparte y no sumado a monto.
+    propina = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     creado = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -148,6 +154,10 @@ class Pago(models.Model):
 
     def __str__(self):
         return f'{self.get_metodo_display()} ${self.monto} - {self.pedido}'
+
+    @property
+    def entra_al_cajon(self):
+        return self.monto + self.propina
 
 
 class DetallePedido(models.Model):

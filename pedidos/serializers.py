@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.db.models import Sum
 from rest_framework import serializers
 from .models import Pedido, DetallePedido, DetalleExtra, Localidad, Pago, Caja
 from productos.models import Producto, Presentacion
@@ -18,6 +19,7 @@ class LocalidadSerializer(serializers.ModelSerializer):
 class CajaSerializer(serializers.ModelSerializer):
     esta_abierta = serializers.BooleanField(read_only=True)
     total_ventas = serializers.SerializerMethodField()
+    total_propinas = serializers.SerializerMethodField()
     total_pedidos = serializers.SerializerMethodField()
     metodo_inicial_label = serializers.CharField(source='get_metodo_inicial_display', read_only=True)
 
@@ -25,13 +27,20 @@ class CajaSerializer(serializers.ModelSerializer):
         model = Caja
         fields = [
             'id', 'dia', 'abierta_en', 'cerrada_en', 'nota_apertura', 'nota_cierre',
-            'esta_abierta', 'total_ventas', 'total_pedidos',
+            'esta_abierta', 'total_ventas', 'total_propinas', 'total_pedidos',
             'monto_inicial', 'metodo_inicial', 'metodo_inicial_label',
         ]
         read_only_fields = ['dia', 'abierta_en', 'cerrada_en']
 
     def get_total_ventas(self, obj):
         return sum((p.calcular_total() for p in obj.pedidos.filter(confirmado=True).exclude(estado='cancelado')), Decimal('0'))
+
+    def get_total_propinas(self, obj):
+        # Plata que entro al cajon sin ser venta: el cajon del turno es
+        # monto_inicial + total_ventas cobradas + total_propinas - gastos.
+        return Pago.objects.filter(
+            pedido__caja=obj, pedido__confirmado=True,
+        ).exclude(pedido__estado='cancelado').aggregate(t=Sum('propina'))['t'] or Decimal('0')
 
     def get_total_pedidos(self, obj):
         return obj.pedidos.filter(confirmado=True).exclude(estado='cancelado').count()
@@ -42,7 +51,32 @@ class PagoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Pago
-        fields = ['id', 'pedido', 'metodo', 'metodo_label', 'monto', 'creado']
+        fields = ['id', 'pedido', 'metodo', 'metodo_label', 'monto', 'propina', 'creado']
+
+    def validate(self, attrs):
+        """El monto no puede pasarse de lo que falta cobrar del pedido.
+
+        Sin esta validacion el cajero escribe lo que le entregan (un billete de
+        $20.000 para un pedido de $12.900) y esos $7.100 de vuelto quedan contados
+        como venta cobrada. El sobrante tiene que ir a `propina` si se lo dejan, o
+        no registrarse si volvio como vuelto.
+        """
+        pedido = attrs.get('pedido') or getattr(self.instance, 'pedido', None)
+        if pedido is None:
+            return attrs
+
+        monto = attrs.get('monto', getattr(self.instance, 'monto', Decimal('0')))
+        falta = pedido.calcular_total() - pedido.calcular_cobrado()
+        if self.instance is not None:
+            # En una edicion, el pago que se esta tocando no cuenta como ya cobrado.
+            falta += self.instance.monto
+
+        if monto > falta:
+            raise serializers.ValidationError({'monto': (
+                f'Este pedido solo debe ${falta}. Lo que el cliente entrega de mas va '
+                f'en "propina" si se lo deja, o no se registra si volvio como vuelto.'
+            )})
+        return attrs
 
 
 class ExtraSeleccionadoSerializer(serializers.Serializer):

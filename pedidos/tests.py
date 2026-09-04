@@ -1,6 +1,9 @@
+from decimal import Decimal
+
+from django.contrib.auth.models import User
 from django.test import TestCase
 
-from .models import Caja, DetallePedido, Pedido
+from .models import Caja, DetallePedido, Pago, Pedido
 from productos.models import Categoria, Presentacion, Producto
 
 
@@ -53,3 +56,64 @@ class PresentacionEnPedidoTests(TestCase):
         }, content_type='application/json')
 
         self.assertEqual(respuesta.status_code, 400)
+
+
+class VueltoYPropinaTests(TestCase):
+    """El cajero escribe lo que le entregan, no lo que vale el pedido.
+
+    Antes eso se guardaba entero como `monto`: un billete de $20.000 para un pedido
+    de $12.900 dejaba $7.100 de vuelto contados como venta cobrada, y la caja no
+    cerraba nunca. Ahora al pedido se le aplica como mucho lo que falta y el
+    sobrante va a `propina` (si se lo dejan) o a ningun lado (si volvio de vuelto).
+    """
+
+    def setUp(self):
+        User.objects.create_user('duenio', password='x', is_staff=True)
+        self.client.login(username='duenio', password='x')
+
+        categoria = Categoria.objects.create(nombre='Hamburguesas')
+        producto = Producto.objects.create(categoria=categoria, nombre='Clasica', precio=12900)
+        self.caja = Caja.objects.create(dia='2026-09-04')
+        self.pedido = Pedido.objects.create(caja=self.caja, confirmado=True)
+        DetallePedido.objects.create(
+            pedido=self.pedido, producto=producto, cantidad=1, precio_unitario=12900,
+        )
+
+    def cobrar(self, **datos):
+        return self.client.post('/api/pagos/', data={
+            'pedido': self.pedido.id, 'metodo': 'efectivo', **datos,
+        }, content_type='application/json')
+
+    def test_rechaza_un_monto_mayor_a_lo_que_falta(self):
+        respuesta = self.cobrar(monto=20000)
+
+        self.assertEqual(respuesta.status_code, 400, respuesta.content)
+        self.assertFalse(Pago.objects.exists())
+
+    def test_la_propina_entra_a_la_caja_pero_no_cuenta_como_venta(self):
+        respuesta = self.cobrar(monto=12900, propina=7100)
+
+        self.assertEqual(respuesta.status_code, 201, respuesta.content)
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.calcular_cobrado(), Decimal('12900'))
+        self.assertEqual(self.pedido.calcular_estado_cobro(), 'pagado')
+
+        caja = self.client.get(f'/api/cajas/{self.caja.id}/').data
+        self.assertEqual(Decimal(caja['total_ventas']), Decimal('12900'))
+        self.assertEqual(Decimal(caja['total_propinas']), Decimal('7100'))
+
+    def test_el_vuelto_devuelto_no_deja_rastro_en_la_caja(self):
+        respuesta = self.cobrar(monto=12900, propina=0)
+
+        self.assertEqual(respuesta.status_code, 201, respuesta.content)
+        caja = self.client.get(f'/api/cajas/{self.caja.id}/').data
+        self.assertEqual(Decimal(caja['total_propinas']), Decimal('0'))
+
+    def test_permite_pagos_parciales_hasta_completar_el_total(self):
+        self.assertEqual(self.cobrar(monto=5000).status_code, 201)
+        self.assertEqual(self.cobrar(monto=7900).status_code, 201)
+        # El pedido ya esta saldado: un peso mas tiene que rebotar.
+        self.assertEqual(self.cobrar(monto=1).status_code, 400)
+
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.calcular_estado_cobro(), 'pagado')
