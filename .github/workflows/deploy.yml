@@ -1,0 +1,19 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      # restart alcanza: el checkout esta bind-monteado en /app y el command del
+      # servicio vuelve a correr pip install + migrate + collectstatic al arrancar.
+      - name: Pull and restart
+        run: |
+          cd /opt/tienda-ia/ANTOJO-BACK
+          git pull origin main
+          cd /opt/tienda-ia/TIENDA-IA-DEPLOY
+          docker compose restart antojo-api
