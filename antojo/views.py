@@ -14,13 +14,8 @@ class AntojoDelDiaView(APIView):
     permission_classes = []
 
     def get(self, request):
-        antojo = (
-            AntojoDelDia.objects
-            .filter(activo=True, producto__isnull=False)
-            .select_related('producto', 'producto__categoria', 'presentacion')
-            .first()
-        )
-        if not antojo or not antojo.esta_vigente():
+        antojo = AntojoDelDia.vigente()
+        if not antojo:
             return Response(None)
 
         producto = antojo.producto

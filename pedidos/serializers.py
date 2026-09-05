@@ -278,7 +278,7 @@ class PedidoSerializer(serializers.ModelSerializer):
         cliente = getattr(usuario, 'cliente', None) if usuario and usuario.is_authenticated else None
         pedido = Pedido.objects.create(cliente_registrado=cliente, **validated_data)
 
-        antojo_activo = AntojoDelDia.objects.filter(activo=True).first()
+        antojo_activo = AntojoDelDia.vigente()
 
         for item in items_data:
             producto = item.get('producto')

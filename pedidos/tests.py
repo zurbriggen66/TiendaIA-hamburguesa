@@ -1,7 +1,11 @@
+from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib.auth.models import User
 from django.test import TestCase
+from django.utils import timezone
+
+from antojo.models import AntojoDelDia
 
 from .models import Caja, DetallePedido, Pago, Pedido
 from productos.models import Categoria, Presentacion, Producto
@@ -117,3 +121,55 @@ class VueltoYPropinaTests(TestCase):
 
         self.pedido.refresh_from_db()
         self.assertEqual(self.pedido.calcular_estado_cobro(), 'pagado')
+
+
+class AntojoVencidoTests(TestCase):
+    """Un antojo con fecha de fin pasada no puede seguir descontando.
+
+    El banner de la tienda usaba esta_vigente(), pero el precio del pedido filtraba
+    solo por `activo`: el antojo vencido desaparecia de la tienda y seguia cobrando
+    con descuento en cada pedido nuevo. Ahora los dos pasan por AntojoDelDia.vigente().
+    """
+
+    def setUp(self):
+        categoria = Categoria.objects.create(nombre='Hamburguesas')
+        self.producto = Producto.objects.create(categoria=categoria, nombre='ARGENTA', precio=10000)
+
+    def _precio_cobrado(self):
+        respuesta = self.client.post('/api/pedidos/', data={
+            'items': [{'producto': self.producto.id, 'cantidad': 1}],
+        }, content_type='application/json')
+        self.assertEqual(respuesta.status_code, 201, respuesta.content)
+        return DetallePedido.objects.get(pedido_id=respuesta.data['id']).precio_unitario
+
+    def test_un_antojo_vencido_no_descuenta(self):
+        AntojoDelDia.objects.create(
+            producto=self.producto, descuento_pct=10, activo=True,
+            activo_hasta=timezone.now() - timedelta(hours=1),
+        )
+
+        self.assertEqual(self._precio_cobrado(), Decimal('10000'))
+
+    def test_un_antojo_vigente_si_descuenta(self):
+        AntojoDelDia.objects.create(
+            producto=self.producto, descuento_pct=10, activo=True,
+            activo_hasta=timezone.now() + timedelta(hours=1),
+        )
+
+        self.assertEqual(self._precio_cobrado(), Decimal('9000'))
+
+    def test_sin_fecha_de_fin_se_apaga_a_mano_como_antes(self):
+        AntojoDelDia.objects.create(producto=self.producto, descuento_pct=10, activo=True)
+
+        self.assertEqual(self._precio_cobrado(), Decimal('9000'))
+
+    def test_la_tienda_y_el_precio_ven_el_mismo_antojo(self):
+        # Con dos filas activas cargadas, banner y cobro tienen que coincidir.
+        otro = Producto.objects.create(categoria=self.producto.categoria, nombre='INGLESA', precio=8000)
+        AntojoDelDia.objects.create(producto=otro, descuento_pct=50, activo=True)
+        AntojoDelDia.objects.create(producto=self.producto, descuento_pct=10, activo=True)
+
+        banner = self.client.get('/api/antojo-del-dia/').json()
+
+        self.assertEqual(banner['producto']['id'], self.producto.id)
+        self.assertEqual(self._precio_cobrado(), Decimal('9000'))
