@@ -231,8 +231,11 @@ export default function Inicio() {
     agregarAlCarritoGenerico('producto', { ...producto, precio: precioConDescuento }, 1, [], true);
   };
 
+  // Los extras (panceta, huevo, dip) SON la venta cruzada natural del carrito: el form
+  // del admin deja marcarlos como sugeridos y el back les aplica el descuento igual, era
+  // solo este filtro el que los escondia. `activo` sí se respeta, igual que en el menú.
   const sugeridosCarrito = productos.filter(
-    (p) => p.sugerido_carrito && Number(p.descuento_carrito_pct) > 0 && !p.es_extra
+    (p) => p.sugerido_carrito && Number(p.descuento_carrito_pct) > 0 && p.activo !== false
   );
 
   const cambiarCantidad = (lineaId, cantidad) => {
