@@ -1,3 +1,4 @@
+import { textoExtras } from './extras';
 const CLAVE_LOCAL_STORAGE = 'antojo_config_impresion';
 
 const CONFIG_DEFAULT = {
@@ -38,7 +39,7 @@ function construirBloqueTicket(pedido) {
       const presentacionTexto = item.presentacion_nombre ? ` (${item.presentacion_nombre})` : '';
       const subtotal = item.subtotal ?? item.precio_unitario * item.cantidad;
       const extrasTexto = item.extras_detalle && item.extras_detalle.length > 0
-        ? `<div class="ticket-extra">  + ${item.extras_detalle.map((e) => escapeHtml(`${e.cantidad > 1 ? `${e.cantidad}x ` : ''}${e.nombre}`)).join(', ')}</div>`
+        ? `<div class="ticket-extra">  + ${escapeHtml(textoExtras(item.extras_detalle, item.cantidad))}</div>`
         : '';
       return `
         <div class="ticket-item">
@@ -88,7 +89,7 @@ function construirBloqueTicketCocina(pedido) {
       const nombre = item.producto_nombre || item.combo_nombre || 'Producto';
       const presentacionTexto = item.presentacion_nombre ? ` (${item.presentacion_nombre})` : '';
       const extrasTexto = item.extras_detalle && item.extras_detalle.length > 0
-        ? `<div class="ticket-cocina-extra">+ ${item.extras_detalle.map((e) => escapeHtml(`${e.cantidad > 1 ? `${e.cantidad}x ` : ''}${e.nombre}`)).join(', ')}</div>`
+        ? `<div class="ticket-cocina-extra">+ ${escapeHtml(textoExtras(item.extras_detalle, item.cantidad))}</div>`
         : '';
       return `
         <div class="ticket-cocina-item">${item.cantidad} x ${escapeHtml(nombre)}${escapeHtml(presentacionTexto)}</div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { textoExtra } from '../../utils/extras';
 
 const ETIQUETA_ESTADO = {
   pendiente: 'Pendiente',
@@ -113,7 +114,7 @@ export default function PedidoCard({
               {item.extras_detalle && item.extras_detalle.length > 0 && (
                 <span className="pedido-item-extras">
                   + {item.extras_detalle.map((e) => (
-                    `${e.cantidad > 1 ? `${e.cantidad}x ` : ''}${e.nombre}${e.sugerido_carrito ? ' 🛒' : ''}`
+                    `${textoExtra(e, item.cantidad)}${e.sugerido_carrito ? ' 🛒' : ''}`
                   )).join(', ')}
                 </span>
               )}

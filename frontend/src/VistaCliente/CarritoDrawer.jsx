@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api, { leerToken } from '../services/api';
+import { textoExtras } from '../utils/extras';
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
@@ -7,8 +8,6 @@ const formatearPrecio = (precio) =>
 const precioUnitarioLinea = (linea) =>
   Number(linea.item.precio) + (linea.extras || []).reduce((acc, e) => acc + Number(e.precio) * e.cantidad, 0);
 
-const textoExtras = (extras) =>
-  (extras || []).map((e) => `${e.cantidad > 1 ? `${e.cantidad}x ` : ''}${e.nombre}`).join(', ');
 
 function armarMensajeWhatsapp({ nombre, telefono, tipoEntrega, direccion, zona, costoEnvio, items, total, nota }) {
   const lineas = [
@@ -25,7 +24,7 @@ function armarMensajeWhatsapp({ nombre, telefono, tipoEntrega, direccion, zona, 
   lineas.push('', 'Productos:');
   items.forEach((linea) => {
     const extrasTexto = linea.extras && linea.extras.length > 0
-      ? ` (+ ${textoExtras(linea.extras)})`
+      ? ` (+ ${textoExtras(linea.extras, linea.cantidad)})`
       : '';
     const etiquetaSugerido = linea.sugerido ? ' 🛒(oferta carrito)' : '';
     const presentacionTexto = linea.item.presentacion_nombre ? ` (${linea.item.presentacion_nombre})` : '';
@@ -280,7 +279,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos = [], onClose
                       )}
                     </div>
                     {linea.extras && linea.extras.length > 0 && (
-                      <span className="pedido-item-extras">+ {textoExtras(linea.extras)}</span>
+                      <span className="pedido-item-extras">+ {textoExtras(linea.extras, linea.cantidad)}</span>
                     )}
                     <span className="pedido-item-precio">{formatearPrecio(precioUnitarioLinea(linea))} c/u</span>
                   </div>
