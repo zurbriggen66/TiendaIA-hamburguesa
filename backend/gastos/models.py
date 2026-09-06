@@ -72,12 +72,16 @@ class Gasto(models.Model):
     descripcion = models.CharField(max_length=200)
     monto = models.DecimalField(max_digits=10, decimal_places=2)
     metodo_pago = models.CharField(max_length=20, choices=METODOS_PAGO, default='efectivo')
-    # Turno del que salió la plata. Se asigna sola a la caja abierta al cargar el gasto.
-    # Sin esto, sacar $10.000 del cajón para comprar pan no se descontaba de ningún lado
-    # y el arqueo daba faltante sin explicación.
+    # Turno en el que se cargó el gasto. Sirve para reportar "gastos del turno";
+    # NO implica que la plata haya salido del cajón (ver sale_del_cajon).
     caja = models.ForeignKey(
         'pedidos.Caja', null=True, blank=True, on_delete=models.SET_NULL, related_name='gastos',
     )
+    # Un gasto tiene dos hechos independientes: que es un costo del negocio (siempre),
+    # y de dónde salió la plata físicamente (el cajón, el banco, la tarjeta). Solo el
+    # segundo afecta el arqueo, y adivinarlo por el método de pago estaba mal: el
+    # alquiler pagado por transferencia no sale del cajón, pero el pan sí.
+    sale_del_cajon = models.BooleanField(default=False)
     insumo = models.ForeignKey(Insumo, null=True, blank=True, on_delete=models.SET_NULL, related_name='gastos')
     cantidad = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     fecha = models.DateTimeField(auto_now_add=True)

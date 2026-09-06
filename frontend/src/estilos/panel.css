@@ -313,6 +313,8 @@
 .mov-cobro { background: var(--exito-suave); }
 .mov-vuelto { background: var(--alerta-suave); }
 .mov-gasto { background: var(--error-suave); }
+.mov-ingreso { background: var(--exito-suave); }
+.mov-retiro { background: var(--alerta-suave); }
 
 .mov-info {
   display: flex;
@@ -355,6 +357,9 @@
 
 .mov-monto-positivo { color: var(--exito); }
 .mov-monto-negativo { color: var(--error); }
+/* Un gasto que no salio del cajon aparece en la lista (paso en el turno) pero no
+   movio efectivo: mostrarlo como +$0 seria mentir sobre lo que se movio. */
+.mov-monto-neutro { color: var(--text-sutil); }
 
 .mov-ver-todos {
   width: 100%;
@@ -434,3 +439,33 @@
    devuelto por ahí). Es la única fila donde el color dice algo, por eso la excepción
    al criterio de un solo hue. */
 .desglose-metodos-barra-negativa { background: var(--error); }
+
+/* Check de "salió del cajón" en el formulario de gasto: destacado porque es la
+   diferencia entre que el arqueo cierre o marque un faltante inventado. */
+.checkbox-cajon {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  border-radius: var(--radio);
+  background: var(--alerta-suave);
+  border: 1px solid var(--alerta);
+}
+
+.checkbox-cajon span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.checkbox-cajon strong {
+  font-size: 0.86rem;
+  color: var(--text);
+}
+
+.checkbox-cajon small {
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}

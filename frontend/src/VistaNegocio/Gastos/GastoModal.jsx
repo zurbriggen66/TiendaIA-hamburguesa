@@ -10,16 +10,22 @@ const CATEGORIAS = [
   { value: 'otros', label: 'Otros' },
 ];
 
-export default function GastoModal({ insumos, onClose, onSaved }) {
+export default function GastoModal({ insumos, hayCajaAbierta = false, onClose, onSaved }) {
   const [categoria, setCategoria] = useState('insumos');
   const [descripcion, setDescripcion] = useState('');
   const [monto, setMonto] = useState('');
   const [metodoPago, setMetodoPago] = useState('efectivo');
   const [insumoId, setInsumoId] = useState(insumos[0] ? insumos[0].id : '');
   const [cantidad, setCantidad] = useState('');
+  // Marcado por defecto solo si el gasto es en efectivo y hay un turno abierto: es el
+  // caso típico (sacar plata del cajón para comprar). El alquiler pagado por
+  // transferencia es un gasto igual, pero no toca el cajón.
+  const [saleDelCajon, setSaleDelCajon] = useState(hayCajaAbierta);
   const [guardando, setGuardando] = useState(false);
 
   const esInsumo = categoria === 'insumos';
+  // Solo el efectivo sale de un cajón. Con otro método la pregunta no aplica.
+  const puedeSalirDelCajon = hayCajaAbierta && metodoPago === 'efectivo';
 
   const guardar = async (e) => {
     e.preventDefault();
@@ -37,6 +43,7 @@ export default function GastoModal({ insumos, onClose, onSaved }) {
       descripcion: descripcion.trim(),
       monto,
       metodo_pago: metodoPago,
+      sale_del_cajon: puedeSalirDelCajon && saleDelCajon,
     };
     if (esInsumo && insumoId && cantidad) {
       payload.insumo = insumoId;
@@ -107,6 +114,23 @@ export default function GastoModal({ insumos, onClose, onSaved }) {
               </select>
             </div>
           </div>
+
+          {/* Un gasto siempre es un costo del negocio, pero eso no dice de dónde salió
+              la plata. Solo lo que sale del cajón afecta el conteo al cerrar la caja;
+              adivinarlo por el método de pago marcaba faltantes que no existían. */}
+          {puedeSalirDelCajon && (
+            <label className="checkbox-vibrante checkbox-cajon">
+              <input
+                type="checkbox"
+                checked={saleDelCajon}
+                onChange={(e) => setSaleDelCajon(e.target.checked)}
+              />
+              <span>
+                <strong>Salió del cajón de la caja</strong>
+                <small>Se descuenta del efectivo que tenés que contar al cerrar el turno.</small>
+              </span>
+            </label>
+          )}
 
           {esInsumo && (
             insumos.length === 0 ? (

@@ -171,12 +171,37 @@ class Caja(models.Model):
             if pago.vuelto_monto and pago.vuelto_metodo:
                 sumar(pago.vuelto_metodo, -pago.vuelto_monto)
 
-        # Lo que se pagó del turno (comprar pan, pagar un flete) sale del método con
-        # el que se pagó. Antes no se descontaba de ningún lado.
+        # Solo los gastos que salieron del cajón. Un gasto es un costo del negocio
+        # siempre, pero eso no dice de dónde salió la plata: el alquiler pagado por
+        # transferencia no toca el cajón. Antes se descontaban todos por su método y
+        # el arqueo marcaba faltantes inventados.
         for gasto in self.gastos.all():
-            sumar(gasto.metodo_pago, -gasto.monto)
+            if gasto.sale_del_cajon:
+                sumar('efectivo', -gasto.monto)
+
+        # Efectivo que entra o sale sin ser una venta: cambio, retiros al banco.
+        for mov in self.movimientos_manuales.all():
+            sumar('efectivo', mov.efecto_en_cajon)
 
         return saldos
+
+    def efectivo_en_cajon(self):
+        """Lo que debería haber en el cajón, nunca negativo.
+
+        Un cajón no puede tener menos que nada: si la cuenta da negativo es que falta
+        registrar de dónde salió esa plata, no que el local deba dinero. Se corta en 0
+        y el faltante se informa aparte, en `descuadre_efectivo`.
+        """
+        return max(self.desglose_por_metodo()['efectivo'], Decimal('0'))
+
+    def descuadre_efectivo(self):
+        """Cuánto se pasaron las salidas de lo que entró. 0 si la cuenta cierra.
+
+        No es lo mismo que la diferencia del arqueo: esta no compara contra lo contado
+        a mano, avisa que lo REGISTRADO es imposible y que falta cargar un ingreso.
+        """
+        saldo = self.desglose_por_metodo()['efectivo']
+        return -saldo if saldo < 0 else Decimal('0')
 
     def movimientos(self):
         """Cada entrada y salida de plata del turno, en orden.
@@ -233,11 +258,26 @@ class Caja(models.Model):
                 'tipo': 'gasto',
                 'descripcion': f'Gasto: {gasto.descripcion}',
                 'detalle': gasto.get_categoria_display(),
-                'nota': '',
-                'metodo': gasto.metodo_pago,
+                # Un gasto que no salió del cajón se sigue listando (pasó en el turno),
+                # pero se aclara para que nadie lo busque en el conteo del efectivo.
+                'nota': '' if gasto.sale_del_cajon else 'no salió del cajón',
+                'metodo': 'efectivo' if gasto.sale_del_cajon else gasto.metodo_pago,
                 'metodo_label': etiquetas.get(gasto.metodo_pago, gasto.metodo_pago),
-                'monto': -gasto.monto,
+                'monto': -gasto.monto if gasto.sale_del_cajon else Decimal('0'),
                 'fecha': gasto.fecha,
+            })
+
+        for mov in self.movimientos_manuales.all():
+            es_ingreso = mov.tipo == 'ingreso'
+            movs.append({
+                'tipo': mov.tipo,
+                'descripcion': mov.get_tipo_display(),
+                'detalle': mov.motivo or ('Se agregó efectivo al cajón' if es_ingreso else 'Se sacó efectivo del cajón'),
+                'nota': '',
+                'metodo': 'efectivo',
+                'metodo_label': etiquetas['efectivo'],
+                'monto': mov.efecto_en_cajon,
+                'fecha': mov.creado,
             })
 
         movs.sort(key=lambda m: m['fecha'], reverse=True)
@@ -247,7 +287,39 @@ class Caja(models.Model):
         """Sobrante (+) o faltante (−) del arqueo. None si todavía no se contó."""
         if self.efectivo_contado is None:
             return None
-        return self.efectivo_contado - self.desglose_por_metodo()['efectivo']
+        return self.efectivo_contado - self.efectivo_en_cajon()
+
+
+class MovimientoCaja(models.Model):
+    """Efectivo que entra o sale del cajón sin ser una venta ni un gasto.
+
+    Poner cambio al empezar, agregar billetes para poder dar vuelto, o retirar plata al
+    banco a mitad del turno. Sin esto el cajón solo podía subir vendiendo, y un gasto
+    grande lo dejaba en un negativo imposible: no se puede sacar $45.000 de un cajón
+    que tiene $13.000 sin que alguien haya puesto la diferencia.
+    """
+
+    TIPOS = [
+        ('ingreso', 'Ingreso de efectivo'),
+        ('retiro', 'Retiro de efectivo'),
+    ]
+
+    caja = models.ForeignKey(Caja, related_name='movimientos_manuales', on_delete=models.CASCADE)
+    tipo = models.CharField(max_length=10, choices=TIPOS)
+    monto = models.DecimalField(max_digits=10, decimal_places=2)
+    motivo = models.CharField(max_length=200, blank=True)
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-creado']
+
+    def __str__(self):
+        return f'{self.get_tipo_display()} ${self.monto}'
+
+    @property
+    def efecto_en_cajon(self):
+        """Con signo: un retiro resta."""
+        return self.monto if self.tipo == 'ingreso' else -self.monto
 
 
 class Pago(models.Model):

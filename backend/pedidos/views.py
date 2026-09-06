@@ -11,7 +11,10 @@ from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 from core.permissions import EsAdmin, EsAdminOSoloLectura, es_staff
 from .models import Pedido, Localidad, Pago, Caja
-from .serializers import PedidoSerializer, LocalidadSerializer, PagoSerializer, CajaSerializer, mover_stock_item
+from .serializers import (
+    PedidoSerializer, LocalidadSerializer, PagoSerializer, CajaSerializer,
+    MovimientoCajaSerializer, mover_stock_item,
+)
 from clientes.puntos import acreditar as acreditar_puntos
 
 
@@ -124,7 +127,7 @@ class CajaViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSet):
     # Sin el prefetch, cada caja del historial resolvia sus totales con sus propias
     # consultas: 22 queries por fila, o ~2.000 para tres meses de turnos.
     queryset = Caja.objects.prefetch_related(
-        'pedidos__items__extras', 'pedidos__pagos', 'gastos',
+        'pedidos__items__extras', 'pedidos__pagos', 'gastos', 'movimientos_manuales',
     )
     serializer_class = CajaSerializer
 
@@ -178,6 +181,36 @@ class CajaViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSet):
             metodo_inicial=request.data.get('metodo_inicial') or 'efectivo',
         )
         return Response(self.get_serializer(caja).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], url_path='mover-efectivo')
+    def mover_efectivo(self, request, pk=None):
+        """Ingreso o retiro de efectivo del cajón, sin que sea una venta ni un gasto.
+
+        Es lo que faltaba para que el cajón pudiera subir sin vender: poner cambio,
+        agregar billetes para dar vuelto, o retirar plata al banco a mitad del turno.
+        """
+        caja = self.get_object()
+        if not caja.esta_abierta:
+            return Response(
+                {'detail': 'Esa caja ya está cerrada: no se le puede mover efectivo.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = MovimientoCajaSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Un retiro no puede dejar el cajón en negativo: no se puede sacar plata que
+        # no está. El ingreso nunca tiene ese problema.
+        if serializer.validated_data['tipo'] == 'retiro':
+            disponible = caja.efectivo_en_cajon()
+            if serializer.validated_data['monto'] > disponible:
+                return Response(
+                    {'monto': f'En el cajón hay ${disponible}. No se puede retirar más que eso.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        serializer.save(caja=caja)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['get'])
     def movimientos(self, request, pk=None):

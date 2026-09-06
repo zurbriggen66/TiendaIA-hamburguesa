@@ -25,6 +25,7 @@ export default function GastosPage() {
   const [modalRestock, setModalRestock] = useState(null);
   const [modalGastoFijo, setModalGastoFijo] = useState(null);
   const [modalPagar, setModalPagar] = useState(null);
+  const [hayCajaAbierta, setHayCajaAbierta] = useState(false);
   const [tab, setTab] = useState('stock');
 
   const cargarDatos = useCallback(async () => {
@@ -45,6 +46,12 @@ export default function GastosPage() {
     } finally {
       setCargando(false);
     }
+  }, []);
+
+  useEffect(() => {
+    api.get('/cajas/actual/')
+      .then((r) => setHayCajaAbierta(Boolean(r.data)))
+      .catch(() => setHayCajaAbierta(false));
   }, []);
 
   useEffect(() => {
@@ -285,6 +292,7 @@ export default function GastosPage() {
       {mostrarGastoModal && (
         <GastoModal
           insumos={insumos}
+          hayCajaAbierta={hayCajaAbierta}
           onClose={() => setMostrarGastoModal(false)}
           onSaved={() => { setMostrarGastoModal(false); cargarDatos(); }}
         />

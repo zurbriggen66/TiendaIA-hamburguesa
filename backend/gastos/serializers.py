@@ -41,7 +41,11 @@ class GastoSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         from pedidos.models import Caja
 
-        validated_data['caja'] = Caja.objects.filter(cerrada_en__isnull=True).order_by('-abierta_en').first()
+        caja_abierta = Caja.objects.filter(cerrada_en__isnull=True).order_by('-abierta_en').first()
+        validated_data['caja'] = caja_abierta
+        # Sin turno abierto no hay cajon del que salir, por mas que lo marquen.
+        if not caja_abierta:
+            validated_data['sale_del_cajon'] = False
         gasto = Gasto.objects.create(**validated_data)
         insumo = gasto.insumo
         if gasto.categoria == 'insumos' and insumo and gasto.cantidad:

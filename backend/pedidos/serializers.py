@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from rest_framework import serializers
-from .models import METODOS_PAGO, Pedido, DetallePedido, DetalleExtra, Localidad, Pago, Caja
+from .models import METODOS_PAGO, Pedido, DetallePedido, DetalleExtra, Localidad, MovimientoCaja, Pago, Caja
 from productos.models import Producto, Presentacion
 from antojo.models import AntojoDelDia
 from negocio.models import ConfiguracionSitio
@@ -23,6 +23,8 @@ class CajaSerializer(serializers.ModelSerializer):
     total_pedidos = serializers.SerializerMethodField()
     total_gastos = serializers.SerializerMethodField()
     desglose = serializers.SerializerMethodField()
+    efectivo_en_cajon = serializers.SerializerMethodField()
+    descuadre_efectivo = serializers.SerializerMethodField()
     diferencia_efectivo = serializers.SerializerMethodField()
     metodo_inicial_label = serializers.CharField(source='get_metodo_inicial_display', read_only=True)
 
@@ -32,6 +34,7 @@ class CajaSerializer(serializers.ModelSerializer):
             'id', 'dia', 'abierta_en', 'cerrada_en', 'nota_apertura', 'nota_cierre',
             'esta_abierta', 'total_ventas', 'total_cobrado', 'total_propinas', 'total_pedidos',
             'total_gastos', 'desglose', 'efectivo_contado', 'diferencia_efectivo',
+            'efectivo_en_cajon', 'descuadre_efectivo',
             'monto_inicial', 'metodo_inicial', 'metodo_inicial_label',
         ]
         read_only_fields = ['dia', 'abierta_en', 'cerrada_en', 'efectivo_contado']
@@ -61,6 +64,12 @@ class CajaSerializer(serializers.ModelSerializer):
             for codigo, _ in METODOS_PAGO
         ]
 
+    def get_efectivo_en_cajon(self, obj):
+        return obj.efectivo_en_cajon()
+
+    def get_descuadre_efectivo(self, obj):
+        return obj.descuadre_efectivo()
+
     def get_diferencia_efectivo(self, obj):
         return obj.diferencia_efectivo()
 
@@ -71,6 +80,20 @@ class CajaSerializer(serializers.ModelSerializer):
 
     def get_total_pedidos(self, obj):
         return len(obj.pedidos_validos())
+
+
+class MovimientoCajaSerializer(serializers.ModelSerializer):
+    tipo_label = serializers.CharField(source='get_tipo_display', read_only=True)
+
+    class Meta:
+        model = MovimientoCaja
+        fields = ['id', 'caja', 'tipo', 'tipo_label', 'monto', 'motivo', 'creado']
+        read_only_fields = ['caja']
+
+    def validate_monto(self, valor):
+        if valor <= 0:
+            raise serializers.ValidationError('El monto tiene que ser mayor a cero.')
+        return valor
 
 
 class PagoSerializer(serializers.ModelSerializer):

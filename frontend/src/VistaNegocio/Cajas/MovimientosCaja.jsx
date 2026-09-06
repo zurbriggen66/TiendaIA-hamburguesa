@@ -11,6 +11,8 @@ const ESTILO = {
   cobro: { icono: '💰', clase: 'mov-cobro' },
   vuelto: { icono: '↩️', clase: 'mov-vuelto' },
   gasto: { icono: '🧾', clase: 'mov-gasto' },
+  ingreso: { icono: '⬇️', clase: 'mov-ingreso' },
+  retiro: { icono: '⬆️', clase: 'mov-retiro' },
 };
 
 const VISIBLES_AL_INICIO = 6;
@@ -52,9 +54,13 @@ export default function MovimientosCaja({ movimientos, cargando }) {
               </div>
               <span className="mov-metodo">{m.metodo_label}</span>
               <span className="mov-hora">{formatearHora(m.fecha)}</span>
-              <span className={`mov-monto ${monto < 0 ? 'mov-monto-negativo' : 'mov-monto-positivo'}`}>
-                {monto < 0 ? '−' : '+'} {formatearPrecio(Math.abs(monto))}
-              </span>
+              {monto === 0 ? (
+                <span className="mov-monto mov-monto-neutro">—</span>
+              ) : (
+                <span className={`mov-monto ${monto < 0 ? 'mov-monto-negativo' : 'mov-monto-positivo'}`}>
+                  {monto < 0 ? '−' : '+'} {formatearPrecio(Math.abs(monto))}
+                </span>
+              )}
             </li>
           );
         })}

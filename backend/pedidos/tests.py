@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from antojo.models import AntojoDelDia
 
-from .models import Caja, DetallePedido, Pago, Pedido
+from .models import Caja, DetallePedido, MovimientoCaja, Pago, Pedido
 from .serializers import PagoSerializer
 from gastos.models import Gasto
 from productos.models import Categoria, Presentacion, Producto
@@ -289,13 +289,23 @@ class DesgloseDeCajaTests(TestCase):
 
         self.assertEqual(self.caja.desglose_por_metodo()['efectivo'], Decimal('5000') + Decimal('28000'))
 
-    def test_un_gasto_del_turno_se_descuenta_de_su_metodo(self):
+    def test_un_gasto_marcado_como_del_cajon_se_descuenta_del_efectivo(self):
         Gasto.objects.create(
-            categoria='insumos', descripcion='Pan', monto=10000,
-            metodo_pago='efectivo', caja=self.caja,
+            categoria='insumos', descripcion='Pan', monto=3000,
+            metodo_pago='efectivo', caja=self.caja, sale_del_cajon=True,
         )
 
-        self.assertEqual(self.caja.desglose_por_metodo()['efectivo'], Decimal('-5000'))
+        self.assertEqual(self.caja.desglose_por_metodo()['efectivo'], Decimal('2000'))
+
+    def test_un_gasto_del_turno_que_no_salio_del_cajon_no_lo_toca(self):
+        # Es el caso que rompia la caja: se descontaba todo gasto en efectivo del turno,
+        # aunque la plata no hubiera salido de ese cajon.
+        Gasto.objects.create(
+            categoria='servicios', descripcion='Alquiler', monto=10000,
+            metodo_pago='efectivo', caja=self.caja, sale_del_cajon=False,
+        )
+
+        self.assertEqual(self.caja.desglose_por_metodo()['efectivo'], Decimal('5000'))
 
     def test_un_pedido_cancelado_no_cuenta_en_el_desglose(self):
         pedido = self._pedido()
@@ -476,7 +486,8 @@ class MovimientosDeCajaTests(TestCase):
         )
         Pago.objects.create(pedido=self._pedido(cliente='Sofia'), metodo='efectivo', monto=27325, propina=1000)
         Gasto.objects.create(
-            categoria='insumos', descripcion='Pan', monto=10000, metodo_pago='efectivo', caja=self.caja,
+            categoria='insumos', descripcion='Pan', monto=10000, metodo_pago='efectivo',
+            caja=self.caja, sale_del_cajon=True,
         )
 
         por_metodo = {}
@@ -513,3 +524,96 @@ class MovimientosDeCajaTests(TestCase):
         self.assertEqual(fechas, sorted(fechas, reverse=True))
         # La apertura es lo mas viejo del turno, siempre va ultima.
         self.assertEqual(self.caja.movimientos()[-1]['tipo'], 'apertura')
+
+
+class CajonDeEfectivoTests(TestCase):
+    """El cajón es plata física: solo sube con lo que entra en mano y solo baja con lo
+    que sale de ahí. No puede quedar en negativo."""
+
+    def setUp(self):
+        User.objects.create_user('duena', password='x', is_staff=True)
+        self.client.force_login(User.objects.get(username='duena'))
+        categoria = Categoria.objects.create(nombre='Burguers')
+        self.producto = Producto.objects.create(categoria=categoria, nombre='Inglesa', precio=10000)
+        self.caja = Caja.objects.create(dia='2026-09-06', monto_inicial=13000, metodo_inicial='efectivo')
+
+    def _gasto(self, monto, sale_del_cajon, metodo='efectivo'):
+        return Gasto.objects.create(
+            categoria='otros', descripcion='Compra', monto=monto,
+            metodo_pago=metodo, caja=self.caja, sale_del_cajon=sale_del_cajon,
+        )
+
+    def test_un_gasto_que_no_salio_del_cajon_no_toca_el_efectivo(self):
+        # El alquiler pagado por transferencia es un gasto del turno, pero no sale
+        # del cajón: descontarlo inventaba un faltante en el arqueo.
+        self._gasto(45000, sale_del_cajon=False, metodo='transferencia')
+
+        self.assertEqual(self.caja.efectivo_en_cajon(), Decimal('13000'))
+        self.assertEqual(self.caja.descuadre_efectivo(), Decimal('0'))
+
+    def test_un_gasto_del_cajon_si_lo_descuenta(self):
+        self._gasto(3000, sale_del_cajon=True)
+
+        self.assertEqual(self.caja.efectivo_en_cajon(), Decimal('10000'))
+
+    def test_el_cajon_nunca_queda_en_negativo_y_avisa_el_faltante(self):
+        # El caso real: $45.000 de gasto sobre un fondo de $13.000. Fisicamente
+        # imposible, asi que se corta en 0 y se informa lo que falta registrar.
+        self._gasto(45000, sale_del_cajon=True)
+
+        self.assertEqual(self.caja.efectivo_en_cajon(), Decimal('0'))
+        self.assertEqual(self.caja.descuadre_efectivo(), Decimal('32000'))
+
+    def test_un_ingreso_de_efectivo_sube_el_cajon(self):
+        respuesta = self.client.post(
+            f'/api/cajas/{self.caja.id}/mover-efectivo/',
+            data={'tipo': 'ingreso', 'monto': '20000', 'motivo': 'Cambio para vueltos'},
+            content_type='application/json',
+        )
+
+        self.assertEqual(respuesta.status_code, 201, respuesta.content)
+        self.assertEqual(self.caja.efectivo_en_cajon(), Decimal('33000'))
+
+    def test_un_retiro_baja_el_cajon(self):
+        respuesta = self.client.post(
+            f'/api/cajas/{self.caja.id}/mover-efectivo/',
+            data={'tipo': 'retiro', 'monto': '3000', 'motivo': 'Al banco'},
+            content_type='application/json',
+        )
+
+        self.assertEqual(respuesta.status_code, 201, respuesta.content)
+        self.assertEqual(self.caja.efectivo_en_cajon(), Decimal('10000'))
+
+    def test_no_se_puede_retirar_mas_de_lo_que_hay(self):
+        respuesta = self.client.post(
+            f'/api/cajas/{self.caja.id}/mover-efectivo/',
+            data={'tipo': 'retiro', 'monto': '99999'},
+            content_type='application/json',
+        )
+
+        self.assertEqual(respuesta.status_code, 400, respuesta.content)
+        self.assertEqual(self.caja.efectivo_en_cajon(), Decimal('13000'))
+
+    def test_no_se_puede_mover_efectivo_de_una_caja_cerrada(self):
+        self.caja.cerrada_en = '2026-09-06T23:00:00Z'
+        self.caja.save()
+
+        respuesta = self.client.post(
+            f'/api/cajas/{self.caja.id}/mover-efectivo/',
+            data={'tipo': 'ingreso', 'monto': '1000'},
+            content_type='application/json',
+        )
+
+        self.assertEqual(respuesta.status_code, 400, respuesta.content)
+
+    def test_los_movimientos_siguen_sumando_el_desglose_con_ingresos_y_gastos(self):
+        # El invariante tiene que aguantar los tipos nuevos, no solo cobros.
+        MovimientoCaja.objects.create(caja=self.caja, tipo='ingreso', monto=20000)
+        MovimientoCaja.objects.create(caja=self.caja, tipo='retiro', monto=5000)
+        self._gasto(3000, sale_del_cajon=True)
+        self._gasto(9000, sale_del_cajon=False, metodo='transferencia')
+
+        suma = sum((m['monto'] for m in self.caja.movimientos() if m['metodo'] == 'efectivo'), Decimal('0'))
+
+        self.assertEqual(suma, self.caja.desglose_por_metodo()['efectivo'])
+        self.assertEqual(suma, Decimal('25000'))  # 13000 + 20000 - 5000 - 3000

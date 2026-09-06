@@ -7,6 +7,7 @@ import CerrarCajaModal from './CerrarCajaModal';
 import CajaDetalleModal from './CajaDetalleModal';
 import DesgloseMetodos from './DesgloseMetodos';
 import MovimientosCaja from './MovimientosCaja';
+import MoverEfectivoModal from './MoverEfectivoModal';
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
@@ -16,9 +17,6 @@ const formatearFechaHora = (fecha) =>
 
 const formatearDia = (dia) =>
   new Date(`${dia}T00:00:00`).toLocaleDateString('es-AR', { weekday: 'long', day: '2-digit', month: 'long' });
-
-const saldoDe = (caja, metodo) =>
-  Number((caja?.desglose || []).find((d) => d.metodo === metodo)?.monto || 0);
 
 /** Tarjeta de cifra: la barra de color de la izquierda es la única decoración. */
 function Kpi({ etiqueta, valor, detalle, icono, tono = 'neutro' }) {
@@ -44,6 +42,7 @@ export default function CajasPage() {
   const [mostrarAbrir, setMostrarAbrir] = useState(false);
   const [mostrarCerrar, setMostrarCerrar] = useState(false);
   const [cajaDetalleId, setCajaDetalleId] = useState(null);
+  const [moverEfectivo, setMoverEfectivo] = useState(null); // 'ingreso' | 'retiro' | null
   const [tab, setTab] = useState('resumen');
   // '' = todos los meses. Con cuatro turnos no molesta, pero al año son 300 y sin
   // filtro no hay forma de encontrar un día puntual.
@@ -135,11 +134,15 @@ export default function CajasPage() {
               <>
                 <div className="kpi-grid">
                   <Kpi
-                    etiqueta="Efectivo en caja"
-                    valor={formatearPrecio(saldoDe(cajaActual, 'efectivo'))}
-                    detalle="Debería haber en el cajón"
+                    etiqueta="Efectivo en el cajón"
+                    valor={formatearPrecio(cajaActual.efectivo_en_cajon)}
+                    detalle={
+                      Number(cajaActual.descuadre_efectivo) > 0
+                        ? `⚠️ Las salidas superan lo que entró por ${formatearPrecio(cajaActual.descuadre_efectivo)}`
+                        : 'Debería haber en el cajón'
+                    }
                     icono="👛"
-                    tono="exito"
+                    tono={Number(cajaActual.descuadre_efectivo) > 0 ? 'alerta' : 'exito'}
                   />
                   <Kpi
                     etiqueta="Cobrado del turno"
@@ -150,8 +153,8 @@ export default function CajasPage() {
                   />
                   <Kpi
                     etiqueta="Gastos del turno"
-                    valor={`−${formatearPrecio(cajaActual.total_gastos)}`}
-                    detalle="Pagados del cajón"
+                    valor={formatearPrecio(cajaActual.total_gastos)}
+                    detalle="Cargados en este turno"
                     icono="🧾"
                     tono="alerta"
                   />
@@ -207,8 +210,15 @@ export default function CajasPage() {
                           <span>Sale del cajón del turno</span>
                         </span>
                       </button>
+                      <button type="button" className="accion-rapida" onClick={() => setMoverEfectivo('ingreso')}>
+                        <span className="accion-rapida-icono accion-info" aria-hidden="true">💵</span>
+                        <span className="accion-rapida-texto">
+                          <strong>Mover efectivo</strong>
+                          <span>Agregar o retirar del cajón</span>
+                        </span>
+                      </button>
                       <button type="button" className="accion-rapida" onClick={() => setMostrarCerrar(true)}>
-                        <span className="accion-rapida-icono accion-info" aria-hidden="true">🔐</span>
+                        <span className="accion-rapida-icono accion-exito" aria-hidden="true">🔐</span>
                         <span className="accion-rapida-texto">
                           <strong>Cerrar y arquear</strong>
                           <span>Contar el cajón y cerrar</span>
@@ -355,6 +365,15 @@ export default function CajasPage() {
           caja={cajaActual}
           onClose={() => setMostrarCerrar(false)}
           onSaved={() => { setMostrarCerrar(false); cargarDatos(); }}
+        />
+      )}
+
+      {moverEfectivo && cajaActual && (
+        <MoverEfectivoModal
+          caja={cajaActual}
+          tipoInicial={moverEfectivo}
+          onClose={() => setMoverEfectivo(null)}
+          onSaved={() => { setMoverEfectivo(null); cargarDatos(); }}
         />
       )}
 
