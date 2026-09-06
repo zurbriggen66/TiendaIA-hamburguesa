@@ -3,6 +3,7 @@ import api from '../../services/api';
 import BarrasDesglose, { formatearPrecio } from './BarrasDesglose';
 import GraficoVentas from './GraficoVentas';
 import GraficoTorta from './GraficoTorta';
+import BarraProporcion from './BarraProporcion';
 
 const pad2 = (n) => String(n).padStart(2, '0');
 // OJO: no usar toISOString() acá — convierte a UTC y en Argentina (UTC-3) eso hace
@@ -190,10 +191,14 @@ export default function EstadisticasPage() {
               <p className="estado-vacio-chico">Todavía no hay ventas registradas.</p>
             ) : (
               <div className="ranking-productos">
-                {datos.productos_mas_vendidos.map((p, i) => {
-                  const maxCantidad = datos.productos_mas_vendidos[0].cantidad_total;
-                  const porcentaje = Math.max((p.cantidad_total / maxCantidad) * 100, 6);
-                  return (
+                {/* El porcentaje es sobre el TOTAL vendido, no sobre el primer puesto:
+                    escalar contra el máximo hacía que el #1 siempre se viera lleno,
+                    llevándose el 80% de las ventas o el 12%. */}
+                {(() => {
+                  const totalUnidades = datos.productos_mas_vendidos.reduce(
+                    (acc, p) => acc + Number(p.cantidad_total), 0,
+                  );
+                  return datos.productos_mas_vendidos.map((p, i) => (
                     <div key={p.producto_id} className="ranking-fila">
                       <span className="ranking-puesto">#{i + 1}</span>
                       <div className="ranking-info">
@@ -201,61 +206,25 @@ export default function EstadisticasPage() {
                           <strong>{p.producto_nombre}</strong>
                           <span>{p.cantidad_total} vendidos · {formatearPrecio(p.total)}</span>
                         </div>
-                        <div className="ranking-barra-fondo">
-                          <div className="ranking-barra" style={{ '--bar-width': `${porcentaje}%` }} />
-                        </div>
+                        <BarraProporcion valor={p.cantidad_total} total={totalUnidades} />
                       </div>
                     </div>
-                  );
-                })}
+                  ));
+                })()}
               </div>
             )}
 
-            <div className="seccion-header">
-              <h3>Cuánto te cuesta cada producto</h3>
-            </div>
-            {(datos.costos_productos || []).length === 0 ? (
-              <p className="estado-vacio-chico">
-                Cargá qué insumos usa cada producto (en Productos) y registrá sus compras
-                para ver acá cuánto te cuesta hacerlo.
+            {/* El costo por producto vive en Balance, que además muestra el desglose de
+                la receta. Tenerlo también acá era mantener la misma pantalla dos veces
+                y garantizar que en algún momento dijeran cosas distintas. */}
+            <div className="panel balance-alerta">
+              <strong>⚖️ ¿Cuánto te cuesta cada producto?</strong>
+              <p>
+                Está en <a href="/admin/balance" className="enlace-seccion">Balance</a>, con el
+                desglose de la receta: cuántas unidades de cada insumo lleva, a qué precio, y
+                cuánto te deja al venderlo.
               </p>
-            ) : (
-              <div className="ranking-productos">
-                {datos.costos_productos.map((p) => (
-                  <div key={p.producto_id} className="ranking-fila">
-                    <div className="ranking-info">
-                      <div className="ranking-nombre-linea">
-                        <strong>{p.producto_nombre}</strong>
-                        <span>
-                          {p.margen_pct === null ? 'sin precio' : `${p.margen_pct}% de margen`}
-                        </span>
-                      </div>
-                      <div className="ranking-nombre-linea">
-                        <span>
-                          Cobrás {formatearPrecio(p.precio)} · insumos {formatearPrecio(p.costo)}
-                          {' '}· te queda {formatearPrecio(p.ganancia)}
-                        </span>
-                      </div>
-                      {p.insumos_sin_costo.length > 0 && (
-                        <div className="ranking-nombre-linea">
-                          <span>
-                            ⚠️ Falta cargar la compra de {p.insumos_sin_costo.join(', ')}:
-                            {' '}te cuesta más de lo que dice acá.
-                          </span>
-                        </div>
-                      )}
-                      <div className="ranking-barra-fondo">
-                        <div
-                          className="ranking-barra"
-                          style={{ '--bar-width': `${Math.min(Math.max(p.margen_pct ?? 0, 2), 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
+            </div>
             <div className="seccion-header">
               <h3>Insumos con más gasto</h3>
             </div>
@@ -263,10 +232,11 @@ export default function EstadisticasPage() {
               <p className="estado-vacio-chico">Todavía no registraste compras de insumos.</p>
             ) : (
               <div className="ranking-productos">
-                {datos.insumos_mas_comprados.map((ins, i) => {
-                  const maxTotal = datos.insumos_mas_comprados[0].total;
-                  const porcentaje = Math.max((ins.total / maxTotal) * 100, 6);
-                  return (
+                {(() => {
+                  const totalComprado = datos.insumos_mas_comprados.reduce(
+                    (acc, ins) => acc + Number(ins.total), 0,
+                  );
+                  return datos.insumos_mas_comprados.map((ins, i) => (
                     <div key={ins.insumo_id} className="ranking-fila">
                       <span className="ranking-puesto">#{i + 1}</span>
                       <div className="ranking-info">
@@ -274,13 +244,11 @@ export default function EstadisticasPage() {
                           <strong>{ins.insumo_nombre}</strong>
                           <span>{ins.cantidad_total} {ins.unidad} · {formatearPrecio(ins.total)}</span>
                         </div>
-                        <div className="ranking-barra-fondo">
-                          <div className="ranking-barra" style={{ '--bar-width': `${porcentaje}%` }} />
-                        </div>
+                        <BarraProporcion valor={ins.total} total={totalComprado} />
                       </div>
                     </div>
-                  );
-                })}
+                  ));
+                })()}
               </div>
             )}
           </>

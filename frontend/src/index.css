@@ -3149,20 +3149,6 @@ body {
   white-space: nowrap;
 }
 
-.ranking-barra-fondo {
-  background: var(--surface-2);
-  border-radius: 999px;
-  height: 8px;
-  overflow: hidden;
-}
-
-.ranking-barra {
-  height: 100%;
-  width: var(--bar-width, 0%);
-  background: linear-gradient(90deg, #f4854a, #e8630c);
-  border-radius: 999px;
-}
-
 /* === VISTA CLIENTE - ANTOJO DEL DÍA (AntojoDelDia.jsx) === */
 .antojo-dia {
   max-width: 900px;

@@ -421,25 +421,9 @@
 
 .desglose-metodos-negativo { color: var(--error); }
 
-.desglose-metodos-pista {
-  grid-column: 1 / -1;
-  height: 6px;
-  border-radius: var(--radio-full);
-  background: var(--surface-3);
-  overflow: hidden;
-}
-
-.desglose-metodos-barra {
-  height: 100%;
-  border-radius: var(--radio-full);
-  background: var(--accent);
-}
-
 /* Un saldo negativo significa que salió más de lo que entró por esa vía (un vuelto
    devuelto por ahí). Es la única fila donde el color dice algo, por eso la excepción
    al criterio de un solo hue. */
-.desglose-metodos-barra-negativa { background: var(--error); }
-
 /* Check de "salió del cajón" en el formulario de gasto: destacado porque es la
    diferencia entre que el arqueo cierre o marque un faltante inventado. */
 .checkbox-cajon {
@@ -783,4 +767,50 @@
   font-size: 0.78rem;
   line-height: 1.45;
   color: var(--alerta);
+}
+
+/* --- Barra de proporción (compartida por todas las estadísticas) ---------- */
+.proporcion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 5px;
+}
+
+.proporcion-pista {
+  flex: 1;
+  height: 6px;
+  min-width: 40px;
+  border-radius: var(--radio-full);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.proporcion-barra {
+  height: 100%;
+  border-radius: var(--radio-full);
+  background: var(--accent);
+  transition: width 0.25s ease;
+}
+
+.proporcion-pct {
+  min-width: 40px;
+  text-align: right;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-sutil);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Nota del saldo negativo en el desglose de la caja. */
+.desglose-metodos-nota {
+  grid-column: 1 / -1;
+  font-size: 0.72rem;
+  color: var(--error);
+}
+
+.enlace-seccion {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: underline;
 }

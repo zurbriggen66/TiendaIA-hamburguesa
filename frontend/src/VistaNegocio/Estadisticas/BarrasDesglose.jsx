@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import BarraProporcion from './BarraProporcion';
 
 export const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(precio);
@@ -12,13 +13,11 @@ export default function BarrasDesglose({ filas, total, detalleSecundario }) {
   const [abierta, setAbierta] = useState(null);
 
   if (filas.length === 0) return null;
-  const maximo = Math.max(...filas.map((f) => Number(f.total)));
 
   return (
     <div className="ranking-productos">
       {filas.map((fila) => {
         const monto = Number(fila.total);
-        const porcentajeDelTotal = total > 0 ? Math.round((monto / total) * 100) : 0;
         const estaAbierta = abierta === fila.clave;
         const detalle = fila.gastos || [];
         const sePuedeAbrir = detalle.length > 0;
@@ -29,11 +28,10 @@ export default function BarrasDesglose({ filas, total, detalleSecundario }) {
               <strong>
                 {sePuedeAbrir && <span className="desglose-flecha">{estaAbierta ? '▾' : '▸'}</span>} {fila.etiqueta}
               </strong>
-              <span>{formatearPrecio(monto)} · {porcentajeDelTotal}%</span>
+              <span>{formatearPrecio(monto)}</span>
             </div>
-            <div className="ranking-barra-fondo">
-              <div className="ranking-barra" style={{ '--bar-width': `${Math.max((monto / maximo) * 100, 6)}%` }} />
-            </div>
+            {/* El porcentaje va en la barra, no repetido en el texto. */}
+            <BarraProporcion valor={monto} total={total} />
           </div>
         );
 
