@@ -39,6 +39,22 @@ class Insumo(models.Model):
             return (self.precio * (Decimal(1) - descuento)).quantize(Decimal('1'))
         return self.precio
 
+    def costo_unitario(self):
+        """Lo que cuesta reponer 1 unidad, segun la ultima compra cargada.
+
+        Se deriva de los Gasto de restock (monto / cantidad) en vez de guardarse a
+        mano en un campo: el dueño ya carga cada compra, y un campo aparte quedaria
+        desactualizado. Se usa la ULTIMA compra y no un promedio historico porque
+        para decidir el precio de venta lo que importa es lo que sale reponerlo hoy.
+
+        None si nunca se cargo una compra de este insumo: distinto de 0, y quien lo
+        use tiene que mostrarlo como dato faltante en vez de sumar cero.
+        """
+        ultima = self.gastos.filter(cantidad__gt=0).order_by('-fecha', '-id').first()
+        if ultima is None:
+            return None
+        return (ultima.monto / ultima.cantidad).quantize(Decimal('0.01'))
+
 
 class Gasto(models.Model):
     CATEGORIAS = [

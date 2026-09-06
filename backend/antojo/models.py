@@ -19,6 +19,28 @@ class AntojoDelDia(models.Model):
     def esta_vigente(self):
         return self.activo and (self.activo_hasta is None or self.activo_hasta > timezone.now())
 
+    @classmethod
+    def vigente(cls):
+        """El antojo que corre ahora mismo, o None.
+
+        Unico lugar donde se resuelve cual es. Antes el banner de la tienda y el
+        precio del pedido hacian cada uno su consulta, y la del precio filtraba solo
+        por `activo` sin mirar `activo_hasta`: el antojo vencido desaparecia de la
+        tienda pero seguia descontando en todos los pedidos nuevos.
+
+        El orden por -id desempata cuando hay varias filas activas cargadas. Sin el,
+        `first()` devuelve cualquiera y el banner podia mostrar un antojo distinto
+        del que se estaba cobrando.
+        """
+        antojo = (
+            cls.objects
+            .filter(activo=True, producto__isnull=False)
+            .select_related('producto', 'producto__categoria', 'presentacion')
+            .order_by('-id')
+            .first()
+        )
+        return antojo if antojo and antojo.esta_vigente() else None
+
     def __str__(self):
         nombre = self.producto.nombre if self.producto else '(sin producto)'
         return f'{nombre} - {"activo" if self.activo else "inactivo"}'
