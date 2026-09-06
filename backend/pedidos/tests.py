@@ -8,6 +8,8 @@ from django.utils import timezone
 from antojo.models import AntojoDelDia
 
 from .models import Caja, DetallePedido, Pago, Pedido
+from .serializers import PagoSerializer
+from gastos.models import Gasto
 from productos.models import Categoria, Presentacion, Producto
 
 
@@ -228,3 +230,107 @@ class ExtraSugeridoDesdeElCarritoTests(TestCase):
         detalle = DetallePedido.objects.get(pedido_id=respuesta.data['id'])
         # 2 x (12000 + 1425): el extra se cobra por unidad, igual que descuenta stock.
         self.assertEqual(detalle.calcular_subtotal(), Decimal('26850'))
+
+
+class DesgloseDeCajaTests(TestCase):
+    """La caja tiene que poder contrastarse contra la realidad método por método.
+
+    Un total único que mezcla efectivo, transferencia y Mercado Pago no se puede
+    verificar contra nada: el dueño cuenta el cajón y no tiene contra qué compararlo.
+    """
+
+    def setUp(self):
+        categoria = Categoria.objects.create(nombre='Burguers')
+        self.producto = Producto.objects.create(categoria=categoria, nombre='Inglesa', precio=27325)
+        self.caja = Caja.objects.create(dia='2026-09-05', monto_inicial=5000, metodo_inicial='efectivo')
+
+    def _pedido(self, total=27325):
+        pedido = Pedido.objects.create(caja=self.caja, confirmado=True)
+        DetallePedido.objects.create(pedido=pedido, producto=self.producto, cantidad=1, precio_unitario=total)
+        return pedido
+
+    def test_el_monto_inicial_queda_en_su_propio_metodo(self):
+        saldos = self.caja.desglose_por_metodo()
+
+        self.assertEqual(saldos['efectivo'], Decimal('5000'))
+        self.assertEqual(saldos['transferencia'], Decimal('0'))
+
+    def test_un_cobro_simple_suma_al_metodo_con_el_que_pagaron(self):
+        Pago.objects.create(pedido=self._pedido(), metodo='transferencia', monto=27325)
+
+        saldos = self.caja.desglose_por_metodo()
+
+        self.assertEqual(saldos['transferencia'], Decimal('27325'))
+        self.assertEqual(saldos['efectivo'], Decimal('5000'))
+
+    def test_el_vuelto_por_otra_via_entra_por_un_metodo_y_sale_por_el_otro(self):
+        # El caso que no cerraba: paga $30.000 en efectivo un pedido de $27.325 y el
+        # vuelto de $2.675 se lo devuelven por transferencia.
+        Pago.objects.create(
+            pedido=self._pedido(), metodo='efectivo', monto=27325,
+            vuelto_monto=2675, vuelto_metodo='transferencia',
+        )
+
+        saldos = self.caja.desglose_por_metodo()
+
+        # En el cajón están los $30.000 que entregó el cliente, no los $27.325 del pedido.
+        self.assertEqual(saldos['efectivo'], Decimal('5000') + Decimal('30000'))
+        self.assertEqual(saldos['transferencia'], Decimal('-2675'))
+
+    def test_la_propina_queda_en_el_metodo_con_el_que_la_dejaron(self):
+        Pago.objects.create(pedido=self._pedido(), metodo='efectivo', monto=27325, propina=675)
+
+        self.assertEqual(self.caja.desglose_por_metodo()['efectivo'], Decimal('5000') + Decimal('28000'))
+
+    def test_un_gasto_del_turno_se_descuenta_de_su_metodo(self):
+        Gasto.objects.create(
+            categoria='insumos', descripcion='Pan', monto=10000,
+            metodo_pago='efectivo', caja=self.caja,
+        )
+
+        self.assertEqual(self.caja.desglose_por_metodo()['efectivo'], Decimal('-5000'))
+
+    def test_un_pedido_cancelado_no_cuenta_en_el_desglose(self):
+        pedido = self._pedido()
+        Pago.objects.create(pedido=pedido, metodo='efectivo', monto=27325)
+        pedido.estado = 'cancelado'
+        pedido.save()
+
+        self.assertEqual(self.caja.desglose_por_metodo()['efectivo'], Decimal('5000'))
+
+    def test_la_diferencia_del_arqueo_es_lo_contado_menos_lo_esperado(self):
+        Pago.objects.create(pedido=self._pedido(), metodo='efectivo', monto=27325)
+        self.assertIsNone(self.caja.diferencia_efectivo())
+
+        self.caja.efectivo_contado = Decimal('32000')
+        # Esperado: 5000 inicial + 27325 cobrado = 32325. Contó 32000 -> faltan 325.
+        self.assertEqual(self.caja.diferencia_efectivo(), Decimal('-325'))
+
+
+class VueltoPorOtraViaTests(TestCase):
+    def setUp(self):
+        categoria = Categoria.objects.create(nombre='Burguers')
+        self.producto = Producto.objects.create(categoria=categoria, nombre='Inglesa', precio=27325)
+        self.pedido = Pedido.objects.create(confirmado=True)
+        DetallePedido.objects.create(pedido=self.pedido, producto=self.producto, cantidad=1, precio_unitario=27325)
+
+    def _validar(self, **extra):
+        datos = {'pedido': self.pedido.id, 'metodo': 'efectivo', 'monto': 27325, **extra}
+        return PagoSerializer(data=datos)
+
+    def test_acepta_el_vuelto_devuelto_por_otro_metodo(self):
+        self.assertTrue(self._validar(vuelto_monto=2675, vuelto_metodo='transferencia').is_valid())
+
+    def test_rechaza_un_vuelto_sin_decir_por_donde_salio(self):
+        serializer = self._validar(vuelto_monto=2675)
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('vuelto_metodo', serializer.errors)
+
+    def test_rechaza_anotar_el_vuelto_cuando_sale_por_el_mismo_metodo(self):
+        # No es un error del cajero: es que anotarlo ahí inflaría las dos puntas
+        # sin cambiar el saldo, porque entra y sale del mismo lado.
+        serializer = self._validar(vuelto_monto=2675, vuelto_metodo='efectivo')
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('vuelto_metodo', serializer.errors)

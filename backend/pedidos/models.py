@@ -122,6 +122,10 @@ class Caja(models.Model):
     metodo_inicial = models.CharField(max_length=20, choices=METODOS_PAGO, default='efectivo')
     nota_apertura = models.CharField(max_length=200, blank=True)
     nota_cierre = models.CharField(max_length=200, blank=True)
+    # Arqueo: lo que se contó a mano del cajón al cerrar. Null = no se contó.
+    # Sin este número la diferencia se descubre a fin de mes, cuando ya no hay forma
+    # de saber de qué turno salió.
+    efectivo_contado = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
     class Meta:
         ordering = ['-abierta_en']
@@ -133,6 +137,43 @@ class Caja(models.Model):
     @property
     def esta_abierta(self):
         return self.cerrada_en is None
+
+    def desglose_por_metodo(self):
+        """Cuánta plata debería haber quedado en cada método al final del turno.
+
+        Es el número que se puede verificar contra la realidad: el efectivo se cuenta
+        del cajón y el resto se compara contra el banco o Mercado Pago. Un total único
+        que mezcla los cuatro métodos no se puede contrastar contra nada, que es lo que
+        hacía imposible encontrar un descuadre.
+        """
+        saldos = {codigo: Decimal('0') for codigo, _ in METODOS_PAGO}
+
+        def sumar(metodo, monto):
+            saldos[metodo] = saldos.get(metodo, Decimal('0')) + monto
+
+        sumar(self.metodo_inicial, self.monto_inicial)
+
+        pagos = Pago.objects.filter(
+            pedido__caja=self, pedido__confirmado=True,
+        ).exclude(pedido__estado='cancelado')
+        for pago in pagos:
+            sumar(pago.metodo, pago.entra_al_cajon)
+            # El vuelto devuelto por otra vía sale de ese otro lado.
+            if pago.vuelto_monto and pago.vuelto_metodo:
+                sumar(pago.vuelto_metodo, -pago.vuelto_monto)
+
+        # Lo que se pagó del turno (comprar pan, pagar un flete) sale del método con
+        # el que se pagó. Antes no se descontaba de ningún lado.
+        for gasto in self.gastos.all():
+            sumar(gasto.metodo_pago, -gasto.monto)
+
+        return saldos
+
+    def diferencia_efectivo(self):
+        """Sobrante (+) o faltante (−) del arqueo. None si todavía no se contó."""
+        if self.efectivo_contado is None:
+            return None
+        return self.efectivo_contado - self.desglose_por_metodo()['efectivo']
 
 
 class Pago(models.Model):
@@ -147,6 +188,14 @@ class Pago(models.Model):
     # Lo que el cliente deja y no se devuelve como vuelto. Entra al cajón igual que
     # el monto, pero no es venta del pedido: por eso va aparte y no sumado a monto.
     propina = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    # Vuelto devuelto POR OTRA VÍA que la del cobro (pagó $30.000 en efectivo y el
+    # vuelto se lo mandaron por transferencia). Solo se registra en ese caso: cuando
+    # el vuelto sale por el mismo método, entra y sale del mismo lado y el neto ya es
+    # `monto + propina`, así que anotarlo no cambiaría nada.
+    # Sin esto la plata física no cuadra por método: el cajón tiene los $30.000 que
+    # entregó el cliente, no los $27.325 que valía el pedido.
+    vuelto_monto = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    vuelto_metodo = models.CharField(max_length=20, choices=METODOS_PAGO, blank=True)
     creado = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -157,7 +206,12 @@ class Pago(models.Model):
 
     @property
     def entra_al_cajon(self):
-        return self.monto + self.propina
+        """Lo que entró físicamente por `metodo`.
+
+        Incluye el vuelto devuelto por otra vía: el cliente igual entregó esa plata
+        acá, y vuelve a salir del lado de `vuelto_metodo`.
+        """
+        return self.monto + self.propina + self.vuelto_monto
 
 
 class DetallePedido(models.Model):

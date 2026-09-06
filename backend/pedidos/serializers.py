@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from django.db.models import Sum
 from rest_framework import serializers
-from .models import Pedido, DetallePedido, DetalleExtra, Localidad, Pago, Caja
+from .models import METODOS_PAGO, Pedido, DetallePedido, DetalleExtra, Localidad, Pago, Caja
 from productos.models import Producto, Presentacion
 from antojo.models import AntojoDelDia
 from negocio.models import ConfiguracionSitio
@@ -19,28 +19,59 @@ class LocalidadSerializer(serializers.ModelSerializer):
 class CajaSerializer(serializers.ModelSerializer):
     esta_abierta = serializers.BooleanField(read_only=True)
     total_ventas = serializers.SerializerMethodField()
+    total_cobrado = serializers.SerializerMethodField()
     total_propinas = serializers.SerializerMethodField()
     total_pedidos = serializers.SerializerMethodField()
+    total_gastos = serializers.SerializerMethodField()
+    desglose = serializers.SerializerMethodField()
+    diferencia_efectivo = serializers.SerializerMethodField()
     metodo_inicial_label = serializers.CharField(source='get_metodo_inicial_display', read_only=True)
 
     class Meta:
         model = Caja
         fields = [
             'id', 'dia', 'abierta_en', 'cerrada_en', 'nota_apertura', 'nota_cierre',
-            'esta_abierta', 'total_ventas', 'total_propinas', 'total_pedidos',
+            'esta_abierta', 'total_ventas', 'total_cobrado', 'total_propinas', 'total_pedidos',
+            'total_gastos', 'desglose', 'efectivo_contado', 'diferencia_efectivo',
             'monto_inicial', 'metodo_inicial', 'metodo_inicial_label',
         ]
-        read_only_fields = ['dia', 'abierta_en', 'cerrada_en']
+        read_only_fields = ['dia', 'abierta_en', 'cerrada_en', 'efectivo_contado']
 
-    def get_total_ventas(self, obj):
-        return sum((p.calcular_total() for p in obj.pedidos.filter(confirmado=True).exclude(estado='cancelado')), Decimal('0'))
-
-    def get_total_propinas(self, obj):
-        # Plata que entro al cajon sin ser venta: el cajon del turno es
-        # monto_inicial + total_ventas cobradas + total_propinas - gastos.
+    def _pagos(self, obj):
         return Pago.objects.filter(
             pedido__caja=obj, pedido__confirmado=True,
-        ).exclude(pedido__estado='cancelado').aggregate(t=Sum('propina'))['t'] or Decimal('0')
+        ).exclude(pedido__estado='cancelado')
+
+    def get_total_ventas(self, obj):
+        """Lo que VALEN los pedidos del turno, estén cobrados o no."""
+        return sum((p.calcular_total() for p in obj.pedidos.filter(confirmado=True).exclude(estado='cancelado')), Decimal('0'))
+
+    def get_total_cobrado(self, obj):
+        """Plata que realmente entró. Se lee junto a total_ventas: la diferencia entre
+        las dos es lo que quedó a cobrar, y era lo que hacía leer 'Ventas' como si fuera
+        lo que tenía que haber en el cajón."""
+        return self._pagos(obj).aggregate(t=Sum('monto'))['t'] or Decimal('0')
+
+    def get_total_gastos(self, obj):
+        return obj.gastos.aggregate(t=Sum('monto'))['t'] or Decimal('0')
+
+    def get_desglose(self, obj):
+        # Lista y no dict: así el frontend no necesita conocer ni el orden ni las
+        # etiquetas de los métodos, solo recorrerla.
+        etiquetas = dict(METODOS_PAGO)
+        saldos = obj.desglose_por_metodo()
+        return [
+            {'metodo': codigo, 'label': etiquetas[codigo], 'monto': saldos.get(codigo, Decimal('0'))}
+            for codigo, _ in METODOS_PAGO
+        ]
+
+    def get_diferencia_efectivo(self, obj):
+        return obj.diferencia_efectivo()
+
+    def get_total_propinas(self, obj):
+        # Plata que entro al cajon sin ser venta. El detalle de en que metodo quedo
+        # cada peso esta en `desglose`, que es lo unico contrastable contra la realidad.
+        return self._pagos(obj).aggregate(t=Sum('propina'))['t'] or Decimal('0')
 
     def get_total_pedidos(self, obj):
         return obj.pedidos.filter(confirmado=True).exclude(estado='cancelado').count()
@@ -49,9 +80,14 @@ class CajaSerializer(serializers.ModelSerializer):
 class PagoSerializer(serializers.ModelSerializer):
     metodo_label = serializers.CharField(source='get_metodo_display', read_only=True)
 
+    vuelto_metodo_label = serializers.CharField(source='get_vuelto_metodo_display', read_only=True)
+
     class Meta:
         model = Pago
-        fields = ['id', 'pedido', 'metodo', 'metodo_label', 'monto', 'propina', 'creado']
+        fields = [
+            'id', 'pedido', 'metodo', 'metodo_label', 'monto', 'propina',
+            'vuelto_monto', 'vuelto_metodo', 'vuelto_metodo_label', 'creado',
+        ]
 
     def validate(self, attrs):
         """El monto no puede pasarse de lo que falta cobrar del pedido.
@@ -75,6 +111,22 @@ class PagoSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'monto': (
                 f'Este pedido solo debe ${falta}. Lo que el cliente entrega de mas va '
                 f'en "propina" si se lo deja, o no se registra si volvio como vuelto.'
+            )})
+
+        # El vuelto solo se anota cuando vuelve por OTRA via que la del cobro. Si sale
+        # por el mismo metodo, entra y sale del mismo lado y el neto ya es monto+propina:
+        # registrarlo ahi solo inflaria las dos puntas sin cambiar el saldo.
+        metodo = attrs.get('metodo', getattr(self.instance, 'metodo', None))
+        vuelto_monto = attrs.get('vuelto_monto', getattr(self.instance, 'vuelto_monto', Decimal('0')))
+        vuelto_metodo = attrs.get('vuelto_metodo', getattr(self.instance, 'vuelto_metodo', ''))
+        if vuelto_monto and not vuelto_metodo:
+            raise serializers.ValidationError({'vuelto_metodo': 'Deci por que via le devolviste el vuelto.'})
+        if vuelto_metodo and not vuelto_monto:
+            raise serializers.ValidationError({'vuelto_monto': 'Falta cuanto vuelto le devolviste.'})
+        if vuelto_monto and vuelto_metodo == metodo:
+            raise serializers.ValidationError({'vuelto_metodo': (
+                'Si el vuelto sale por el mismo metodo del cobro no hace falta anotarlo: '
+                'ya queda descontado solo.'
             )})
         return attrs
 

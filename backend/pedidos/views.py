@@ -168,5 +168,9 @@ class CajaViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSet):
             )
         caja.cerrada_en = timezone.now()
         caja.nota_cierre = request.data.get('nota_cierre', '')
+        # Arqueo opcional: si se cuenta el cajon, queda guardado para poder mirar despues
+        # de que turno salio una diferencia. Vacio = no se conto.
+        contado = request.data.get('efectivo_contado')
+        caja.efectivo_contado = contado if contado not in (None, '') else None
         caja.save()
         return Response(self.get_serializer(caja).data)

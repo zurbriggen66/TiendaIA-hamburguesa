@@ -16,6 +16,10 @@ export default function PedidoPagoModal({ pedidoId, onClose, onSaved }) {
   const [metodo, setMetodo] = useState('efectivo');
   const [monto, setMonto] = useState('');
   const [dejaVuelto, setDejaVuelto] = useState(false);
+  // Vacío = el vuelto sale por el mismo método del cobro (el caso normal, no hay nada
+  // que anotar). Solo se registra cuando sale por otra vía, porque ahí la plata física
+  // deja de coincidir con lo que dice el sistema en cada método.
+  const [vueltoMetodo, setVueltoMetodo] = useState('');
   const [guardando, setGuardando] = useState(false);
 
   const cargarPedido = useCallback(async () => {
@@ -38,6 +42,9 @@ export default function PedidoPagoModal({ pedidoId, onClose, onSaved }) {
   // Lo que el cliente entrega en la mano, que no es lo mismo que lo que vale el pedido.
   const entregado = Number(monto) || 0;
   const vuelto = Math.max(entregado - falta, 0);
+  // El vuelto solo se anota si vuelve por otra vía: si sale por el mismo método, entra
+  // y sale del mismo lado y el saldo ya queda bien sin registrar nada.
+  const vueltoPorOtraVia = vuelto > 0 && !dejaVuelto && !!vueltoMetodo && vueltoMetodo !== metodo;
 
   const agregarPago = async (e) => {
     e.preventDefault();
@@ -55,6 +62,10 @@ export default function PedidoPagoModal({ pedidoId, onClose, onSaved }) {
         metodo,
         monto: Math.min(entregado, falta),
         propina: dejaVuelto ? vuelto : 0,
+        // Sin esto el cajón quedaba con los $30.000 que entregó el cliente mientras el
+        // sistema anotaba $27.325, y la transferencia del vuelto no figuraba en ningún lado.
+        vuelto_monto: vueltoPorOtraVia ? vuelto : 0,
+        vuelto_metodo: vueltoPorOtraVia ? vueltoMetodo : '',
       });
       const actualizado = await cargarPedido();
       onSaved();
@@ -65,6 +76,7 @@ export default function PedidoPagoModal({ pedidoId, onClose, onSaved }) {
         return;
       }
       setDejaVuelto(false);
+      setVueltoMetodo('');
       setMonto(String(calcularFalta(actualizado)));
     } catch (error) {
       console.error('Error al registrar el pago:', error);
@@ -122,7 +134,14 @@ export default function PedidoPagoModal({ pedidoId, onClose, onSaved }) {
                 <span className="pago-lista-titulo">Pagos registrados</span>
                 {pedido.pagos.map((pago) => (
                   <div key={pago.id} className="pago-fila-registrado">
-                    <span>{pago.metodo_label}</span>
+                    <span>
+                      {pago.metodo_label}
+                      {Number(pago.vuelto_monto) > 0 && (
+                        <span className="pago-fila-vuelto">
+                          {' '}(vuelto {formatearPrecio(pago.vuelto_monto)} por {pago.vuelto_metodo_label})
+                        </span>
+                      )}
+                    </span>
                     <span>{formatearPrecio(pago.monto)}</span>
                     <span className="pago-fila-hora">{formatearHora(pago.creado)}</span>
                     <button type="button" onClick={() => eliminarPago(pago)} title="Eliminar pago">✕</button>
@@ -135,7 +154,12 @@ export default function PedidoPagoModal({ pedidoId, onClose, onSaved }) {
               <form onSubmit={agregarPago} className="pago-form-nuevo">
                 <div className="form-group">
                   <label className="form-label">¿Con qué te pagan?</label>
-                  <select className="input-vibrante" value={metodo} onChange={(e) => setMetodo(e.target.value)}>
+                  <select
+                    className="input-vibrante"
+                    value={metodo}
+                    // Cambiar el método del cobro invalida la vía del vuelto elegida antes.
+                    onChange={(e) => { setMetodo(e.target.value); setVueltoMetodo(''); }}
+                  >
                     {METODOS.map((m) => (
                       <option key={m.value} value={m.value}>{m.label}</option>
                     ))}
@@ -176,10 +200,29 @@ export default function PedidoPagoModal({ pedidoId, onClose, onSaved }) {
                         />
                         <span>Se deja los {formatearPrecio(vuelto)} de vuelto</span>
                       </label>
+                      {!dejaVuelto && (
+                        <>
+                          <label className="form-label">¿Por dónde le devolvés el vuelto?</label>
+                          <select
+                            className="input-vibrante"
+                            value={vueltoMetodo}
+                            onChange={(e) => setVueltoMetodo(e.target.value)}
+                          >
+                            <option value="">
+                              {METODOS.find((m) => m.value === metodo)?.label} — igual que el cobro
+                            </option>
+                            {METODOS.filter((m) => m.value !== metodo).map((m) => (
+                              <option key={m.value} value={m.value}>{m.label}</option>
+                            ))}
+                          </select>
+                        </>
+                      )}
                       <p className="pago-aviso-parcial">
                         {dejaVuelto
                           ? `Quedan ${formatearPrecio(vuelto)} en la caja como propina.`
-                          : `Devolvele ${formatearPrecio(vuelto)} de vuelto.`}
+                          : vueltoPorOtraVia
+                            ? `Entran ${formatearPrecio(entregado)} por ${METODOS.find((m) => m.value === metodo)?.label} y salen ${formatearPrecio(vuelto)} por ${METODOS.find((m) => m.value === vueltoMetodo)?.label}.`
+                            : `Devolvele ${formatearPrecio(vuelto)} de vuelto.`}
                       </p>
                     </>
                   )}

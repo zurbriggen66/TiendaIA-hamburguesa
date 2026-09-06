@@ -3,6 +3,7 @@ import api from '../../services/api';
 import AbrirCajaModal from './AbrirCajaModal';
 import CerrarCajaModal from './CerrarCajaModal';
 import CajaDetalleModal from './CajaDetalleModal';
+import DesgloseMetodos from './DesgloseMetodos';
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
@@ -78,8 +79,15 @@ export default function CajasPage() {
                 </div>
               )}
               <div>
-                <span>Ventas</span>
+                <span>Vendido</span>
                 <strong>{formatearPrecio(cajaActual.total_ventas)}</strong>
+              </div>
+              {/* "Vendido" incluye pedidos confirmados que todavía no se cobraron. Leerlo
+                  como plata que tiene que estar en el cajón es lo que hacía que la caja
+                  nunca cerrara: por eso lo cobrado va al lado y no mezclado. */}
+              <div>
+                <span>Cobrado</span>
+                <strong>{formatearPrecio(cajaActual.total_cobrado)}</strong>
               </div>
               {Number(cajaActual.total_propinas) > 0 && (
                 <div>
@@ -87,11 +95,25 @@ export default function CajasPage() {
                   <strong>{formatearPrecio(cajaActual.total_propinas)}</strong>
                 </div>
               )}
+              {Number(cajaActual.total_gastos) > 0 && (
+                <div>
+                  <span>Gastos</span>
+                  <strong>−{formatearPrecio(cajaActual.total_gastos)}</strong>
+                </div>
+              )}
               <div>
                 <span>Pedidos</span>
                 <strong>{cajaActual.total_pedidos}</strong>
               </div>
             </div>
+
+            {Number(cajaActual.total_ventas) - Number(cajaActual.total_cobrado) > 0 && (
+              <p className="caja-por-cobrar">
+                ⏳ Quedan {formatearPrecio(Number(cajaActual.total_ventas) - Number(cajaActual.total_cobrado))} sin cobrar
+              </p>
+            )}
+
+            <DesgloseMetodos desglose={cajaActual.desglose} />
             <button type="button" className="btn-vibrante btn-cerrar-caja" onClick={() => setMostrarCerrar(true)}>
               Cerrar caja
             </button>

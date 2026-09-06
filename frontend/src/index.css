@@ -4496,3 +4496,66 @@ body {
   .premios-ticket { padding: 28px 18px 24px; }
   .premios-nombre { font-size: .88rem; }
 }
+
+/* --- Desglose por método y arqueo de caja --- */
+.caja-desglose {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 14px 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.caja-desglose-titulo {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+  margin-bottom: 4px;
+}
+
+.caja-desglose-fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 0.9rem;
+}
+
+.caja-desglose-fila strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.caja-desglose-negativo {
+  color: #f87171;
+}
+
+.caja-por-cobrar {
+  margin: 10px 0 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fbbf24;
+}
+
+.caja-arqueo-resultado {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.caja-arqueo-ok {
+  color: #22c55e;
+}
+
+.caja-arqueo-mal {
+  color: #fbbf24;
+}
+
+.pago-fila-vuelto {
+  font-size: 0.78rem;
+  opacity: 0.7;
+}

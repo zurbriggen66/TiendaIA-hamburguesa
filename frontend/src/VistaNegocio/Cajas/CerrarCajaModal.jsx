@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import api from '../../services/api';
+import DesgloseMetodos from './DesgloseMetodos';
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
@@ -9,13 +10,27 @@ const formatearHora = (fecha) =>
 
 export default function CerrarCajaModal({ caja, onClose, onSaved }) {
   const [nota, setNota] = useState('');
+  const [contado, setContado] = useState('');
   const [guardando, setGuardando] = useState(false);
+
+  // Lo que debería haber en el cajón: inicial + cobros y propinas en efectivo, menos los
+  // gastos pagados en efectivo y los vueltos que salieron por otra vía. Lo calcula el
+  // backend; acá solo se compara contra lo que se contó a mano.
+  const esperadoEfectivo = Number(
+    (caja.desglose || []).find((d) => d.metodo === 'efectivo')?.monto || 0,
+  );
+  const porCobrar = Number(caja.total_ventas) - Number(caja.total_cobrado);
+  const seConto = contado.trim() !== '';
+  const diferencia = seConto ? Number(contado) - esperadoEfectivo : 0;
 
   const cerrar = async (e) => {
     e.preventDefault();
     setGuardando(true);
     try {
-      await api.post(`/cajas/${caja.id}/cerrar/`, { nota_cierre: nota.trim() });
+      await api.post(`/cajas/${caja.id}/cerrar/`, {
+        nota_cierre: nota.trim(),
+        efectivo_contado: seConto ? contado : '',
+      });
       onSaved();
     } catch (error) {
       console.error('Error al cerrar la caja:', error);
@@ -37,8 +52,15 @@ export default function CerrarCajaModal({ caja, onClose, onSaved }) {
           <p className="caja-cerrar-resumen">
             Vas a cerrar la caja abierta desde las <strong>{formatearHora(caja.abierta_en)}</strong>.
             <br />
-            Ventas: <strong>{formatearPrecio(caja.total_ventas)}</strong> en{' '}
+            Vendido: <strong>{formatearPrecio(caja.total_ventas)}</strong> en{' '}
             <strong>{caja.total_pedidos}</strong> pedido{caja.total_pedidos === 1 ? '' : 's'}.
+            <br />
+            Cobrado: <strong>{formatearPrecio(caja.total_cobrado)}</strong>.
+            {porCobrar > 0 && (
+              <>
+                {' '}Quedan <strong>{formatearPrecio(porCobrar)}</strong> sin cobrar.
+              </>
+            )}
             {Number(caja.total_propinas) > 0 && (
               <>
                 <br />
@@ -48,6 +70,33 @@ export default function CerrarCajaModal({ caja, onClose, onSaved }) {
             )}
           </p>
 
+          <DesgloseMetodos desglose={caja.desglose} />
+
+          <div className="form-group">
+            <label className="form-label">¿Cuánto efectivo contaste en el cajón? (opcional)</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              className="input-vibrante"
+              placeholder={String(esperadoEfectivo)}
+              value={contado}
+              onChange={(e) => setContado(e.target.value)}
+              autoFocus
+            />
+            {/* Contarlo cada turno es lo que permite ubicar una diferencia el día que
+                pasa. Sin esto se descubre a fin de mes y ya no se sabe de dónde salió. */}
+            {seConto && (
+              <p className={`caja-arqueo-resultado ${diferencia === 0 ? 'caja-arqueo-ok' : 'caja-arqueo-mal'}`}>
+                {diferencia === 0
+                  ? '✅ Cuadra exacto.'
+                  : diferencia > 0
+                    ? `⚠️ Sobran ${formatearPrecio(diferencia)} contra los ${formatearPrecio(esperadoEfectivo)} esperados.`
+                    : `⚠️ Faltan ${formatearPrecio(Math.abs(diferencia))} contra los ${formatearPrecio(esperadoEfectivo)} esperados.`}
+              </p>
+            )}
+          </div>
+
           <div className="form-group">
             <label className="form-label">Nota de cierre (opcional)</label>
             <textarea
@@ -56,7 +105,6 @@ export default function CerrarCajaModal({ caja, onClose, onSaved }) {
               placeholder="Ej: todo cuadró"
               value={nota}
               onChange={(e) => setNota(e.target.value)}
-              autoFocus
             />
           </div>
 

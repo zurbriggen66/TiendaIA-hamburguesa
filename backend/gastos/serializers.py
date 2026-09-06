@@ -34,8 +34,14 @@ class GastoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Gasto
         fields = '__all__'
+        # La caja la decide el servidor por el turno abierto, nunca llega por body:
+        # si no, un gasto podria cargarse contra un turno ya cerrado y cuadrado.
+        read_only_fields = ['caja']
 
     def create(self, validated_data):
+        from pedidos.models import Caja
+
+        validated_data['caja'] = Caja.objects.filter(cerrada_en__isnull=True).order_by('-abierta_en').first()
         gasto = Gasto.objects.create(**validated_data)
         insumo = gasto.insumo
         if gasto.categoria == 'insumos' and insumo and gasto.cantidad:
