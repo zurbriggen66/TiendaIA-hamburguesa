@@ -1093,29 +1093,7 @@ body {
     font-size: 0.7rem;
   }
 
-  .grafico-ventas {
-    padding: 16px 12px 10px;
-  }
-
-  .grafico-ventas-plot {
-    height: 200px;
-    gap: 8px;
-  }
-
-  .grafico-ventas-ejeY {
-    font-size: 0.64rem;
-  }
-
-  .grafico-ventas-ejeX {
-    margin-left: calc(4ch + 8px);
-    gap: 4px;
-  }
-
-  .grafico-ventas-ejeX span {
-    font-size: 0.62rem;
-  }
-
-  .ranking-nombre-linea {
+.ranking-nombre-linea {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
@@ -3094,99 +3072,10 @@ body {
 
 .resumen-tile-ganancia-negativa strong { color: var(--error); }
 
-.grafico-ventas {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 24px 24px 12px;
-  margin-bottom: 32px;
-}
-
 .grafico-ventas-plot {
   display: flex;
   gap: 12px;
   height: 220px;
-}
-
-.grafico-ventas-ejeY {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  text-align: right;
-  padding: 4px 0;
-  flex-shrink: 0;
-}
-
-.grafico-ventas-barras {
-  position: relative;
-  flex: 1;
-  display: flex;
-  align-items: flex-end;
-  gap: 6px;
-  border-bottom: 1px solid var(--border);
-}
-
-.grafico-ventas-gridline {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: var(--border);
-  bottom: var(--line-offset, 0%);
-}
-
-.grafico-ventas-barra-slot {
-  position: relative;
-  flex: 1;
-  height: 100%;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  border: none;
-  background: none;
-  cursor: pointer;
-  padding: 0;
-}
-
-.grafico-ventas-barra {
-  width: 100%;
-  max-width: 24px;
-  height: var(--bar-height, 0%);
-  background: #e8630c;
-  border-radius: 4px 4px 0 0;
-  transition: background 0.15s;
-}
-
-.grafico-ventas-barra-activa {
-  background: #b84e0a;
-}
-
-.grafico-ventas-tooltip {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-bottom: 8px;
-  background: var(--tooltip-bg);
-  color: #ffffff;
-  padding: 6px 10px;
-  border-radius: 8px;
-  font-size: 0.75rem;
-  white-space: nowrap;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  z-index: 5;
-  pointer-events: none;
-}
-
-.grafico-ventas-tooltip span {
-  color: var(--tooltip-texto);
-  opacity: 0.75;
-  font-size: 0.68rem;
 }
 
 .grafico-ventas-ejeX {
@@ -3194,13 +3083,6 @@ body {
   gap: 6px;
   margin-left: calc(4ch + 12px);
   margin-top: 6px;
-}
-
-.grafico-ventas-ejeX span {
-  flex: 1;
-  text-align: center;
-  font-size: 0.68rem;
-  color: var(--text-muted);
 }
 
 .ranking-productos {

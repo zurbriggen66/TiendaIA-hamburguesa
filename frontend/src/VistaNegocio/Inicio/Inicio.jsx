@@ -588,7 +588,7 @@ export default function Inicio() {
             border: 1px solid rgba(245, 158, 11, 0.35);
             font-size: 0.82rem;
             font-weight: 600;
-            color: var(--text, #f5ede7);
+            color: var(--text);
             line-height: 1.35;
           }
 
@@ -597,8 +597,8 @@ export default function Inicio() {
             align-items: center;
             justify-content: space-between;
             gap: 20px;
-            background: var(--surface, #163a30);
-            border: 1px solid var(--border, #2c5c4a);
+            background: var(--surface);
+            border: 1px solid var(--border);
             border-radius: 16px;
             padding: 18px 22px;
             margin-bottom: 16px;
@@ -612,14 +612,14 @@ export default function Inicio() {
           .inicio-modo-texto strong {
             display: block;
             font-size: 1.05rem;
-            color: var(--text, #f5ede7);
+            color: var(--text);
           }
 
           .inicio-modo-texto p {
             margin: 4px 0 0;
             font-size: 0.82rem;
             line-height: 1.4;
-            color: var(--text-muted, #9fb8ad);
+            color: var(--text-muted);
             max-width: 52ch;
           }
 
@@ -672,8 +672,8 @@ export default function Inicio() {
             align-items: center;
             justify-content: space-between;
             gap: 20px;
-            background: var(--surface, #163a30);
-            border: 1px solid var(--border, #2c5c4a);
+            background: var(--surface);
+            border: 1px solid var(--border);
             border-radius: 16px;
             padding: 18px 22px;
             margin-bottom: 16px;
@@ -753,7 +753,7 @@ export default function Inicio() {
             border-radius: 50%;
             background: #fff;
             transition: transform 0.2s ease;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+            box-shadow: var(--sombra-sm);
           }
 
           .inicio-switch input:checked + .inicio-switch-riel .inicio-switch-perilla {
@@ -787,8 +787,7 @@ export default function Inicio() {
 
           .inicio-card {
             position: relative;
-            background: linear-gradient(160deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 60%),
-                        var(--card-bg, #163a30);
+            background: var(--surface);
             border: 1px solid rgba(232, 99, 12, 0.15);
             border-radius: 16px;
             padding: 24px 26px;
@@ -963,7 +962,7 @@ export default function Inicio() {
 
           .inicio-contador-confirmar {
             background: rgba(251, 191, 36, 0.18);
-            color: #fbbf24;
+            color: var(--alerta);
             border-color: rgba(251, 191, 36, 0.4);
           }
 
@@ -1089,14 +1088,14 @@ export default function Inicio() {
           }
 
           .inicio-falta-juntar {
-            color: #fbbf24;
+            color: var(--alerta);
           }
           .inicio-falta-juntar strong {
-            color: #fbbf24;
+            color: var(--alerta);
           }
 
           .inicio-cubierto {
-            color: #4ade80;
+            color: var(--exito);
           }
 
           .inicio-gastos-fijos-lista {
