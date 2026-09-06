@@ -825,3 +825,60 @@
   padding: 0;
   margin-bottom: 0;
 }
+
+/* --- Costo editable en la tarjeta de stock ------------------------------- */
+.stock-costo-boton {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 4px 6px;
+  border: 1px dashed transparent;
+  border-radius: var(--radio-sm);
+  background: transparent;
+  color: var(--text-sutil);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.stock-costo-boton:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* El lápiz solo aparece al pasar por encima: siempre visible ensucia la tarjeta,
+   nunca visible no deja saber que se puede tocar. */
+.stock-costo-lapiz { opacity: 0; transition: opacity 0.15s ease; }
+.stock-costo-boton:hover .stock-costo-lapiz { opacity: 1; }
+
+.stock-costo-editor {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 2px 6px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radio-sm);
+  background: var(--surface);
+}
+
+.stock-costo-simbolo {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.stock-costo-input {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  outline: none;
+  font-variant-numeric: tabular-nums;
+}

@@ -3,6 +3,7 @@ import api from '../../services/api';
 import { toast } from '../../utils/toast';
 import InsumoModal from '../Gastos/InsumoModal';
 import RestockModal from '../Gastos/RestockModal';
+import CostoRapido from './CostoRapido';
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
@@ -158,11 +159,7 @@ export default function StockPage() {
                   <span className="stock-card-nombre">{insumo.nombre}</span>
                   <strong className="stock-card-cantidad">{insumo.cantidad_disponible}</strong>
                   <span className="stock-card-unidad">{insumo.unidad}</span>
-                  <span className="stock-card-costo">
-                    {insumo.costo_unitario === null
-                      ? '⚠️ sin costo'
-                      : `${formatearPrecio(insumo.costo_unitario)} c/${insumo.unidad.replace(/s$/, '')}`}
-                  </span>
+                  <CostoRapido insumo={insumo} onGuardado={cargarDatos} />
                   <button
                     type="button"
                     className="stock-card-restock"

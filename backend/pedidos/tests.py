@@ -816,3 +816,54 @@ class CobradoPorMetodoTests(TestCase):
 
         esperado = Decimal(str(respuesta.data['total_cobrado'])) + Decimal(str(respuesta.data['total_propinas']))
         self.assertEqual(suma, esperado)
+
+
+class CostoRapidoTests(TestCase):
+    """El costo por unidad se edita desde la tarjeta de Stock, sin abrir el formulario:
+    es el dato que mas cambia y el que alimenta todo el Balance."""
+
+    def setUp(self):
+        User.objects.create_user('duena', password='x', is_staff=True)
+        self.client.force_login(User.objects.get(username='duena'))
+        self.insumo = Insumo.objects.create(nombre='CHEDDAR', unidad='fetas')
+        Gasto.objects.create(
+            categoria='insumos', descripcion='Cheddar', monto=2000,
+            metodo_pago='efectivo', insumo=self.insumo, cantidad=10,  # $200 c/u
+        )
+
+    def test_un_patch_del_costo_le_gana_al_deducido_de_la_compra(self):
+        self.assertEqual(self.insumo.costo_unitario(), Decimal('200'))
+
+        respuesta = self.client.patch(
+            f'/api/insumos/{self.insumo.id}/',
+            data={'costo_manual': '310'}, content_type='application/json',
+        )
+
+        self.assertEqual(respuesta.status_code, 200, respuesta.content)
+        self.insumo.refresh_from_db()
+        self.assertEqual(self.insumo.costo_unitario(), Decimal('310'))
+        self.assertEqual(self.insumo.origen_del_costo(), 'manual')
+
+    def test_volver_a_cero_devuelve_el_costo_de_la_compra(self):
+        """Es como se 'borra' el costo a mano: no queda clavado para siempre."""
+        self.insumo.costo_manual = Decimal('310')
+        self.insumo.save()
+
+        self.client.patch(
+            f'/api/insumos/{self.insumo.id}/',
+            data={'costo_manual': '0'}, content_type='application/json',
+        )
+
+        self.insumo.refresh_from_db()
+        self.assertEqual(self.insumo.costo_unitario(), Decimal('200'))
+        self.assertEqual(self.insumo.origen_del_costo(), 'compra')
+
+    def test_rechaza_un_costo_negativo(self):
+        respuesta = self.client.patch(
+            f'/api/insumos/{self.insumo.id}/',
+            data={'costo_manual': '-50'}, content_type='application/json',
+        )
+
+        self.assertEqual(respuesta.status_code, 400, respuesta.content)
+        self.insumo.refresh_from_db()
+        self.assertEqual(self.insumo.costo_unitario(), Decimal('200'))
