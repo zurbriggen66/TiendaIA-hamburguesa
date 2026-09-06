@@ -139,7 +139,10 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
       zona: localidadElegida?.nombre, costoEnvio,
     });
     const url = `https://wa.me/${whatsapp}?text=${encodeURIComponent(mensaje)}`;
-    const ventana = window.open(url, '_blank', 'noopener,noreferrer');
+    // OJO: sin `noopener` a propósito. Con `noopener` en el 3er argumento, window.open
+    // devuelve null aunque la ventana se haya abierto bien, y el respaldo de abajo se
+    // mostraba SIEMPRE ("tu navegador bloqueó la ventana") aunque WhatsApp abriera.
+    const ventana = window.open(url, '_blank');
     // Si el navegador igual bloqueó la ventana, dejamos un enlace visible como respaldo.
     setLinkWhatsapp(!ventana || ventana.closed ? url : null);
 
