@@ -138,6 +138,18 @@ class Caja(models.Model):
     def esta_abierta(self):
         return self.cerrada_en is None
 
+    def pedidos_validos(self):
+        """Pedidos que cuentan para el turno: confirmados y no cancelados.
+
+        Filtra en Python en vez de con .filter(): así una lista de cajas traída con
+        prefetch_related resuelve todo con las queries del prefetch, en vez de disparar
+        una consulta nueva por cada caja (el historial hacía 22 queries por fila).
+        """
+        return [p for p in self.pedidos.all() if p.confirmado and p.estado != 'cancelado']
+
+    def pagos_validos(self):
+        return [pago for pedido in self.pedidos_validos() for pago in pedido.pagos.all()]
+
     def desglose_por_metodo(self):
         """Cuánta plata debería haber quedado en cada método al final del turno.
 
@@ -153,10 +165,7 @@ class Caja(models.Model):
 
         sumar(self.metodo_inicial, self.monto_inicial)
 
-        pagos = Pago.objects.filter(
-            pedido__caja=self, pedido__confirmado=True,
-        ).exclude(pedido__estado='cancelado')
-        for pago in pagos:
+        for pago in self.pagos_validos():
             sumar(pago.metodo, pago.entra_al_cajon)
             # El vuelto devuelto por otra vía sale de ese otro lado.
             if pago.vuelto_monto and pago.vuelto_metodo:

@@ -1,6 +1,5 @@
 from decimal import Decimal
 
-from django.db.models import Sum
 from rest_framework import serializers
 from .models import METODOS_PAGO, Pedido, DetallePedido, DetalleExtra, Localidad, Pago, Caja
 from productos.models import Producto, Presentacion
@@ -37,23 +36,20 @@ class CajaSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['dia', 'abierta_en', 'cerrada_en', 'efectivo_contado']
 
-    def _pagos(self, obj):
-        return Pago.objects.filter(
-            pedido__caja=obj, pedido__confirmado=True,
-        ).exclude(pedido__estado='cancelado')
-
+    # Todos los totales suman en Python sobre lo que ya trajo el prefetch del viewset.
+    # Con .filter()/.aggregate() cada caja del historial disparaba sus propias queries.
     def get_total_ventas(self, obj):
         """Lo que VALEN los pedidos del turno, estén cobrados o no."""
-        return sum((p.calcular_total() for p in obj.pedidos.filter(confirmado=True).exclude(estado='cancelado')), Decimal('0'))
+        return sum((p.calcular_total() for p in obj.pedidos_validos()), Decimal('0'))
 
     def get_total_cobrado(self, obj):
         """Plata que realmente entró. Se lee junto a total_ventas: la diferencia entre
         las dos es lo que quedó a cobrar, y era lo que hacía leer 'Ventas' como si fuera
         lo que tenía que haber en el cajón."""
-        return self._pagos(obj).aggregate(t=Sum('monto'))['t'] or Decimal('0')
+        return sum((p.monto for p in obj.pagos_validos()), Decimal('0'))
 
     def get_total_gastos(self, obj):
-        return obj.gastos.aggregate(t=Sum('monto'))['t'] or Decimal('0')
+        return sum((g.monto for g in obj.gastos.all()), Decimal('0'))
 
     def get_desglose(self, obj):
         # Lista y no dict: así el frontend no necesita conocer ni el orden ni las
@@ -71,10 +67,10 @@ class CajaSerializer(serializers.ModelSerializer):
     def get_total_propinas(self, obj):
         # Plata que entro al cajon sin ser venta. El detalle de en que metodo quedo
         # cada peso esta en `desglose`, que es lo unico contrastable contra la realidad.
-        return self._pagos(obj).aggregate(t=Sum('propina'))['t'] or Decimal('0')
+        return sum((p.propina for p in obj.pagos_validos()), Decimal('0'))
 
     def get_total_pedidos(self, obj):
-        return obj.pedidos.filter(confirmado=True).exclude(estado='cancelado').count()
+        return len(obj.pedidos_validos())
 
 
 class PagoSerializer(serializers.ModelSerializer):

@@ -2,6 +2,8 @@ from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib.auth.models import User
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.test import TestCase
 from django.utils import timezone
 
@@ -14,6 +16,11 @@ from productos.models import Categoria, Presentacion, Producto
 
 
 class EliminarCajaTests(TestCase):
+    def setUp(self):
+        # /api/cajas/ es solo para staff logueado: sin esto los dos tests recibian 401
+        # y venian fallando desde que se cerro el endpoint.
+        self.client.force_login(User.objects.create_user('duena', password='x', is_staff=True))
+
     def test_no_se_puede_eliminar_la_caja_abierta(self):
         caja = Caja.objects.create(dia='2026-08-14')
 
@@ -334,3 +341,113 @@ class VueltoPorOtraViaTests(TestCase):
 
         self.assertFalse(serializer.is_valid())
         self.assertIn('vuelto_metodo', serializer.errors)
+
+
+class CerrarCajaConArqueoTests(TestCase):
+    """El cierre con arqueo devolvia 500: el string del body se guardaba tal cual en el
+    atributo y el serializer despues intentaba restarle un Decimal."""
+
+    def setUp(self):
+        User.objects.create_user('duena', password='x', is_staff=True)
+        self.client.force_login(User.objects.get(username='duena'))
+        categoria = Categoria.objects.create(nombre='Burguers')
+        producto = Producto.objects.create(categoria=categoria, nombre='Inglesa', precio=10000)
+        self.caja = Caja.objects.create(dia='2026-09-05', monto_inicial=5000, metodo_inicial='efectivo')
+        pedido = Pedido.objects.create(caja=self.caja, confirmado=True)
+        DetallePedido.objects.create(pedido=pedido, producto=producto, cantidad=1, precio_unitario=10000)
+        Pago.objects.create(pedido=pedido, metodo='efectivo', monto=10000)
+
+    def test_cerrar_contando_el_cajon_guarda_el_arqueo_y_calcula_la_diferencia(self):
+        respuesta = self.client.post(
+            f'/api/cajas/{self.caja.id}/cerrar/',
+            data={'efectivo_contado': '14000', 'nota_cierre': 'faltaba un billete'},
+            content_type='application/json',
+        )
+
+        self.assertEqual(respuesta.status_code, 200, respuesta.content)
+        # Esperado: 5000 inicial + 10000 cobrado = 15000. Conto 14000 -> faltan 1000.
+        self.assertEqual(Decimal(str(respuesta.data['diferencia_efectivo'])), Decimal('-1000'))
+        self.caja.refresh_from_db()
+        self.assertEqual(self.caja.efectivo_contado, Decimal('14000'))
+        self.assertFalse(self.caja.esta_abierta)
+
+    def test_cerrar_sin_contar_deja_el_arqueo_vacio(self):
+        respuesta = self.client.post(
+            f'/api/cajas/{self.caja.id}/cerrar/', data={'nota_cierre': ''}, content_type='application/json',
+        )
+
+        self.assertEqual(respuesta.status_code, 200, respuesta.content)
+        self.assertIsNone(respuesta.data['diferencia_efectivo'])
+        self.caja.refresh_from_db()
+        self.assertIsNone(self.caja.efectivo_contado)
+
+    def test_un_arqueo_no_numerico_da_400_y_deja_la_caja_abierta(self):
+        respuesta = self.client.post(
+            f'/api/cajas/{self.caja.id}/cerrar/',
+            data={'efectivo_contado': 'catorce mil'},
+            content_type='application/json',
+        )
+
+        self.assertEqual(respuesta.status_code, 400, respuesta.content)
+        self.caja.refresh_from_db()
+        self.assertTrue(self.caja.esta_abierta)
+
+
+class HistorialDeCajasTests(TestCase):
+    def setUp(self):
+        User.objects.create_user('duena', password='x', is_staff=True)
+        self.client.force_login(User.objects.get(username='duena'))
+        categoria = Categoria.objects.create(nombre='Burguers')
+        self.producto = Producto.objects.create(categoria=categoria, nombre='Inglesa', precio=10000)
+
+    def _caja_con_pedido(self, dia):
+        caja = Caja.objects.create(dia=dia, monto_inicial=1000, metodo_inicial='efectivo')
+        pedido = Pedido.objects.create(caja=caja, confirmado=True)
+        DetallePedido.objects.create(pedido=pedido, producto=self.producto, cantidad=1, precio_unitario=10000)
+        Pago.objects.create(pedido=pedido, metodo='efectivo', monto=10000)
+        caja.cerrada_en = f'{dia}T23:00:00Z'
+        caja.save()
+        return caja
+
+    def test_el_historial_se_puede_filtrar_por_mes(self):
+        self._caja_con_pedido('2026-08-14')
+        self._caja_con_pedido('2026-09-05')
+
+        respuesta = self.client.get('/api/cajas/?mes=2026-09')
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual([c['dia'] for c in respuesta.data], ['2026-09-05'])
+
+    def test_un_mes_mal_escrito_no_vacia_el_historial(self):
+        self._caja_con_pedido('2026-09-05')
+
+        respuesta = self.client.get('/api/cajas/?mes=septiembre')
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(len(respuesta.data), 1)
+
+    def _consultas_del_historial(self):
+        with CaptureQueriesContext(connection) as ctx:
+            respuesta = self.client.get('/api/cajas/')
+        self.assertEqual(respuesta.status_code, 200)
+        return len(ctx), respuesta
+
+    def test_el_historial_no_hace_mas_consultas_al_crecer(self):
+        """Los totales de cada caja se calculaban con consultas propias: costaba 22
+        queries por fila y el historial se volvia inusable al acumular turnos.
+
+        Se afirma que el costo es CONSTANTE, no un numero exacto: el numero depende de
+        cuantos niveles tenga el prefetch y cambiaria con cualquier campo nuevo, pero
+        que no crezca con la cantidad de cajas es la propiedad que importa.
+        """
+        for dia in ('2026-09-01', '2026-09-02', '2026-09-03'):
+            self._caja_con_pedido(dia)
+        con_tres, _ = self._consultas_del_historial()
+
+        for dia in ('2026-09-04', '2026-09-05', '2026-09-06'):
+            self._caja_con_pedido(dia)
+        con_seis, respuesta = self._consultas_del_historial()
+
+        self.assertEqual(con_seis, con_tres, 'el historial vuelve a consultar por cada caja')
+        self.assertEqual(len(respuesta.data), 6)
+        self.assertEqual(Decimal(str(respuesta.data[0]['total_cobrado'])), Decimal('10000'))

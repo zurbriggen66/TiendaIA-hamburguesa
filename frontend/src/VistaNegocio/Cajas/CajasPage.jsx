@@ -22,13 +22,16 @@ export default function CajasPage() {
   const [mostrarAbrir, setMostrarAbrir] = useState(false);
   const [mostrarCerrar, setMostrarCerrar] = useState(false);
   const [cajaDetalleId, setCajaDetalleId] = useState(null);
+  // '' = todos los meses. Con cuatro turnos no molesta, pero al año son 300 y sin
+  // filtro no hay forma de encontrar un día puntual.
+  const [mes, setMes] = useState('');
 
   const cargarDatos = useCallback(async () => {
     setCargando(true);
     try {
       const [resActual, resHistorial] = await Promise.all([
         api.get('/cajas/actual/'),
-        api.get('/cajas/'),
+        api.get('/cajas/', { params: mes ? { mes } : {} }),
       ]);
       setCajaActual(resActual.data);
       setHistorial(resHistorial.data);
@@ -37,7 +40,7 @@ export default function CajasPage() {
     } finally {
       setCargando(false);
     }
-  }, []);
+  }, [mes]);
 
   useEffect(() => {
     cargarDatos();
@@ -131,13 +134,27 @@ export default function CajasPage() {
           </div>
         )}
 
-        <div className="seccion-header">
+        <div className="seccion-header caja-historial-header">
           <h3>Historial de cajas</h3>
+          <div className="caja-historial-filtro">
+            <input
+              type="month"
+              className="input-vibrante"
+              value={mes}
+              onChange={(e) => setMes(e.target.value)}
+              aria-label="Filtrar por mes"
+            />
+            {mes && (
+              <button type="button" className="btn-secundario" onClick={() => setMes('')}>
+                Ver todas
+              </button>
+            )}
+          </div>
         </div>
 
         {!cargando && historialSinActual.length === 0 ? (
           <div className="estado-vacio">
-            <p>Todavía no hay cajas cerradas.</p>
+            <p>{mes ? 'No hubo cajas en ese mes.' : 'Todavía no hay cajas cerradas.'}</p>
           </div>
         ) : (
           <div className="cajas-historial">
@@ -159,7 +176,17 @@ export default function CajasPage() {
                     </span>
                   </div>
                   <span className="caja-historial-pedidos">{caja.total_pedidos} pedidos</span>
-                  <span className="caja-historial-total">{formatearPrecio(caja.total_ventas)}</span>
+                  {caja.diferencia_efectivo !== null && (
+                    <span
+                      className={`badge-arqueo ${Number(caja.diferencia_efectivo) === 0 ? 'badge-arqueo-ok' : 'badge-arqueo-mal'}`}
+                      title="Arqueo del efectivo al cerrar"
+                    >
+                      {Number(caja.diferencia_efectivo) === 0
+                        ? '✅ Cuadró'
+                        : `⚠️ ${Number(caja.diferencia_efectivo) > 0 ? '+' : '−'}${formatearPrecio(Math.abs(Number(caja.diferencia_efectivo)))}`}
+                    </span>
+                  )}
+                  <span className="caja-historial-total">{formatearPrecio(caja.total_cobrado)}</span>
                 </button>
                 <button
                   type="button"

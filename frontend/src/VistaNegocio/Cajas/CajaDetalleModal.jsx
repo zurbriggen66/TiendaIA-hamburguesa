@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 import BarrasDesglose, { formatearPrecio } from '../Estadisticas/BarrasDesglose';
+import DesgloseMetodos from './DesgloseMetodos';
 
 const formatearFechaHora = (fecha) =>
   new Date(fecha).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -59,8 +60,12 @@ export default function CajaDetalleModal({ cajaId, onClose }) {
 
             <div className="resumen-grid">
               <div className="resumen-tile resumen-tile-servicios">
-                <span>Ventas de la caja</span>
-                <strong>{formatearPrecio(datos.ventas_totales)}</strong>
+                <span>Vendido</span>
+                <strong>{formatearPrecio(caja.total_ventas)}</strong>
+              </div>
+              <div className="resumen-tile resumen-tile-total">
+                <span>Cobrado</span>
+                <strong>{formatearPrecio(caja.total_cobrado)}</strong>
               </div>
               <div className="resumen-tile resumen-tile-insumos">
                 <span>Ticket promedio</span>
@@ -70,7 +75,40 @@ export default function CajaDetalleModal({ cajaId, onClose }) {
                 <span>Pedidos</span>
                 <strong>{datos.total_pedidos}</strong>
               </div>
+              {Number(caja.total_propinas) > 0 && (
+                <div className="resumen-tile resumen-tile-otros">
+                  <span>Propinas</span>
+                  <strong>{formatearPrecio(caja.total_propinas)}</strong>
+                </div>
+              )}
+              {Number(caja.total_gastos) > 0 && (
+                <div className="resumen-tile resumen-tile-otros">
+                  <span>Gastos del turno</span>
+                  <strong>−{formatearPrecio(caja.total_gastos)}</strong>
+                </div>
+              )}
             </div>
+
+            {/* Lo que hacia falta para revisar un turno viejo: en que quedo cada metodo
+                y si el conteo del cajon cuadro. Sin esto habia que reconstruirlo a mano. */}
+            <DesgloseMetodos desglose={caja.desglose} titulo="Debería haber quedado en cada método" />
+
+            {caja.efectivo_contado !== null && (
+              <p className={`caja-arqueo-resultado ${Number(caja.diferencia_efectivo) === 0 ? 'caja-arqueo-ok' : 'caja-arqueo-mal'}`}>
+                {Number(caja.diferencia_efectivo) === 0
+                  ? `✅ Se contaron ${formatearPrecio(caja.efectivo_contado)} en efectivo y cuadró exacto.`
+                  : Number(caja.diferencia_efectivo) > 0
+                    ? `⚠️ Se contaron ${formatearPrecio(caja.efectivo_contado)}: sobraron ${formatearPrecio(caja.diferencia_efectivo)}.`
+                    : `⚠️ Se contaron ${formatearPrecio(caja.efectivo_contado)}: faltaron ${formatearPrecio(Math.abs(Number(caja.diferencia_efectivo)))}.`}
+              </p>
+            )}
+
+            {(caja.nota_apertura || caja.nota_cierre) && (
+              <div className="caja-notas">
+                {caja.nota_apertura && <p><strong>Apertura:</strong> {caja.nota_apertura}</p>}
+                {caja.nota_cierre && <p><strong>Cierre:</strong> {caja.nota_cierre}</p>}
+              </div>
+            )}
 
             <div className="seccion-header">
               <h3>Con qué te pagaron las ventas</h3>

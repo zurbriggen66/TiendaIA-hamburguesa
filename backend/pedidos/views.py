@@ -1,4 +1,5 @@
 from datetime import timedelta
+from decimal import Decimal, InvalidOperation
 
 from django.http import JsonResponse
 from django.utils import timezone
@@ -120,8 +121,28 @@ class PagoViewSet(viewsets.ModelViewSet):
 
 class CajaViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSet):
     permission_classes = [EsAdmin]
-    queryset = Caja.objects.all()
+    # Sin el prefetch, cada caja del historial resolvia sus totales con sus propias
+    # consultas: 22 queries por fila, o ~2.000 para tres meses de turnos.
+    queryset = Caja.objects.prefetch_related(
+        'pedidos__items__extras', 'pedidos__pagos', 'gastos',
+    )
     serializer_class = CajaSerializer
+
+    def get_queryset(self):
+        """El historial se filtra por mes (?mes=YYYY-MM).
+
+        Sin filtro devuelve todo, que es como venia: al principio son cuatro turnos,
+        pero al año son 300 y la pantalla deja de servir para encontrar un día puntual.
+        """
+        qs = super().get_queryset()
+        mes = self.request.query_params.get('mes')
+        if mes:
+            try:
+                anio, numero = (int(x) for x in mes.split('-'))
+                qs = qs.filter(dia__year=anio, dia__month=numero)
+            except (ValueError, TypeError):
+                pass  # Un mes mal escrito no vacia el historial: se ignora el filtro.
+        return qs
 
     def destroy(self, request, *args, **kwargs):
         caja = self.get_object()
@@ -166,11 +187,26 @@ class CajaViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSet):
                 {'detail': 'Esta caja ya está cerrada.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        caja.cerrada_en = timezone.now()
-        caja.nota_cierre = request.data.get('nota_cierre', '')
         # Arqueo opcional: si se cuenta el cajon, queda guardado para poder mirar despues
         # de que turno salio una diferencia. Vacio = no se conto.
+        #
+        # Se convierte a Decimal ACA, en la frontera: `save()` escribe bien en la base
+        # pero deja el string crudo en el atributo en memoria, y el serializer despues
+        # intenta restarle un Decimal para calcular la diferencia. Ademas, asi un valor
+        # no numerico responde 400 en vez de reventar en 500.
         contado = request.data.get('efectivo_contado')
-        caja.efectivo_contado = contado if contado not in (None, '') else None
+        if contado in (None, ''):
+            caja.efectivo_contado = None
+        else:
+            try:
+                caja.efectivo_contado = Decimal(str(contado))
+            except (InvalidOperation, ValueError):
+                return Response(
+                    {'detail': 'El efectivo contado tiene que ser un número.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        caja.cerrada_en = timezone.now()
+        caja.nota_cierre = request.data.get('nota_cierre', '')
         caja.save()
         return Response(self.get_serializer(caja).data)

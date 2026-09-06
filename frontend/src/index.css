@@ -4938,3 +4938,56 @@ body {
 @media (max-width: 600px) {
   .toasts { top: auto; bottom: 16px; left: 16px; right: 16px; max-width: none; }
 }
+
+/* --- Historial de cajas --- */
+.caja-historial-header {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.caja-historial-filtro {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.caja-historial-filtro .input-vibrante {
+  width: auto;
+  padding: 7px 10px;
+  font-size: 0.82rem;
+}
+
+/* El arqueo se ve de un vistazo en la fila: entrar caja por caja para saber si
+   cuadró era el motivo por el que nadie lo miraba. */
+.badge-arqueo {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: var(--radio-full);
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.badge-arqueo-ok {
+  background: var(--exito-suave);
+  color: var(--exito);
+}
+
+.badge-arqueo-mal {
+  background: var(--alerta-suave);
+  color: var(--alerta);
+}
+
+.caja-notas {
+  margin: 14px 0;
+  padding: 12px 14px;
+  border-radius: var(--radio);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.caja-notas p + p { margin-top: 6px; }
+.caja-notas strong { color: var(--text); }
