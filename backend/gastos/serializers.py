@@ -4,16 +4,32 @@ from .models import Insumo, Gasto, GastoFijo
 
 class InsumoSerializer(serializers.ModelSerializer):
     descuento_activo = serializers.SerializerMethodField()
+    # El costo por unidad no se exponia, asi que el frontend no podia mostrar ni cuanto
+    # cuesta un insumo ni cuanto vale la mercaderia parada en el deposito.
+    costo_unitario = serializers.SerializerMethodField()
+    origen_del_costo = serializers.SerializerMethodField()
 
     class Meta:
         model = Insumo
         fields = [
             'id', 'nombre', 'unidad', 'cantidad_disponible', 'stock_minimo', 'precio',
+            'costo_manual', 'costo_unitario', 'origen_del_costo',
             'descuento_pct', 'descuento_hasta', 'descuento_activo', 'creado',
         ]
 
     def get_descuento_activo(self, obj):
         return obj.tiene_descuento_activo()
+
+    def get_costo_unitario(self, obj):
+        return obj.costo_unitario()
+
+    def get_origen_del_costo(self, obj):
+        return obj.origen_del_costo()
+
+    def validate_costo_manual(self, value):
+        if value < 0:
+            raise serializers.ValidationError('El costo no puede ser negativo.')
+        return value
 
     def validate_cantidad_disponible(self, value):
         if value < 0:

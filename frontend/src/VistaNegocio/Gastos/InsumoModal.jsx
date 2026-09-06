@@ -18,6 +18,11 @@ export default function InsumoModal({ insumo, onClose, onSaved }) {
   const [stockMinimo, setStockMinimo] = useState(insumo ? insumo.stock_minimo : '');
   const [cantidad, setCantidad] = useState(insumo ? insumo.cantidad_disponible : '');
   const [precio, setPrecio] = useState(insumo ? insumo.precio : '');
+  // Lo que a MI me cuesta una unidad. Es el dato con el que se calcula cuánto cuesta
+  // hacer cada producto, y sin él no hay forma de saber si deja plata.
+  const [costoManual, setCostoManual] = useState(
+    insumo && Number(insumo.costo_manual) > 0 ? insumo.costo_manual : '',
+  );
   const [descuentoPct, setDescuentoPct] = useState(insumo && insumo.descuento_pct > 0 ? insumo.descuento_pct : '');
   const [descuentoHasta, setDescuentoHasta] = useState(aDatetimeLocal(insumo ? insumo.descuento_hasta : null));
   const [guardando, setGuardando] = useState(false);
@@ -46,6 +51,7 @@ export default function InsumoModal({ insumo, onClose, onSaved }) {
         stock_minimo: stockMinimo || 0,
         cantidad_disponible: cantidad || 0,
         precio: precio || 0,
+        costo_manual: costoManual || 0,
         descuento_pct: Number(descuentoPct) > 0 ? Number(descuentoPct) : 0,
         descuento_hasta: Number(descuentoPct) > 0 ? new Date(descuentoHasta).toISOString() : null,
       };
@@ -108,6 +114,33 @@ export default function InsumoModal({ insumo, onClose, onSaved }) {
               <span>{unidad}</span>
             </div>
             <p className="form-ayuda">Corregilo a mano cuando hagas un recuento. Los pedidos lo descuentan solos.</p>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">💲 ¿Cuánto te cuesta 1 {unidad}?</label>
+            <div className="input-con-prefijo">
+              <span className="input-prefijo">$</span>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                className="input-vibrante"
+                placeholder={
+                  insumo?.origen_del_costo === 'compra'
+                    ? `${insumo.costo_unitario} (deducido de la última compra)`
+                    : '0,00'
+                }
+                value={costoManual}
+                onChange={(e) => setCostoManual(e.target.value)}
+              />
+            </div>
+            <p className="form-ayuda">
+              Con esto se calcula cuánto cuesta hacer cada producto: si una hamburguesa
+              lleva 2 fetas de cheddar a $200 y 1 disco de carne a $300, cuesta $500.
+              {insumo?.origen_del_costo === 'compra' && (
+                <> Dejalo vacío para seguir usando el costo de la última compra.</>
+              )}
+            </p>
           </div>
 
           <div className="form-group">

@@ -662,3 +662,71 @@ class BalanceDeProductosTests(TestCase):
 
         # 1 kg de carne por unidad, a $1.000 el kg. Se vendieron 10+9+8+7+6+5+4 = 49.
         self.assertEqual(Decimal(str(respuesta.data['costo_insumos_periodo'])), Decimal('49000'))
+
+
+class CostoDeUnProductoTests(TestCase):
+    """La cuenta que pidio el cliente: 2 fetas de cheddar a $200 + 1 disco de carne a
+    $300 = $500 de costo. Y que se pueda LEER la cuenta, no solo el resultado."""
+
+    def setUp(self):
+        User.objects.create_user('duena', password='x', is_staff=True)
+        self.client.force_login(User.objects.get(username='duena'))
+        categoria = Categoria.objects.create(nombre='Burguers')
+        self.cheddar = Insumo.objects.create(nombre='CHEDDAR', unidad='fetas', costo_manual=200)
+        self.carne = Insumo.objects.create(nombre='CARNE', unidad='discos', costo_manual=300)
+        self.burger = Producto.objects.create(categoria=categoria, nombre='Americana', precio=1000)
+        ProductoInsumo.objects.create(producto=self.burger, insumo=self.cheddar, cantidad=2)
+        ProductoInsumo.objects.create(producto=self.burger, insumo=self.carne, cantidad=1)
+
+    def _producto(self):
+        respuesta = self.client.get('/api/estadisticas/')
+        self.assertEqual(respuesta.status_code, 200, respuesta.content)
+        return respuesta.data['costos_productos'][0]
+
+    def test_el_costo_es_la_suma_de_la_receta(self):
+        producto = self._producto()
+
+        self.assertEqual(Decimal(str(producto['costo'])), Decimal('700'))  # 2x200 + 1x300
+        self.assertEqual(Decimal(str(producto['ganancia'])), Decimal('300'))
+        self.assertEqual(producto['margen_pct'], 30.0)
+
+    def test_la_receta_viene_desglosada_para_poder_leer_la_cuenta(self):
+        receta = {r['insumo_nombre']: r for r in self._producto()['receta']}
+
+        self.assertEqual(Decimal(str(receta['CHEDDAR']['cantidad'])), Decimal('2'))
+        self.assertEqual(Decimal(str(receta['CHEDDAR']['costo_unitario'])), Decimal('200'))
+        self.assertEqual(Decimal(str(receta['CHEDDAR']['subtotal'])), Decimal('400'))
+        self.assertEqual(Decimal(str(receta['CARNE']['subtotal'])), Decimal('300'))
+
+    def test_el_costo_a_mano_le_gana_al_deducido_de_la_ultima_compra(self):
+        # Se carga una compra a otro precio: el valor escrito a mano manda, porque es
+        # el que el dueño reviso.
+        Gasto.objects.create(
+            categoria='insumos', descripcion='Cheddar', monto=1000,
+            metodo_pago='efectivo', insumo=self.cheddar, cantidad=2,  # daria $500 c/u
+        )
+
+        self.assertEqual(self.cheddar.costo_unitario(), Decimal('200'))
+        self.assertEqual(self.cheddar.origen_del_costo(), 'manual')
+
+    def test_sin_costo_a_mano_se_deduce_de_la_compra(self):
+        pan = Insumo.objects.create(nombre='PAN', unidad='unidades')
+        Gasto.objects.create(
+            categoria='insumos', descripcion='Pan', monto=6000,
+            metodo_pago='efectivo', insumo=pan, cantidad=100,
+        )
+
+        self.assertEqual(pan.costo_unitario(), Decimal('60'))
+        self.assertEqual(pan.origen_del_costo(), 'compra')
+
+    def test_un_insumo_sin_ningun_costo_se_reporta_como_faltante(self):
+        salsa = Insumo.objects.create(nombre='SALSA', unidad='kg')
+        ProductoInsumo.objects.create(producto=self.burger, insumo=salsa, cantidad=1)
+
+        producto = self._producto()
+
+        self.assertIsNone(salsa.costo_unitario())
+        self.assertEqual(salsa.origen_del_costo(), None)
+        # El costo no cambia (no se suma cero en silencio) y se avisa cual falta.
+        self.assertEqual(Decimal(str(producto['costo'])), Decimal('700'))
+        self.assertIn('SALSA', producto['insumos_sin_costo'])

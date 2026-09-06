@@ -121,24 +121,41 @@ class EstadisticasView(APIView):
         }
 
         recetas = defaultdict(list)
-        for linea in ProductoInsumo.objects.values('producto_id', 'insumo_id', 'cantidad', 'insumo__nombre'):
+        for linea in ProductoInsumo.objects.values(
+            'producto_id', 'insumo_id', 'cantidad', 'insumo__nombre', 'insumo__unidad',
+        ):
             recetas[linea['producto_id']].append(linea)
 
         costo_por_producto = {}
         faltantes_por_producto = {}
+        # El desglose de la receta: sin el, el costo es un numero que hay que creer.
+        # Con el se lee la cuenta entera: 2 fetas a $200 + 1 disco a $300 = $500.
+        detalle_por_producto = {}
         for producto_id, lineas in recetas.items():
             costo = Decimal('0')
             faltan = []
+            detalle = []
             for linea in lineas:
                 unitario = costos_insumo.get(linea['insumo_id'])
+                subtotal = None
                 if unitario is None:
-                    # Sin compras cargadas no se sabe cuanto cuesta. Sumar cero haria
+                    # Sin costo cargado no se sabe cuanto cuesta. Sumar cero haria
                     # ver el producto mas rentable de lo que es, asi que se avisa.
                     faltan.append(linea['insumo__nombre'])
                 else:
-                    costo += linea['cantidad'] * unitario
+                    subtotal = (linea['cantidad'] * unitario).quantize(Decimal('0.01'))
+                    costo += subtotal
+                detalle.append({
+                    'insumo_id': linea['insumo_id'],
+                    'insumo_nombre': linea['insumo__nombre'],
+                    'unidad': linea['insumo__unidad'],
+                    'cantidad': linea['cantidad'],
+                    'costo_unitario': unitario,
+                    'subtotal': subtotal,
+                })
             costo_por_producto[producto_id] = costo.quantize(Decimal('0.01'))
             faltantes_por_producto[producto_id] = faltan
+            detalle_por_producto[producto_id] = detalle
 
         # Unidades vendidas de CADA producto (sin truncar): es lo que permite pasar de
         # "cuanto deja una unidad" a "cuanto aporto este producto en el periodo".
@@ -163,6 +180,7 @@ class EstadisticasView(APIView):
                 'margen_pct': round(float(ganancia / producto.precio * 100), 1) if producto.precio else None,
                 'insumos_sin_costo': faltantes_por_producto[producto.id],
                 'unidades_vendidas': unidades_por_producto.get(producto.id, 0),
+                'receta': detalle_por_producto[producto.id],
             })
         # Peor margen primero: lo que el dueño necesita ver es lo que le deja perdida,
         # no el orden alfabetico. Los sin precio (margen None) van al final.

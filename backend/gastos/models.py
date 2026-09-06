@@ -17,6 +17,12 @@ class Insumo(models.Model):
     # variante (ej. "Doble" = precio del producto + este precio). No es el costo de compra,
     # es lo que se le cobra de más al cliente por sumarlo.
     precio = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    # Lo que a MI me cuesta 1 unidad de este insumo (una feta de cheddar, un disco de
+    # carne). Es lo contrario de `precio`: ese es lo que le cobro al cliente, este es lo
+    # que pago yo. Cargarlo a mano es opcional: si esta en 0 se deduce de la ultima
+    # compra. Se puede escribir directo porque no todo el mundo carga cada compra, y
+    # sin costo no hay forma de saber si un producto deja plata.
+    costo_manual = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     # Descuento sobre este insumo (ej. "medallones -20% esta semana"): cuando está activo,
     # se propaga a cualquier variante de producto que lo agregue como insumo extra
     # (ver Presentacion.mejor_descuento_insumo en productos.models).
@@ -40,20 +46,31 @@ class Insumo(models.Model):
         return self.precio
 
     def costo_unitario(self):
-        """Lo que cuesta reponer 1 unidad, segun la ultima compra cargada.
+        """Lo que cuesta 1 unidad de este insumo: una feta de cheddar, un disco de carne.
 
-        Se deriva de los Gasto de restock (monto / cantidad) en vez de guardarse a
-        mano en un campo: el dueño ya carga cada compra, y un campo aparte quedaria
-        desactualizado. Se usa la ULTIMA compra y no un promedio historico porque
-        para decidir el precio de venta lo que importa es lo que sale reponerlo hoy.
+        Con esto se calcula cuanto cuesta hacer cada producto (2 fetas a $200 + 1 disco
+        a $300 = $500) y, de ahi, cuanto deja al venderlo.
 
-        None si nunca se cargo una compra de este insumo: distinto de 0, y quien lo
-        use tiene que mostrarlo como dato faltante en vez de sumar cero.
+        Gana el valor cargado a mano si existe; si no, se deduce de la ultima compra
+        (monto / cantidad). Se prefiere la ULTIMA y no un promedio historico porque para
+        decidir el precio de venta lo que importa es lo que sale reponerlo hoy.
+
+        None si no hay ninguna de las dos cosas: distinto de 0, y quien lo use tiene que
+        mostrarlo como dato faltante en vez de sumar cero y hacer ver el producto mas
+        rentable de lo que es.
         """
+        if self.costo_manual and self.costo_manual > 0:
+            return self.costo_manual
         ultima = self.gastos.filter(cantidad__gt=0).order_by('-fecha', '-id').first()
         if ultima is None:
             return None
         return (ultima.monto / ultima.cantidad).quantize(Decimal('0.01'))
+
+    def origen_del_costo(self):
+        """'manual', 'compra' o None. Para que el costo nunca sea un numero misterioso."""
+        if self.costo_manual and self.costo_manual > 0:
+            return 'manual'
+        return 'compra' if self.gastos.filter(cantidad__gt=0).exists() else None
 
 
 class Gasto(models.Model):

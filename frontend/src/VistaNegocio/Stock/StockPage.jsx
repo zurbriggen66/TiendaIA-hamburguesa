@@ -43,6 +43,7 @@ export default function StockPage() {
     Number(insumo.stock_minimo) > 0 && Number(insumo.cantidad_disponible) <= Number(insumo.stock_minimo);
 
   const bajos = insumos.filter(estaBajo);
+  const sinCosto = insumos.filter((i) => i.costo_unitario === null);
   const visibles = soloBajos ? bajos : insumos;
   // Lo que vale la mercadería parada: es plata comprada que todavía no se vendió.
   const valorInmovilizado = insumos.reduce(
@@ -110,6 +111,17 @@ export default function StockPage() {
               </div>
             </div>
 
+            {sinCosto.length > 0 && (
+              <div className="panel balance-alerta">
+                <strong>ℹ️ {sinCosto.length} insumo{sinCosto.length === 1 ? '' : 's'} sin costo cargado</strong>
+                <p>
+                  {sinCosto.map((i) => i.nombre).join(', ')} — sin saber cuánto cuestan, los
+                  productos que los usan aparecen más rentables de lo que son en Balance.
+                  Tocá el insumo y cargá cuánto te cuesta una unidad.
+                </p>
+              </div>
+            )}
+
             {bajos.length > 0 && (
               <div className="tabs">
                 <button
@@ -146,6 +158,11 @@ export default function StockPage() {
                   <span className="stock-card-nombre">{insumo.nombre}</span>
                   <strong className="stock-card-cantidad">{insumo.cantidad_disponible}</strong>
                   <span className="stock-card-unidad">{insumo.unidad}</span>
+                  <span className="stock-card-costo">
+                    {insumo.costo_unitario === null
+                      ? '⚠️ sin costo'
+                      : `${formatearPrecio(insumo.costo_unitario)} c/${insumo.unidad.replace(/s$/, '')}`}
+                  </span>
                   <button
                     type="button"
                     className="stock-card-restock"

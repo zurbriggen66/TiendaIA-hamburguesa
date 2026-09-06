@@ -50,6 +50,7 @@ export default function BalancePage() {
   const [cargando, setCargando] = useState(true);
   const [mes, setMes] = useState(mesActualISO());
   const [orden, setOrden] = useState('margen');
+  const [abierto, setAbierto] = useState(null);
 
   useEffect(() => {
     const cargar = async () => {
@@ -220,26 +221,85 @@ export default function BalancePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {ordenados.map((p) => (
-                    <tr key={p.producto_id}>
-                      <td>
-                        {p.producto_nombre}
-                        {p.insumos_sin_costo?.length > 0 && (
-                          <span className="balance-incompleto" title={`Falta el costo de: ${p.insumos_sin_costo.join(', ')}`}>
-                            {' '}ℹ️
-                          </span>
+                  {ordenados.map((p) => {
+                    const estaAbierto = abierto === p.producto_id;
+                    return (
+                      <React.Fragment key={p.producto_id}>
+                        <tr
+                          className="balance-fila"
+                          onClick={() => setAbierto(estaAbierto ? null : p.producto_id)}
+                          title="Ver de qué se compone el costo"
+                        >
+                          <td>
+                            <span className="balance-flecha">{estaAbierto ? '▾' : '▸'}</span>
+                            {' '}{p.producto_nombre}
+                            {p.insumos_sin_costo?.length > 0 && (
+                              <span className="balance-incompleto" title={`Falta el costo de: ${p.insumos_sin_costo.join(', ')}`}>
+                                {' '}ℹ️
+                              </span>
+                            )}
+                          </td>
+                          <td>{formatearPrecio(p.precio)}</td>
+                          <td>{formatearPrecio(p.costo)}</td>
+                          <td className={Number(p.ganancia) < 0 ? 'balance-margen-negativo' : ''}>
+                            {formatearPrecio(p.ganancia)}
+                          </td>
+                          <td><BarraMargen margen={p.margen_pct} /></td>
+                          <td>{p.unidades}</td>
+                          <td>{p.unidades > 0 ? formatearPrecio(p.aporte) : '—'}</td>
+                        </tr>
+                        {/* La cuenta completa, para que el costo no sea un número que
+                            haya que creer: 2 fetas a $200 + 1 disco a $300 = $500. */}
+                        {estaAbierto && (
+                          <tr className="balance-receta-fila">
+                            <td colSpan={7}>
+                              <div className="balance-receta">
+                                <span className="balance-receta-titulo">
+                                  Para hacer un{p.producto_nombre.endsWith('a') ? 'a' : ''} {p.producto_nombre} se usa:
+                                </span>
+                                {(p.receta || []).map((r) => (
+                                  <div key={r.insumo_id} className="balance-receta-linea">
+                                    <span>
+                                      {Number(r.cantidad)} {r.unidad} de <strong>{r.insumo_nombre}</strong>
+                                    </span>
+                                    <span className="balance-receta-cuenta">
+                                      {r.costo_unitario === null
+                                        ? 'sin costo cargado'
+                                        : `${Number(r.cantidad)} × ${formatearPrecio(r.costo_unitario)}`}
+                                    </span>
+                                    <span className="balance-receta-subtotal">
+                                      {r.subtotal === null ? '—' : formatearPrecio(r.subtotal)}
+                                    </span>
+                                  </div>
+                                ))}
+                                <div className="balance-receta-linea balance-receta-total">
+                                  <span><strong>Cuesta hacerlo</strong></span>
+                                  <span />
+                                  <span className="balance-receta-subtotal">{formatearPrecio(p.costo)}</span>
+                                </div>
+                                <div className="balance-receta-linea balance-receta-total">
+                                  <span><strong>Se vende a</strong></span>
+                                  <span />
+                                  <span className="balance-receta-subtotal">{formatearPrecio(p.precio)}</span>
+                                </div>
+                                <div className={`balance-receta-linea balance-receta-deja ${Number(p.ganancia) < 0 ? 'balance-margen-negativo' : ''}`}>
+                                  <span><strong>Deja</strong></span>
+                                  <span />
+                                  <span className="balance-receta-subtotal">{formatearPrecio(p.ganancia)}</span>
+                                </div>
+                                {p.insumos_sin_costo?.length > 0 && (
+                                  <p className="balance-receta-aviso">
+                                    ℹ️ Falta cargar cuánto cuesta {p.insumos_sin_costo.join(', ')}, así que
+                                    el costo real es mayor y el margen se ve mejor de lo que es.
+                                  </p>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
                         )}
-                      </td>
-                      <td>{formatearPrecio(p.precio)}</td>
-                      <td>{formatearPrecio(p.costo)}</td>
-                      <td className={Number(p.ganancia) < 0 ? 'balance-margen-negativo' : ''}>
-                        {formatearPrecio(p.ganancia)}
-                      </td>
-                      <td><BarraMargen margen={p.margen_pct} /></td>
-                      <td>{p.unidades}</td>
-                      <td>{p.unidades > 0 ? formatearPrecio(p.aporte) : '—'}</td>
-                    </tr>
-                  ))}
+                      </React.Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
