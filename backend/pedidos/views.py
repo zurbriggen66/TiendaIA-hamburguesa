@@ -179,6 +179,12 @@ class CajaViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSet):
         )
         return Response(self.get_serializer(caja).data, status=status.HTTP_201_CREATED)
 
+    @action(detail=True, methods=['get'])
+    def movimientos(self, request, pk=None):
+        """Entradas y salidas del turno, para poder auditar un descuadre sin ir
+        pedido por pedido."""
+        return Response(self.get_object().movimientos())
+
     @action(detail=True, methods=['post'])
     def cerrar(self, request, pk=None):
         caja = self.get_object()

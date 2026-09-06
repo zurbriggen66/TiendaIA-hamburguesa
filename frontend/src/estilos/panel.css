@@ -1,0 +1,436 @@
+/* ===========================================================================
+   Piezas de layout del panel: encabezado de página, KPIs, tabs y paneles.
+
+   Van aparte de index.css (que ya tiene 4.875 líneas) porque son genéricas: las
+   usa Caja hoy y sirven igual para el resto de las pantallas del admin.
+   Todo se pinta con tokens, así el tema claro/oscuro sale gratis.
+   =========================================================================== */
+
+.pagina-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 22px 26px 18px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.pagina-header h2 {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.pagina-subtitulo {
+  margin: 4px 0 0;
+  font-size: 0.86rem;
+  color: var(--text-muted);
+}
+
+.pagina-header-acciones {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* --- Tarjetas de cifra --------------------------------------------------- */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+/* El color vive en una barra fina, no en el fondo: tres tarjetas con fondos
+   saturados compiten entre sí y ninguna termina destacando. */
+.kpi {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: var(--radio-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--border-fuerte);
+  box-shadow: var(--sombra-sm);
+}
+
+.kpi-exito { border-left-color: var(--exito); }
+.kpi-info { border-left-color: var(--info); }
+.kpi-alerta { border-left-color: var(--alerta); }
+
+.kpi-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.kpi-etiqueta {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.kpi-valor {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi-detalle {
+  font-size: 0.74rem;
+  color: var(--text-sutil);
+}
+
+.kpi-icono {
+  font-size: 1.3rem;
+  opacity: 0.65;
+}
+
+/* --- Tabs ---------------------------------------------------------------- */
+.tabs {
+  display: flex;
+  gap: 4px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 4px;
+  margin-bottom: 20px;
+  border-radius: var(--radio);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  overflow-x: auto;
+}
+
+.tab {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radio-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.tab:hover { color: var(--text); }
+
+.tab-activa {
+  background: var(--accent);
+  color: var(--accent-contraste);
+}
+
+/* --- Paneles ------------------------------------------------------------- */
+.panel {
+  padding: 18px 20px;
+  margin-bottom: 18px;
+  border-radius: var(--radio-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--sombra-sm);
+}
+
+.panel-encabezado {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.panel-titulo {
+  margin: 0 0 14px;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.panel-encabezado .panel-titulo { margin: 0; }
+
+.panel-subtitulo {
+  font-size: 0.76rem;
+  color: var(--text-sutil);
+  text-transform: capitalize;
+}
+
+.panel-pie {
+  margin: 12px 0 0;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: var(--text-sutil);
+}
+
+.panel-vacio {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.panel-vacio-icono { font-size: 1.8rem; }
+.panel-vacio-texto { flex: 1; min-width: 200px; }
+
+.panel-vacio-texto strong {
+  display: block;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.panel-vacio-texto p {
+  margin: 3px 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* --- Dos columnas -------------------------------------------------------- */
+.caja-columnas {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.caja-columna { min-width: 0; }
+
+@media (max-width: 1000px) {
+  .caja-columnas { grid-template-columns: 1fr; }
+}
+
+/* --- Acciones rápidas ---------------------------------------------------- */
+.acciones-rapidas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.accion-rapida {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  border-radius: var(--radio);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.accion-rapida:hover {
+  border-color: var(--accent);
+  background: var(--surface-3);
+}
+
+.accion-rapida-icono {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radio-sm);
+  font-size: 1rem;
+}
+
+.accion-exito { background: var(--exito-suave); }
+.accion-alerta { background: var(--alerta-suave); }
+.accion-info { background: var(--info-suave); }
+
+.accion-rapida-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.accion-rapida-texto strong { font-size: 0.85rem; color: var(--text); }
+.accion-rapida-texto span { font-size: 0.72rem; color: var(--text-muted); }
+
+/* --- Lista clave / valor ------------------------------------------------- */
+.datos-lista {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.datos-lista > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.datos-lista > div:last-child { border-bottom: none; }
+.datos-lista dt { font-size: 0.82rem; color: var(--text-muted); }
+
+.datos-lista dd {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Movimientos del turno ----------------------------------------------- */
+.mov-lista { list-style: none; margin: 0; padding: 0; }
+
+.mov-fila {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.mov-fila:last-child { border-bottom: none; }
+
+.mov-icono {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radio-sm);
+  font-size: 0.95rem;
+}
+
+.mov-apertura { background: var(--info-suave); }
+.mov-cobro { background: var(--exito-suave); }
+.mov-vuelto { background: var(--alerta-suave); }
+.mov-gasto { background: var(--error-suave); }
+
+.mov-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.mov-info strong { font-size: 0.85rem; color: var(--text); }
+
+.mov-info > span {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mov-nota { color: var(--text-sutil); }
+
+.mov-metodo {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.mov-hora {
+  font-size: 0.75rem;
+  color: var(--text-sutil);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.mov-monto {
+  font-size: 0.88rem;
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.mov-monto-positivo { color: var(--exito); }
+.mov-monto-negativo { color: var(--error); }
+
+.mov-ver-todos {
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px;
+  border-radius: var(--radio);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mov-ver-todos:hover { background: var(--surface-3); }
+
+@media (max-width: 700px) {
+  /* En el celular se van el método y la hora: el concepto y el monto son lo que
+     se necesita leer de un vistazo. */
+  .mov-fila { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .mov-metodo,
+  .mov-hora { display: none; }
+}
+
+/* --- Desglose por método ------------------------------------------------- */
+.desglose-metodos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.desglose-metodos-titulo {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-sutil);
+}
+
+.desglose-metodos-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 12px;
+  align-items: baseline;
+}
+
+.desglose-metodos-label {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+
+.desglose-metodos-monto {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.desglose-metodos-negativo { color: var(--error); }
+
+.desglose-metodos-pista {
+  grid-column: 1 / -1;
+  height: 6px;
+  border-radius: var(--radio-full);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.desglose-metodos-barra {
+  height: 100%;
+  border-radius: var(--radio-full);
+  background: var(--accent);
+}
+
+/* Un saldo negativo significa que salió más de lo que entró por esa vía (un vuelto
+   devuelto por ahí). Es la única fila donde el color dice algo, por eso la excepción
+   al criterio de un solo hue. */
+.desglose-metodos-barra-negativa { background: var(--error); }

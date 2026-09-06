@@ -178,6 +178,71 @@ class Caja(models.Model):
 
         return saldos
 
+    def movimientos(self):
+        """Cada entrada y salida de plata del turno, en orden.
+
+        Es el registro que faltaba para poder auditar un descuadre: hasta ahora la caja
+        mostraba totales, y cuando no cerraban no habia forma de ver de donde salio la
+        diferencia sin ir pedido por pedido.
+
+        Invariante: sumar los movimientos de un metodo da exactamente su saldo en
+        `desglose_por_metodo()`. Las dos vistas leen los mismos hechos.
+        """
+        etiquetas = dict(METODOS_PAGO)
+        movs = []
+
+        if self.monto_inicial:
+            movs.append({
+                'tipo': 'apertura',
+                'descripcion': 'Apertura de caja',
+                'detalle': self.nota_apertura or 'Fondo inicial',
+                'metodo': self.metodo_inicial,
+                'metodo_label': etiquetas.get(self.metodo_inicial, self.metodo_inicial),
+                'monto': self.monto_inicial,
+                'fecha': self.abierta_en,
+            })
+
+        for pedido in self.pedidos_validos():
+            for pago in pedido.pagos.all():
+                movs.append({
+                    'tipo': 'cobro',
+                    'descripcion': f'Cobro de pedido #{pedido.id}',
+                    # La propina entra al cajon igual que el cobro, pero no es venta:
+                    # se aclara acá para que el numero no parezca inflado.
+                    'detalle': pedido.cliente or 'Sin nombre',
+                    'nota': f'incluye {pago.propina} de propina' if pago.propina else '',
+                    'metodo': pago.metodo,
+                    'metodo_label': etiquetas.get(pago.metodo, pago.metodo),
+                    'monto': pago.entra_al_cajon,
+                    'fecha': pago.creado,
+                })
+                if pago.vuelto_monto and pago.vuelto_metodo:
+                    movs.append({
+                        'tipo': 'vuelto',
+                        'descripcion': f'Vuelto del pedido #{pedido.id}',
+                        'detalle': f'Pagó con {etiquetas.get(pago.metodo, pago.metodo)}',
+                        'nota': '',
+                        'metodo': pago.vuelto_metodo,
+                        'metodo_label': etiquetas.get(pago.vuelto_metodo, pago.vuelto_metodo),
+                        'monto': -pago.vuelto_monto,
+                        'fecha': pago.creado,
+                    })
+
+        for gasto in self.gastos.all():
+            movs.append({
+                'tipo': 'gasto',
+                'descripcion': f'Gasto: {gasto.descripcion}',
+                'detalle': gasto.get_categoria_display(),
+                'nota': '',
+                'metodo': gasto.metodo_pago,
+                'metodo_label': etiquetas.get(gasto.metodo_pago, gasto.metodo_pago),
+                'monto': -gasto.monto,
+                'fecha': gasto.fecha,
+            })
+
+        movs.sort(key=lambda m: m['fecha'], reverse=True)
+        return movs
+
     def diferencia_efectivo(self):
         """Sobrante (+) o faltante (−) del arqueo. None si todavía no se contó."""
         if self.efectivo_contado is None:

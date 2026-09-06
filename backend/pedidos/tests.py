@@ -451,3 +451,65 @@ class HistorialDeCajasTests(TestCase):
         self.assertEqual(con_seis, con_tres, 'el historial vuelve a consultar por cada caja')
         self.assertEqual(len(respuesta.data), 6)
         self.assertEqual(Decimal(str(respuesta.data[0]['total_cobrado'])), Decimal('10000'))
+
+
+class MovimientosDeCajaTests(TestCase):
+    """El registro de movimientos y el desglose por método tienen que contar los mismos
+    hechos: si se separan, el listado deja de servir para explicar un descuadre."""
+
+    def setUp(self):
+        categoria = Categoria.objects.create(nombre='Burguers')
+        self.producto = Producto.objects.create(categoria=categoria, nombre='Inglesa', precio=27325)
+        self.caja = Caja.objects.create(dia='2026-09-05', monto_inicial=20000, metodo_inicial='efectivo')
+
+    def _pedido(self, total=27325, cliente='Bren'):
+        pedido = Pedido.objects.create(caja=self.caja, confirmado=True, cliente=cliente)
+        DetallePedido.objects.create(pedido=pedido, producto=self.producto, cantidad=1, precio_unitario=total)
+        return pedido
+
+    def test_los_movimientos_suman_exactamente_el_desglose(self):
+        # Un cobro con vuelto cruzado, uno con propina y un gasto: los tres casos que
+        # mueven plata de forma distinta.
+        Pago.objects.create(
+            pedido=self._pedido(), metodo='efectivo', monto=27325,
+            vuelto_monto=2675, vuelto_metodo='transferencia',
+        )
+        Pago.objects.create(pedido=self._pedido(cliente='Sofia'), metodo='efectivo', monto=27325, propina=1000)
+        Gasto.objects.create(
+            categoria='insumos', descripcion='Pan', monto=10000, metodo_pago='efectivo', caja=self.caja,
+        )
+
+        por_metodo = {}
+        for mov in self.caja.movimientos():
+            por_metodo[mov['metodo']] = por_metodo.get(mov['metodo'], Decimal('0')) + mov['monto']
+
+        desglose = self.caja.desglose_por_metodo()
+        for metodo, saldo in desglose.items():
+            self.assertEqual(
+                por_metodo.get(metodo, Decimal('0')), saldo,
+                f'los movimientos de {metodo} no suman su saldo del desglose',
+            )
+        # 20000 inicial + 30000 entregados + 28325 entregados - 10000 de gasto
+        self.assertEqual(desglose['efectivo'], Decimal('68325'))
+        self.assertEqual(desglose['transferencia'], Decimal('-2675'))
+
+    def test_el_vuelto_cruzado_aparece_como_salida_propia(self):
+        Pago.objects.create(
+            pedido=self._pedido(), metodo='efectivo', monto=27325,
+            vuelto_monto=2675, vuelto_metodo='transferencia',
+        )
+
+        vueltos = [m for m in self.caja.movimientos() if m['tipo'] == 'vuelto']
+
+        self.assertEqual(len(vueltos), 1)
+        self.assertEqual(vueltos[0]['monto'], Decimal('-2675'))
+        self.assertEqual(vueltos[0]['metodo'], 'transferencia')
+
+    def test_van_ordenados_del_mas_nuevo_al_mas_viejo(self):
+        Pago.objects.create(pedido=self._pedido(), metodo='efectivo', monto=27325)
+
+        fechas = [m['fecha'] for m in self.caja.movimientos()]
+
+        self.assertEqual(fechas, sorted(fechas, reverse=True))
+        # La apertura es lo mas viejo del turno, siempre va ultima.
+        self.assertEqual(self.caja.movimientos()[-1]['tipo'], 'apertura')

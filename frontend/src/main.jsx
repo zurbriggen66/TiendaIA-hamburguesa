@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import './estilos/panel.css'
 import App from './App.jsx'
 import { aplicarTema, leerTema } from './utils/tema.js'
 
