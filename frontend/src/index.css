@@ -1,19 +1,133 @@
 /* Estilos Generales */
 @import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
 
+/* Tailwind v4 SIN preflight: el reset de Tailwind pisaría las 4.500 líneas de CSS
+   que ya visten el panel. Importando solo theme y utilities se pueden usar las
+   clases utilitarias en lo nuevo sin tocar nada de lo viejo. */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+/* ---------------------------------------------------------------------------
+   TOKENS DEL PANEL DE ADMINISTRACIÓN
+
+   `:root` viste SOLO el admin: la tienda del cliente redeclara sus propios
+   colores sobre `.cliente-container` (ver Inicio.jsx), así que puede cambiar de
+   tema acá sin que la tienda se entere.
+
+   Las superficies son neutras a propósito. El naranja de ANTOJO sigue siendo la
+   marca, pero pintando lo que se resalta (botones, foco, ítem activo) en vez del
+   fondo entero: es lo que separa un panel que parece un producto de uno que
+   parece una maqueta, y es lo único que hace posible un modo claro decente.
+   --------------------------------------------------------------------------- */
 :root {
-  /* Fondo: Pantone 5535 C "British Racing Green". Acento: Pantone 16-1358 TCX "Orange Tiger". */
-  --bg: #0d2b23;
-  --surface: #163a30;
+  color-scheme: dark;
+
+  --bg: #0f1115;
+  --surface: #171a21;
+  --surface-2: #1f232c;
+  --surface-3: #272c37;
+  --border: #2a2f3a;
+  --border-fuerte: #3a4150;
+  --text: #e8eaed;
+  --text-muted: #9aa3b2;
+  --text-sutil: #6b7383;
+
+  /* Acento: Pantone 16-1358 TCX "Orange Tiger", la marca de ANTOJO. */
+  --accent: #e8630c;
+  --accent-light: #f4854a;
+  --accent-dark: #b84e0a;
+  --accent-contraste: #ffffff;
+  --accent-suave: rgba(232, 99, 12, 0.14);
+  --accent-gradient: linear-gradient(135deg, var(--accent-light), var(--accent));
+
+  /* Semánticos: verde = salió bien, ámbar = ojo, rojo = error. No se tocan al
+     cambiar la marca porque cambiarlos rompería esa lectura. */
+  --exito: #4ade80;
+  --exito-suave: rgba(74, 222, 128, 0.14);
+  --alerta: #fbbf24;
+  --alerta-suave: rgba(251, 191, 36, 0.14);
+  --error: #f87171;
+  --error-suave: rgba(248, 113, 113, 0.14);
+  --info: #38bdf8;
+  --info-suave: rgba(56, 189, 248, 0.14);
+
+  --radio-sm: 8px;
+  --radio: 12px;
+  --radio-lg: 16px;
+  --radio-full: 999px;
+
+  --sombra-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --sombra: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --sombra-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
+
+  --tooltip-bg: #2a2f3a;
+  --tooltip-texto: #f3f4f6;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --surface-2: #f0f2f5;
+  --surface-3: #e6e9ee;
+  --border: #e2e5ea;
+  --border-fuerte: #cbd1da;
+  --text: #16181d;
+  --text-muted: #5c6473;
+  --text-sutil: #858d9c;
+
+  --accent-suave: rgba(232, 99, 12, 0.1);
+
+  /* En claro los semánticos se oscurecen: los tonos pensados para fondo oscuro
+     no llegan al contraste mínimo sobre blanco. */
+  --exito: #15803d;
+  --exito-suave: rgba(21, 128, 61, 0.1);
+  --alerta: #b45309;
+  --alerta-suave: rgba(180, 83, 9, 0.1);
+  --error: #dc2626;
+  --error-suave: rgba(220, 38, 38, 0.1);
+  --info: #0e7490;
+  --info-suave: rgba(14, 116, 144, 0.1);
+
+  --sombra-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --sombra: 0 4px 12px rgba(16, 24, 40, 0.08);
+  --sombra-lg: 0 12px 32px rgba(16, 24, 40, 0.12);
+
+  --tooltip-bg: #16181d;
+  --tooltip-texto: #ffffff;
+}
+
+/* Expone los tokens a Tailwind: `bg-surface`, `text-muted`, `rounded-lg`, etc.
+   leen las mismas variables, así utilidades y CSS a mano nunca se contradicen. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-borde: var(--border);
+  --color-texto: var(--text);
+  --color-muted: var(--text-muted);
+  --color-sutil: var(--text-sutil);
+  --color-accent: var(--accent);
+  --color-exito: var(--exito);
+  --color-alerta: var(--alerta);
+  --color-error: var(--error);
+  --color-info: var(--info);
+  --radius-token: var(--radio);
+  --radius-token-lg: var(--radio-lg);
+}
+
+/* La tienda del cliente se blinda contra el tema del panel.
+   Inicio.jsx solo redeclara --bg/--surface/--accent sobre este contenedor, así
+   que sin esto el modo claro del admin le dejaría texto oscuro sobre verde. */
+.cliente-container {
   --surface-2: #1e4a3c;
   --border: #2c5c4a;
   --text: #f5ede7;
   --text-muted: #a9c4b6;
-
-  --accent: #e8630c;
-  --accent-light: #f4854a;
-  --accent-dark: #b84e0a;
-  --accent-gradient: linear-gradient(135deg, var(--accent-light), var(--accent));
+  color-scheme: dark;
 }
 
 * {
@@ -837,7 +951,7 @@ body {
 }
 
 .producto-acciones button:hover {
-  background: #4a2f1f;
+  background: var(--accent-suave);
 }
 
 .producto-card-nueva {
@@ -955,7 +1069,7 @@ body {
 }
 
 .modal-close:hover {
-  background: #4a1f1f;
+  background: var(--error-suave);
   color: #ef4444;
 }
 
@@ -1513,7 +1627,7 @@ body {
 
 .cobro-parcial {
   background: rgba(251, 191, 36, 0.15);
-  color: #fbbf24;
+  color: var(--alerta);
   border-color: rgba(251, 191, 36, 0.4);
 }
 
@@ -1678,7 +1792,7 @@ body {
 }
 
 .pedido-fila-quitar:hover {
-  background: #4a2f1f;
+  background: var(--accent-suave);
 }
 
 .pedido-fila-quitar:disabled {
@@ -2087,7 +2201,7 @@ body {
 }
 
 .gasto-fila-borrar:hover {
-  background: #4a2f1f;
+  background: var(--accent-suave);
 }
 
 /* Filas de gastos fijos: suman el botón de pagar y el de editar a la grilla base */
@@ -2435,8 +2549,8 @@ body {
   position: absolute;
   top: -6px;
   right: -6px;
-  background: #111827;
-  color: #ffffff;
+  background: var(--tooltip-bg);
+  color: var(--tooltip-texto);
   font-size: 0.65rem;
   font-weight: 700;
   width: 18px;
@@ -3046,7 +3160,7 @@ body {
   left: 50%;
   transform: translateX(-50%);
   margin-bottom: 8px;
-  background: #111827;
+  background: var(--tooltip-bg);
   color: #ffffff;
   padding: 6px 10px;
   border-radius: 8px;
@@ -3061,7 +3175,8 @@ body {
 }
 
 .grafico-ventas-tooltip span {
-  color: #d1d5db;
+  color: var(--tooltip-texto);
+  opacity: 0.75;
   font-size: 0.68rem;
 }
 
@@ -3371,7 +3486,7 @@ body {
 }
 
 .combo-card-acciones button:hover {
-  background: #4a2f1f;
+  background: var(--accent-suave);
 }
 
 .combo-card-nuevo {
@@ -3549,7 +3664,7 @@ body {
 }
 
 .toast-pedido-nuevo-cerrar:hover {
-  background: #4a1f1f;
+  background: var(--error-suave);
   color: #f87171;
 }
 
@@ -3561,9 +3676,9 @@ body {
 }
 
 .impresion-banner {
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  color: #93c5fd;
+  background: var(--info-suave);
+  border: 1px solid var(--info);
+  color: var(--info);
   border-radius: 10px;
   padding: 12px 16px;
   font-size: 0.85rem;
@@ -3572,7 +3687,7 @@ body {
 }
 
 .impresion-banner strong {
-  color: #ffffff;
+  color: var(--text);
 }
 
 .impresion-switch-fila {
@@ -3730,7 +3845,7 @@ body {
 }
 
 .pago-fila-registrado button:hover {
-  background: #4a1f1f;
+  background: var(--error-suave);
 }
 
 .pago-form {
@@ -3817,7 +3932,7 @@ body {
 .pago-aviso-parcial {
   margin: 8px 0 0;
   font-size: 0.78rem;
-  color: #fbbf24;
+  color: var(--alerta);
 }
 
 .pago-btn-confirmar {
@@ -4538,7 +4653,7 @@ body {
   margin: 10px 0 0;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #fbbf24;
+  color: var(--alerta);
 }
 
 .caja-arqueo-resultado {
@@ -4552,10 +4667,56 @@ body {
 }
 
 .caja-arqueo-mal {
-  color: #fbbf24;
+  color: var(--alerta);
 }
 
 .pago-fila-vuelto {
   font-size: 0.78rem;
   opacity: 0.7;
+}
+
+/* --- Selector de tema del sidebar --- */
+.selector-tema {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radio);
+}
+
+.selector-tema-opcion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border: none;
+  border-radius: var(--radio-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.selector-tema-opcion:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.selector-tema-activa {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--sombra-sm);
+}
+
+.selector-tema-etiqueta {
+  font-size: 0.6rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
 }

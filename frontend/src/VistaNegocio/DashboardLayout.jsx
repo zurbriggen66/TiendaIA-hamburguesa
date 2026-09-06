@@ -5,6 +5,7 @@ import { obtenerConfigImpresion, imprimirPedido } from '../utils/impresion';
 import { useModo } from './ModoContext';
 import { seccionDeRuta } from '../utils/modoEmpleado';
 import AdminLogin from './AdminLogin';
+import SelectorTema from './SelectorTema';
 
 const INTERVALO_CONSULTA_MS = 15000;
 
@@ -196,6 +197,7 @@ export default function DashboardLayout() {
         </div>
 
         <div className="sidebar-footer">
+          <SelectorTema />
           <a href="/" className="menu-item menu-item-externa">
             👁️ Ver tienda online
           </a>
