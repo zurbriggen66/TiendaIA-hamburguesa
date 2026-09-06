@@ -1,78 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 import BarrasDesglose, { formatearPrecio } from './BarrasDesglose';
-
-const formatearDia = (iso) => {
-  const [, mes, dia] = iso.split('-');
-  return `${dia}/${mes}`;
-};
-
-// Redondea el techo del eje Y a un número "limpio" (múltiplos de 1, 2 o 5 según la magnitud)
-const techoLimpio = (valor) => {
-  if (valor <= 0) return 1;
-  const magnitud = 10 ** Math.floor(Math.log10(valor));
-  const pasos = [1, 2, 5, 10];
-  const paso = pasos.find((p) => valor <= p * magnitud) ?? 10;
-  return paso * magnitud;
-};
-
-function GraficoVentas({ datos }) {
-  const [foco, setFoco] = useState(null);
-
-  if (datos.length === 0) {
-    return <p className="estado-vacio-chico">Todavía no hay ventas en los últimos 14 días.</p>;
-  }
-
-  const maximo = techoLimpio(Math.max(...datos.map((d) => d.total)));
-  const marcasEje = [0, maximo * 0.5, maximo];
-
-  return (
-    <div className="grafico-ventas">
-      <div className="grafico-ventas-plot">
-        <div className="grafico-ventas-ejeY">
-          {marcasEje.slice().reverse().map((m) => (
-            <span key={m}>{formatearPrecio(m)}</span>
-          ))}
-        </div>
-
-        <div className="grafico-ventas-barras">
-          {marcasEje.map((m) => (
-            <div key={m} className="grafico-ventas-gridline" style={{ '--line-offset': `${(m / maximo) * 100}%` }} />
-          ))}
-
-          {datos.map((d) => (
-            <button
-              type="button"
-              key={d.dia}
-              className="grafico-ventas-barra-slot"
-              onMouseEnter={() => setFoco(d.dia)}
-              onMouseLeave={() => setFoco(null)}
-              onFocus={() => setFoco(d.dia)}
-              onBlur={() => setFoco(null)}
-            >
-              {foco === d.dia && (
-                <div className="grafico-ventas-tooltip">
-                  <strong>{formatearPrecio(d.total)}</strong>
-                  <span>{formatearDia(d.dia)}</span>
-                </div>
-              )}
-              <div
-                className={`grafico-ventas-barra ${foco === d.dia ? 'grafico-ventas-barra-activa' : ''}`}
-                style={{ '--bar-height': `${Math.max((d.total / maximo) * 100, 2)}%` }}
-              />
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="grafico-ventas-ejeX">
-        {datos.map((d) => (
-          <span key={d.dia}>{formatearDia(d.dia)}</span>
-        ))}
-      </div>
-    </div>
-  );
-}
+import GraficoVentas from './GraficoVentas';
 
 const pad2 = (n) => String(n).padStart(2, '0');
 // OJO: no usar toISOString() acá — convierte a UTC y en Argentina (UTC-3) eso hace
@@ -196,13 +125,13 @@ export default function EstadisticasPage() {
               </div>
             </div>
 
+            {/* El título va DENTRO del gráfico: con una sola serie no hay leyenda,
+                así que el título es lo único que nombra el dato. */}
             {tab !== 'dia' && (
-              <>
-                <div className="seccion-header">
-                  <h3>{tab === 'mensual' ? 'Ventas del mes' : 'Ventas de los últimos 14 días'}</h3>
-                </div>
-                <GraficoVentas datos={datos.ventas_por_dia} />
-              </>
+              <GraficoVentas
+                datos={datos.ventas_por_dia}
+                titulo={tab === 'mensual' ? 'Ventas del mes' : 'Ventas de los últimos 14 días'}
+              />
             )}
 
             <div className="seccion-header">

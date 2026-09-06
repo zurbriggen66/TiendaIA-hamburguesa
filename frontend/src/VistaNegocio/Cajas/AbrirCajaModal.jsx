@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import api from '../../services/api';
 import { METODOS_PAGO } from '../../utils/metodosPago';
+import { toast } from '../../utils/toast';
 
 const pad2 = (n) => String(n).padStart(2, '0');
 // OJO: no usar toISOString() acá — convierte a UTC y en Argentina (UTC-3) eso hace
@@ -30,7 +31,7 @@ export default function AbrirCajaModal({ onClose, onSaved }) {
       onSaved();
     } catch (error) {
       console.error('Error al abrir la caja:', error);
-      alert(error.response?.data?.detail || 'No se pudo abrir la caja.');
+      toast.error(error.response?.data?.detail || 'No se pudo abrir la caja.');
     } finally {
       setGuardando(false);
     }

@@ -3,6 +3,7 @@ import api from '../../services/api';
 import CategoriaModal from './CategoriaModal';
 import ProductoModal from './ProductoModal';
 import DescuentoProductoModal from './DescuentoProductoModal';
+import { toast } from '../../utils/toast';
 
 const COLORES_CHIP = ['chip-mostaza', 'chip-naranja', 'chip-tomate'];
 
@@ -44,7 +45,7 @@ export default function ProductosPage() {
       cargarDatos();
     } catch (error) {
       const detalle = error.response?.data?.detail;
-      alert(detalle || 'No se pudo eliminar la categoría.');
+      toast.error(detalle || 'No se pudo eliminar la categoría.');
     }
   };
 
@@ -66,7 +67,7 @@ export default function ProductosPage() {
         ocultarProducto(producto);
         return;
       }
-      alert(detalle || 'No se pudo eliminar el producto.');
+      toast.error(detalle || 'No se pudo eliminar el producto.');
     }
   };
 
@@ -76,7 +77,7 @@ export default function ProductosPage() {
       cargarDatos();
     } catch (error) {
       console.error('Error al ocultar/mostrar el producto:', error);
-      alert('No se pudo cambiar la visibilidad del producto.');
+      toast.error('No se pudo cambiar la visibilidad del producto.');
     }
   };
 

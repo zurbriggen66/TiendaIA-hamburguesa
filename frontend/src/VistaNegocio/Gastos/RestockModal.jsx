@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 import { METODOS_PAGO } from '../../utils/metodosPago';
+import { toast } from '../../utils/toast';
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
@@ -29,7 +30,7 @@ export default function RestockModal({ insumo, onClose, onSaved }) {
   const guardar = async (e) => {
     e.preventDefault();
     if (!cantidad || !monto) {
-      alert('Completá la cantidad comprada y el precio pagado.');
+      toast.alerta('Completá la cantidad comprada y el precio pagado.');
       return;
     }
     setGuardando(true);
@@ -45,7 +46,7 @@ export default function RestockModal({ insumo, onClose, onSaved }) {
       onSaved();
     } catch (error) {
       console.error('Error al registrar la compra:', error);
-      alert('Hubo un problema al registrar la compra.');
+      toast.error('Hubo un problema al registrar la compra.');
     } finally {
       setGuardando(false);
     }

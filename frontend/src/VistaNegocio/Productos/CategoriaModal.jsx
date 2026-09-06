@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import api from '../../services/api';
+import { toast } from '../../utils/toast';
 
 export default function CategoriaModal({ categoria, onClose, onSaved }) {
   const [nombre, setNombre] = useState(categoria ? categoria.nombre : '');
@@ -21,7 +22,7 @@ export default function CategoriaModal({ categoria, onClose, onSaved }) {
   const guardar = async (e) => {
     e.preventDefault();
     if (!nombre.trim()) {
-      alert('Ponele un nombre a la categoría.');
+      toast.error('Ponele un nombre a la categoría.');
       return;
     }
 
@@ -43,7 +44,7 @@ export default function CategoriaModal({ categoria, onClose, onSaved }) {
       onSaved();
     } catch (error) {
       console.error('Error al guardar la categoría:', error);
-      alert('Hubo un problema al guardar la categoría.');
+      toast.error('Hubo un problema al guardar la categoría.');
     } finally {
       setGuardando(false);
     }

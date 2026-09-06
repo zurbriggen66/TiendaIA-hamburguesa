@@ -5,6 +5,7 @@ import InsumoModal from './InsumoModal';
 import RestockModal from './RestockModal';
 import GastoFijoModal from './GastoFijoModal';
 import GastoFijoPagarModal from './GastoFijoPagarModal';
+import { toast } from '../../utils/toast';
 
 const ETIQUETA_CATEGORIA = {
   insumos: 'Insumos / Stock',
@@ -57,7 +58,7 @@ export default function GastosPage() {
       cargarDatos();
     } catch (error) {
       console.error('Error al eliminar el gasto:', error);
-      alert('No se pudo eliminar el gasto.');
+      toast.error('No se pudo eliminar el gasto.');
     }
   };
 
@@ -68,7 +69,7 @@ export default function GastosPage() {
       cargarDatos();
     } catch (error) {
       console.error('Error al eliminar el gasto fijo:', error);
-      alert('No se pudo eliminar el gasto fijo.');
+      toast.error('No se pudo eliminar el gasto fijo.');
     }
   };
 

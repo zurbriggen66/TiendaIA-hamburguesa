@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import api from '../../services/api';
 import DesgloseMetodos from './DesgloseMetodos';
+import { toast } from '../../utils/toast';
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
@@ -34,7 +35,7 @@ export default function CerrarCajaModal({ caja, onClose, onSaved }) {
       onSaved();
     } catch (error) {
       console.error('Error al cerrar la caja:', error);
-      alert(error.response?.data?.detail || 'No se pudo cerrar la caja.');
+      toast.error(error.response?.data?.detail || 'No se pudo cerrar la caja.');
     } finally {
       setGuardando(false);
     }

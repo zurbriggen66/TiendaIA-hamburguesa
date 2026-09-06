@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import api from '../../services/api';
+import { toast } from '../../utils/toast';
 
 const formatearPrecio = (v) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(v);
@@ -50,7 +51,7 @@ export default function ClientesPage() {
   const guardarConfig = async (e) => {
     e.preventDefault();
     if (Number(pesosPorPunto) < 1) {
-      alert('Cada punto tiene que costar al menos $1 de compra.');
+      toast.alerta('Cada punto tiene que costar al menos $1 de compra.');
       return;
     }
     setGuardandoConfig(true);
@@ -59,10 +60,10 @@ export default function ClientesPage() {
         pesos_por_punto: Number(pesosPorPunto),
         valor_punto: Number(valorPunto),
       });
-      alert('Programa de puntos guardado.');
+      toast.exito('Programa de puntos guardado.');
     } catch (err) {
       console.error('Error al guardar el programa de puntos:', err);
-      alert(Object.values(err.response?.data || {}).flat()[0] || 'No se pudo guardar.');
+      toast.error(Object.values(err.response?.data || {}).flat()[0] || 'No se pudo guardar.');
     } finally {
       setGuardandoConfig(false);
     }
@@ -71,7 +72,7 @@ export default function ClientesPage() {
   const crearRecompensa = async (e) => {
     e.preventDefault();
     if (!nuevoNombre.trim() || Number(nuevoPuntos) <= 0) {
-      alert('Poné un nombre y cuántos puntos cuesta.');
+      toast.alerta('Poné un nombre y cuántos puntos cuesta.');
       return;
     }
     try {
@@ -81,7 +82,7 @@ export default function ClientesPage() {
       cargar();
     } catch (err) {
       console.error('Error al crear el premio:', err);
-      alert('No se pudo crear el premio.');
+      toast.error('No se pudo crear el premio.');
     }
   };
 

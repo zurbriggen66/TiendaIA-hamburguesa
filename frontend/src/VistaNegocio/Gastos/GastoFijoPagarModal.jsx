@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import api from '../../services/api';
 import { METODOS_PAGO } from '../../utils/metodosPago';
+import { toast } from '../../utils/toast';
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
@@ -17,7 +18,7 @@ export default function GastoFijoPagarModal({ gastoFijo, onClose, onSaved }) {
       onSaved();
     } catch (error) {
       console.error('Error al pagar el gasto fijo:', error);
-      alert('No se pudo marcar el gasto como pagado.');
+      toast.error('No se pudo marcar el gasto como pagado.');
     } finally {
       setGuardando(false);
     }

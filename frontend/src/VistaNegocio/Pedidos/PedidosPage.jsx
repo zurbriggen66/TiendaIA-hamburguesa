@@ -6,6 +6,7 @@ import LocalidadModal from './LocalidadModal';
 import PedidoEnvioDescuentoModal from './PedidoEnvioDescuentoModal';
 import PedidoPagoModal from './PedidoPagoModal';
 import { imprimirPedido } from '../../utils/impresion';
+import { toast } from '../../utils/toast';
 
 const ORDEN_ESTADOS = ['pendiente', 'en_preparacion', 'listo', 'entregado'];
 
@@ -127,7 +128,7 @@ export default function PedidosPage() {
       setPedidos((prev) => prev.map((p) => (p.id === pedido.id ? data : p)));
     } catch (error) {
       console.error('Error al cambiar el estado:', error);
-      alert('No se pudo cambiar el estado del pedido.');
+      toast.error('No se pudo cambiar el estado del pedido.');
     }
   };
 
@@ -149,7 +150,7 @@ export default function PedidosPage() {
       setPedidos((prev) => prev.filter((p) => p.id !== pedido.id));
     } catch (error) {
       console.error('Error al eliminar el pedido:', error);
-      alert('No se pudo eliminar el pedido.');
+      toast.error('No se pudo eliminar el pedido.');
     }
   };
 
@@ -160,7 +161,7 @@ export default function PedidosPage() {
       setLocalidades((prev) => prev.filter((l) => l.id !== localidad.id));
     } catch (error) {
       console.error('Error al eliminar la localidad:', error);
-      alert('No se pudo eliminar la localidad.');
+      toast.error('No se pudo eliminar la localidad.');
     }
   };
 

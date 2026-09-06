@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
+import { toast } from '../../utils/toast';
 
 let contadorFilaInsumo = 0;
 const nuevaFilaInsumo = (insumo = '', cantidad = 1) => ({ key: ++contadorFilaInsumo, insumo: String(insumo), cantidad });
@@ -118,11 +119,11 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
   const guardar = async (e) => {
     e.preventDefault();
     if (!nombre.trim() || !precio || !categoriaId) {
-      alert('Completá al menos el nombre, el precio y la categoría.');
+      toast.alerta('Completá al menos el nombre, el precio y la categoría.');
       return;
     }
     if (sugeridoCarrito && !(Number(descuentoCarritoPct) > 0)) {
-      alert('Definí un porcentaje de descuento mayor a 0 para sugerir este producto en el carrito.');
+      toast.error('Definí un porcentaje de descuento mayor a 0 para sugerir este producto en el carrito.');
       return;
     }
 
@@ -180,7 +181,7 @@ export default function ProductoModal({ producto, categorias, categoriaPreselecc
       onSaved();
     } catch (error) {
       console.error('Error al guardar el producto:', error);
-      alert('Hubo un problema al guardar el producto.');
+      toast.error('Hubo un problema al guardar el producto.');
     } finally {
       setGuardando(false);
     }

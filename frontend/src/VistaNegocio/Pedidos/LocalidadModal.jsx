@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import api from '../../services/api';
+import { toast } from '../../utils/toast';
 
 export default function LocalidadModal({ localidad, onClose, onSaved }) {
   const [nombre, setNombre] = useState(localidad ? localidad.nombre : '');
@@ -9,7 +10,7 @@ export default function LocalidadModal({ localidad, onClose, onSaved }) {
   const guardar = async (e) => {
     e.preventDefault();
     if (!nombre.trim()) {
-      alert('Ponele un nombre a la localidad.');
+      toast.error('Ponele un nombre a la localidad.');
       return;
     }
 
@@ -24,7 +25,7 @@ export default function LocalidadModal({ localidad, onClose, onSaved }) {
       onSaved();
     } catch (error) {
       console.error('Error al guardar la localidad:', error);
-      alert('Hubo un problema al guardar la localidad.');
+      toast.error('Hubo un problema al guardar la localidad.');
     } finally {
       setGuardando(false);
     }

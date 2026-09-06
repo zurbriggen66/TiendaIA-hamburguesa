@@ -6,6 +6,7 @@ import { useModo } from './ModoContext';
 import { seccionDeRuta } from '../utils/modoEmpleado';
 import AdminLogin from './AdminLogin';
 import SelectorTema from './SelectorTema';
+import Toasts from './Toasts';
 
 const INTERVALO_CONSULTA_MS = 15000;
 
@@ -219,6 +220,8 @@ export default function DashboardLayout() {
           )}
         </div>
       </aside>
+
+      <Toasts />
 
       {/* Contenido Principal */}
       <main className="main-content">

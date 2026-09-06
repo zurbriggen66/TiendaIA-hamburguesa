@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import api from '../../services/api';
+import { toast } from '../../utils/toast';
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
@@ -35,7 +36,7 @@ export default function PedidoEnvioDescuentoModal({ pedido, localidades, onClose
       onSaved();
     } catch (error) {
       console.error('Error al actualizar envío/descuento:', error);
-      alert('Hubo un problema al guardar los cambios.');
+      toast.error('Hubo un problema al guardar los cambios.');
     } finally {
       setGuardando(false);
     }

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import api from '../../services/api';
+import { toast } from '../../utils/toast';
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
@@ -20,11 +21,11 @@ export default function DescuentoProductoModal({ producto, onClose, onSaved }) {
   const guardar = async (e) => {
     e.preventDefault();
     if (!hasta) {
-      alert('Elegí hasta cuándo dura el descuento.');
+      toast.alerta('Elegí hasta cuándo dura el descuento.');
       return;
     }
     if (Number(descuentoPct) <= 0) {
-      alert('El porcentaje tiene que ser mayor a 0.');
+      toast.alerta('El porcentaje tiene que ser mayor a 0.');
       return;
     }
 
@@ -37,7 +38,7 @@ export default function DescuentoProductoModal({ producto, onClose, onSaved }) {
       onSaved();
     } catch (error) {
       console.error('Error al guardar el descuento:', error);
-      alert('Hubo un problema al guardar el descuento.');
+      toast.error('Hubo un problema al guardar el descuento.');
     } finally {
       setGuardando(false);
     }
@@ -51,7 +52,7 @@ export default function DescuentoProductoModal({ producto, onClose, onSaved }) {
       onSaved();
     } catch (error) {
       console.error('Error al quitar el descuento:', error);
-      alert('Hubo un problema al quitar el descuento.');
+      toast.error('Hubo un problema al quitar el descuento.');
     } finally {
       setGuardando(false);
     }

@@ -88,8 +88,8 @@
   --alerta-suave: rgba(180, 83, 9, 0.1);
   --error: #dc2626;
   --error-suave: rgba(220, 38, 38, 0.1);
-  --info: #0e7490;
-  --info-suave: rgba(14, 116, 144, 0.1);
+  --info: #0369a1;
+  --info-suave: rgba(3, 105, 161, 0.1);
 
   --sombra-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
   --sombra: 0 4px 12px rgba(16, 24, 40, 0.08);
@@ -1953,47 +1953,47 @@ body {
   margin-bottom: 32px;
 }
 
+/* Tiles de resumen.
+
+   Antes cada uno traia su propio gradiente: seis colores fuertes que no
+   significaban nada y competian entre si por la atencion. El color aca tiene un
+   solo trabajo, marcar estado, asi que las cifras neutras van sobre superficie y
+   solo la ganancia se pinta (verde/rojo) porque ahi el color SI dice algo.
+   Los modificadores de rubro siguen existiendo para no tocar los cinco JSX que
+   los usan, pero ya no pintan: la identidad la da la etiqueta de cada tile. */
 .resumen-tile {
-  border-radius: 16px;
-  padding: 18px 20px;
+  border-radius: var(--radio-lg);
+  padding: 16px 18px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  color: #ffffff;
-  box-shadow: 0 8px 18px -10px rgba(0, 0, 0, 0.35);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  box-shadow: var(--sombra-sm);
 }
 
 .resumen-tile span {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  opacity: 0.9;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
 }
 
 .resumen-tile strong {
-  font-size: 1.4rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
 }
 
-.resumen-tile-total {
-  background: linear-gradient(135deg, #4b5563, #1f2937);
-}
-
-.resumen-tile-insumos {
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
-  color: #78350f;
-}
-
-.resumen-tile-servicios {
-  background: linear-gradient(135deg, #f4854a, #e8630c);
-}
-
-.resumen-tile-sueldos {
-  background: linear-gradient(135deg, #38bdf8, #0891b2);
-}
-
+.resumen-tile-total,
+.resumen-tile-insumos,
+.resumen-tile-servicios,
+.resumen-tile-sueldos,
 .resumen-tile-otros {
-  background: linear-gradient(135deg, #a3a3a3, #737373);
+  background: var(--surface);
 }
 
 .seccion-header {
@@ -3077,13 +3077,22 @@ body {
 }
 
 /* === VISTA NEGOCIO - ESTADÍSTICAS (EstadisticasPage.jsx) === */
+/* Los dos unicos tiles que se pintan: el color es el dato (gano o perdio).
+   Van con tinte de fondo y borde del color, no relleno solido, para que la cifra
+   siga leyendose con el mismo contraste que las demas. */
 .resumen-tile-ganancia-positiva {
-  background: linear-gradient(135deg, #4ade80, #16a34a);
+  background: var(--exito-suave);
+  border-color: var(--exito);
 }
 
+.resumen-tile-ganancia-positiva strong { color: var(--exito); }
+
 .resumen-tile-ganancia-negativa {
-  background: linear-gradient(135deg, #f87171, #dc2626);
+  background: var(--error-suave);
+  border-color: var(--error);
 }
+
+.resumen-tile-ganancia-negativa strong { color: var(--error); }
 
 .grafico-ventas {
   background: var(--surface);
@@ -4719,4 +4728,213 @@ body {
   font-weight: 600;
   line-height: 1.2;
   text-align: center;
+}
+
+/* --- Gráficos del panel --------------------------------------------------
+   Un solo color por gráfico: cada serie va etiquetada, así que repartir hues
+   por fila pintaría el ranking en vez de la identidad del dato.
+   La grilla y los ejes son recesivos a propósito: son referencia, no dato. */
+.grafico {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radio-lg);
+  padding: 16px 18px 12px;
+  margin-bottom: 24px;
+}
+
+.grafico-encabezado {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.grafico-titulo {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.grafico-toggle-tabla {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radio-full);
+  padding: 5px 12px;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.grafico-toggle-tabla:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.grafico-lienzo {
+  position: relative;
+}
+
+.grafico-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.grafico-grilla {
+  stroke: var(--border);
+  stroke-width: 1;
+  opacity: 0.6;
+}
+
+.grafico-eje-base {
+  stroke: var(--border-fuerte);
+  stroke-width: 1;
+}
+
+.grafico-eje-texto {
+  fill: var(--text-sutil);
+  font-size: 11px;
+  font-family: inherit;
+}
+
+.grafico-barra {
+  fill: var(--accent);
+  opacity: 0.85;
+  transition: opacity 0.12s ease;
+}
+
+.grafico-barra-activa {
+  opacity: 1;
+}
+
+.grafico-etiqueta-pico {
+  fill: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: inherit;
+}
+
+.grafico-zona-hover {
+  fill: transparent;
+  cursor: pointer;
+  outline: none;
+}
+
+.grafico-zona-hover:focus-visible {
+  fill: var(--accent-suave);
+}
+
+.grafico-tooltip {
+  position: absolute;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 10px;
+  border-radius: var(--radio-sm);
+  background: var(--tooltip-bg);
+  color: var(--tooltip-texto);
+  box-shadow: var(--sombra);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 5;
+}
+
+.grafico-tooltip strong { font-size: 0.82rem; }
+.grafico-tooltip span { font-size: 0.68rem; opacity: 0.75; text-transform: capitalize; }
+
+.grafico-tabla-wrap {
+  overflow-x: auto;
+}
+
+.grafico-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.grafico-tabla th,
+.grafico-tabla td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.grafico-tabla th {
+  color: var(--text-sutil);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.grafico-tabla td { color: var(--text); }
+.grafico-tabla td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.grafico-tabla tr:last-child td { border-bottom: none; }
+.grafico-tabla td:first-child { text-transform: capitalize; }
+
+/* --- Avisos (reemplazan a alert()) --- */
+.toasts {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(380px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radio);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  box-shadow: var(--sombra-lg);
+  color: var(--text);
+  font-size: 0.86rem;
+  line-height: 1.35;
+  pointer-events: auto;
+  animation: toast-entra 0.18s ease-out;
+}
+
+@keyframes toast-entra {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Solo el borde izquierdo lleva el color de estado: pintar el fondo entero haría
+   que el texto tenga que pelear por contraste en los dos temas. */
+.toast-exito { border-left-color: var(--exito); }
+.toast-error { border-left-color: var(--error); }
+.toast-alerta { border-left-color: var(--alerta); }
+.toast-info { border-left-color: var(--info); }
+
+.toast-icono { flex-shrink: 0; font-size: 1rem; line-height: 1.2; }
+.toast-mensaje { flex: 1; }
+
+.toast-cerrar {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 0 2px;
+  color: var(--text-sutil);
+  font-family: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.toast-cerrar:hover { color: var(--text); }
+
+@media (max-width: 600px) {
+  .toasts { top: auto; bottom: 16px; left: 16px; right: 16px; max-width: none; }
 }

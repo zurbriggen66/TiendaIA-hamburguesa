@@ -4,6 +4,7 @@ import AbrirCajaModal from './AbrirCajaModal';
 import CerrarCajaModal from './CerrarCajaModal';
 import CajaDetalleModal from './CajaDetalleModal';
 import DesgloseMetodos from './DesgloseMetodos';
+import { toast } from '../../utils/toast';
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
@@ -51,7 +52,7 @@ export default function CajasPage() {
       cargarDatos();
     } catch (error) {
       console.error('Error al eliminar la caja:', error);
-      window.alert('No se pudo eliminar la caja.');
+      toast.error('No se pudo eliminar la caja.');
     }
   };
 

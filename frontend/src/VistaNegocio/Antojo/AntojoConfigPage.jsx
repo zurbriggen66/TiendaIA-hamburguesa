@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
+import { toast } from '../../utils/toast';
 
 const pad2 = (n) => String(n).padStart(2, '0');
 // Igual que en DescuentoProductoModal: el input datetime-local trabaja en hora local.
@@ -59,7 +60,7 @@ export default function AntojoConfigPage() {
   const guardar = async (e) => {
     e.preventDefault();
     if (activo && !productoId) {
-      alert('Elegí un producto para poder activar el Antojo del día.');
+      toast.alerta('Elegí un producto para poder activar el Antojo del día.');
       return;
     }
 
@@ -79,10 +80,10 @@ export default function AntojoConfigPage() {
         const { data } = await api.post('/antojo-config/', datos);
         setConfigId(data.id);
       }
-      alert('¡Antojo del día guardado!');
+      toast.exito('¡Antojo del día guardado!');
     } catch (error) {
       console.error('Error al guardar el Antojo del día:', error);
-      alert(error.response?.data?.non_field_errors?.[0] || 'Hubo un problema al guardar.');
+      toast.error(error.response?.data?.non_field_errors?.[0] || 'Hubo un problema al guardar.');
     } finally {
       setGuardando(false);
     }

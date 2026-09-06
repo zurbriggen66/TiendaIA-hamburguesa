@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import api from '../../services/api';
 import { METODOS_PAGO as METODOS } from '../../utils/metodosPago';
+import { toast } from '../../utils/toast';
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
@@ -49,7 +50,7 @@ export default function PedidoPagoModal({ pedidoId, onClose, onSaved }) {
   const agregarPago = async (e) => {
     e.preventDefault();
     if (entregado <= 0) {
-      alert('Ingresá un monto válido.');
+      toast.alerta('Ingresá un monto válido.');
       return;
     }
     setGuardando(true);
@@ -80,7 +81,7 @@ export default function PedidoPagoModal({ pedidoId, onClose, onSaved }) {
       setMonto(String(calcularFalta(actualizado)));
     } catch (error) {
       console.error('Error al registrar el pago:', error);
-      alert('Hubo un problema al registrar el pago.');
+      toast.error('Hubo un problema al registrar el pago.');
     } finally {
       setGuardando(false);
     }
@@ -94,7 +95,7 @@ export default function PedidoPagoModal({ pedidoId, onClose, onSaved }) {
       onSaved();
     } catch (error) {
       console.error('Error al eliminar el pago:', error);
-      alert('No se pudo eliminar el pago.');
+      toast.error('No se pudo eliminar el pago.');
     }
   };
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import api from '../../services/api';
 import { presentacionesConBase } from '../../utils/presentaciones';
 import { precioBaseConDescuento, tieneDescuento, mejorPorcentajeDescuento } from '../../utils/precios';
+import { toast } from '../../utils/toast';
 
 const COLORES_CHIP = ['chip-mostaza', 'chip-naranja', 'chip-tomate'];
 
@@ -105,7 +106,7 @@ export default function PedidoModal({ productos, categorias, localidades, antojo
   const guardar = async (e) => {
     e.preventDefault();
     if (filasValidas.length === 0) {
-      alert('Agregá al menos un producto con cantidad.');
+      toast.alerta('Agregá al menos un producto con cantidad.');
       return;
     }
 
@@ -132,7 +133,7 @@ export default function PedidoModal({ productos, categorias, localidades, antojo
       onSaved();
     } catch (error) {
       console.error('Error al crear el pedido:', error);
-      alert('Hubo un problema al crear el pedido.');
+      toast.error('Hubo un problema al crear el pedido.');
     } finally {
       setGuardando(false);
     }

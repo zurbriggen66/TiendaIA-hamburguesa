@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import api from '../../services/api';
 import ComboModal from './ComboModal';
+import { toast } from '../../utils/toast';
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
@@ -32,7 +33,7 @@ export default function CombosPage() {
       setCombos((prev) => prev.map((c) => (c.id === combo.id ? data : c)));
     } catch (error) {
       console.error('Error al cambiar el estado del combo:', error);
-      alert('No se pudo cambiar el estado del combo.');
+      toast.error('No se pudo cambiar el estado del combo.');
     }
   };
 
@@ -44,7 +45,7 @@ export default function CombosPage() {
     } catch (error) {
       console.error('Error al eliminar el combo:', error);
       const detalle = error.response?.data?.detail;
-      alert(detalle || 'No se pudo eliminar el combo.');
+      toast.error(detalle || 'No se pudo eliminar el combo.');
     }
   };
 

@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import api from '../../services/api';
 import { PERMISOS_DEFAULT, PERMISOS_FINOS, SECCIONES } from '../../utils/modoEmpleado';
 import { useModo } from '../ModoContext';
+import { toast } from '../../utils/toast';
 
 function CampoColor({ label, value, onChange }) {
   return (
@@ -146,11 +147,11 @@ export default function Dashboard() {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       }
-      alert('¡Imágenes guardadas y actualizadas con éxito!');
+      toast.exito('¡Imágenes guardadas y actualizadas con éxito!');
       window.location.reload(); 
     } catch (error) {
       console.error("Error al guardar:", error);
-      alert('Hubo un problema al guardar las imágenes.');
+      toast.error('Hubo un problema al guardar las imágenes.');
     }
   };
 
@@ -175,10 +176,10 @@ export default function Dashboard() {
         setConfigId(data.id);
       }
       actualizarPermisos(permisosEmpleado);
-      alert('Listo: se guardó lo que puede ver y hacer el empleado.');
+      toast.exito('Listo: se guardó lo que puede ver y hacer el empleado.');
     } catch (error) {
       console.error('Error al guardar los permisos del empleado:', error);
-      alert('Hubo un problema al guardar los permisos.');
+      toast.error('Hubo un problema al guardar los permisos.');
     } finally {
       setGuardandoPermisos(false);
     }

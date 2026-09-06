@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import api from '../../services/api';
+import { toast } from '../../utils/toast';
 
 const CATEGORIAS = [
   { valor: 'servicios', etiqueta: 'Servicios' },
@@ -34,15 +35,15 @@ export default function GastoFijoModal({ gastoFijo, onClose, onSaved }) {
   const guardar = async (e) => {
     e.preventDefault();
     if (!nombre.trim()) {
-      alert('Ponele un nombre al gasto fijo (ej: Alquiler).');
+      toast.error('Ponele un nombre al gasto fijo (ej: Alquiler).');
       return;
     }
     if (!Number(monto) || Number(monto) <= 0) {
-      alert('Poné cuánto hay que pagar.');
+      toast.alerta('Poné cuánto hay que pagar.');
       return;
     }
     if (!proximoVencimiento) {
-      alert('Elegí cuándo vence la próxima vez.');
+      toast.alerta('Elegí cuándo vence la próxima vez.');
       return;
     }
 
@@ -64,7 +65,7 @@ export default function GastoFijoModal({ gastoFijo, onClose, onSaved }) {
       onSaved();
     } catch (error) {
       console.error('Error al guardar el gasto fijo:', error);
-      alert('Hubo un problema al guardar el gasto fijo.');
+      toast.error('Hubo un problema al guardar el gasto fijo.');
     } finally {
       setGuardando(false);
     }

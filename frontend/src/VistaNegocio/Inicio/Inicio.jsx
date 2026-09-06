@@ -9,6 +9,7 @@ import PedidoPagoModal from '../Pedidos/PedidoPagoModal';
 import PedidoEnvioDescuentoModal from '../Pedidos/PedidoEnvioDescuentoModal';
 import { imprimirPedido } from '../../utils/impresion';
 import { useModo } from '../ModoContext';
+import { toast } from '../../utils/toast';
 
 const formatearPrecio = (valor) =>
   new Intl.NumberFormat('es-AR', {
@@ -126,7 +127,7 @@ export default function Inicio() {
       await cargarInicio();
     } catch (err) {
       console.error('Error al confirmar el pedido:', err);
-      alert('No se pudo confirmar el pedido.');
+      toast.error('No se pudo confirmar el pedido.');
     } finally {
       setConfirmando(null);
     }
@@ -140,7 +141,7 @@ export default function Inicio() {
       await cargarInicio();
     } catch (err) {
       console.error('Error al cancelar el pedido:', err);
-      alert('No se pudo cancelar el pedido.');
+      toast.error('No se pudo cancelar el pedido.');
     } finally {
       setConfirmando(null);
     }
@@ -160,7 +161,7 @@ export default function Inicio() {
     } catch (err) {
       console.error('Error al cambiar el estado de la tienda:', err);
       setTiendaAbierta(anterior);
-      alert('No se pudo guardar el cambio. Probá de nuevo.');
+      toast.error('No se pudo guardar el cambio. Probá de nuevo.');
     } finally {
       setGuardandoEstadoTienda(false);
     }
@@ -183,7 +184,7 @@ export default function Inicio() {
       setPedidosRecientes((prev) => prev.map((p) => (p.id === pedido.id ? data : p)));
     } catch (err) {
       console.error('Error al cambiar el estado del pedido:', err);
-      alert('No se pudo cambiar el estado del pedido.');
+      toast.error('No se pudo cambiar el estado del pedido.');
     }
   };
 
@@ -194,7 +195,7 @@ export default function Inicio() {
       setPedidosRecientes((prev) => prev.map((p) => (p.id === pedido.id ? data : p)));
     } catch (err) {
       console.error('Error al cancelar el pedido:', err);
-      alert('No se pudo cancelar el pedido.');
+      toast.error('No se pudo cancelar el pedido.');
     }
   };
 
@@ -205,7 +206,7 @@ export default function Inicio() {
       setPedidosRecientes((prev) => prev.filter((p) => p.id !== pedido.id));
     } catch (err) {
       console.error('Error al eliminar el pedido:', err);
-      alert('No se pudo eliminar el pedido.');
+      toast.error('No se pudo eliminar el pedido.');
     }
   };
 

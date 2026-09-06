@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
+import { toast } from '../../utils/toast';
 
 let contadorFilaProducto = 0;
 const nuevaFilaProducto = (producto = '', cantidad = 1) => ({ key: ++contadorFilaProducto, producto: String(producto), cantidad });
@@ -49,13 +50,13 @@ export default function ComboModal({ combo, onClose, onSaved }) {
   const guardar = async (e) => {
     e.preventDefault();
     if (!nombre.trim() || !precio) {
-      alert('Completá al menos el nombre y el precio del combo.');
+      toast.alerta('Completá al menos el nombre y el precio del combo.');
       return;
     }
 
     const filasValidas = filasProductos.filter((f) => f.producto && Number(f.cantidad) > 0);
     if (filasValidas.length === 0) {
-      alert('Elegí al menos un producto para el combo.');
+      toast.alerta('Elegí al menos un producto para el combo.');
       return;
     }
 
@@ -88,7 +89,7 @@ export default function ComboModal({ combo, onClose, onSaved }) {
       onSaved();
     } catch (error) {
       console.error('Error al guardar el combo:', error);
-      alert('Hubo un problema al guardar el combo.');
+      toast.error('Hubo un problema al guardar el combo.');
     } finally {
       setGuardando(false);
     }

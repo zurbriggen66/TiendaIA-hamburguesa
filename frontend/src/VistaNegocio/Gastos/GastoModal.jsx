@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import api from '../../services/api';
 import { METODOS_PAGO } from '../../utils/metodosPago';
+import { toast } from '../../utils/toast';
 
 const CATEGORIAS = [
   { value: 'insumos', label: 'Insumos / Stock' },
@@ -23,11 +24,11 @@ export default function GastoModal({ insumos, onClose, onSaved }) {
   const guardar = async (e) => {
     e.preventDefault();
     if (!descripcion.trim() || !monto) {
-      alert('Completá al menos la descripción y el monto.');
+      toast.alerta('Completá al menos la descripción y el monto.');
       return;
     }
     if (esInsumo && insumos.length > 0 && (!insumoId || !cantidad)) {
-      alert('Elegí el insumo y la cantidad comprada.');
+      toast.alerta('Elegí el insumo y la cantidad comprada.');
       return;
     }
 
@@ -48,7 +49,7 @@ export default function GastoModal({ insumos, onClose, onSaved }) {
       onSaved();
     } catch (error) {
       console.error('Error al guardar el gasto:', error);
-      alert('Hubo un problema al guardar el gasto.');
+      toast.error('Hubo un problema al guardar el gasto.');
     } finally {
       setGuardando(false);
     }
