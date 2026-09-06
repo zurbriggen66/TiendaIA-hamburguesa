@@ -91,7 +91,11 @@ export default function CajaDetalleModal({ cajaId, onClose }) {
 
             {/* Lo que hacia falta para revisar un turno viejo: en que quedo cada metodo
                 y si el conteo del cajon cuadro. Sin esto habia que reconstruirlo a mano. */}
-            <DesgloseMetodos desglose={caja.desglose} titulo="Debería haber quedado en cada método" />
+            {(caja.cobrado_por_metodo || []).length > 0 && (
+              <DesgloseMetodos desglose={caja.cobrado_por_metodo} titulo="Con qué te cobraron" />
+            )}
+
+            <DesgloseMetodos desglose={caja.desglose} titulo="Con qué quedaste (saldo)" />
 
             {/* Con cuánto cerró: el saldo del cajón al momento del cierre. Antes solo
                 se mostraba si además se había contado a mano, así que un turno cerrado

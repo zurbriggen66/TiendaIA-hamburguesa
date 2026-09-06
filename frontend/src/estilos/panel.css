@@ -815,3 +815,13 @@
   font-weight: 700;
   text-decoration: underline;
 }
+
+
+/* La torta ya trae su propia caja: dentro de un .panel quedaría un borde sobre otro. */
+.panel > .grafico {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: 0;
+}

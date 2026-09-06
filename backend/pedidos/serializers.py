@@ -23,6 +23,7 @@ class CajaSerializer(serializers.ModelSerializer):
     total_pedidos = serializers.SerializerMethodField()
     total_gastos = serializers.SerializerMethodField()
     desglose = serializers.SerializerMethodField()
+    cobrado_por_metodo = serializers.SerializerMethodField()
     efectivo_en_cajon = serializers.SerializerMethodField()
     descuadre_efectivo = serializers.SerializerMethodField()
     diferencia_efectivo = serializers.SerializerMethodField()
@@ -33,7 +34,8 @@ class CajaSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'dia', 'abierta_en', 'cerrada_en', 'nota_apertura', 'nota_cierre',
             'esta_abierta', 'total_ventas', 'total_cobrado', 'total_propinas', 'total_pedidos',
-            'total_gastos', 'desglose', 'efectivo_contado', 'diferencia_efectivo',
+            'total_gastos', 'desglose', 'cobrado_por_metodo',
+            'efectivo_contado', 'diferencia_efectivo',
             'efectivo_en_cajon', 'descuadre_efectivo',
             'monto_inicial', 'metodo_inicial', 'metodo_inicial_label',
         ]
@@ -62,6 +64,26 @@ class CajaSerializer(serializers.ModelSerializer):
         return [
             {'metodo': codigo, 'label': etiquetas[codigo], 'monto': saldos.get(codigo, Decimal('0'))}
             for codigo, _ in METODOS_PAGO
+        ]
+
+    def get_cobrado_por_metodo(self, obj):
+        """Cuánto entró por cada vía, sin mezclarlo con nada más.
+
+        Distinto de `desglose`, que es el SALDO: ese arranca del fondo inicial y le
+        resta gastos y vueltos, así que no se puede leer como "cuánto me pagaron por
+        transferencia". Este es lo que hay que poder comparar contra el resumen del
+        banco o de Mercado Pago.
+
+        Incluye la propina porque entró por la misma vía; el vuelto devuelto por otro
+        método no se descuenta acá — eso es una salida y vive en el desglose.
+        """
+        etiquetas = dict(METODOS_PAGO)
+        cobros = {}
+        for pago in obj.pagos_validos():
+            cobros[pago.metodo] = cobros.get(pago.metodo, Decimal('0')) + pago.monto + pago.propina
+        return [
+            {'metodo': codigo, 'label': etiquetas[codigo], 'monto': cobros[codigo]}
+            for codigo, _ in METODOS_PAGO if cobros.get(codigo)
         ]
 
     def get_efectivo_en_cajon(self, obj):

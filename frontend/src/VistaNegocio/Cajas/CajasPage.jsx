@@ -8,6 +8,7 @@ import CajaDetalleModal from './CajaDetalleModal';
 import DesgloseMetodos from './DesgloseMetodos';
 import MovimientosCaja from './MovimientosCaja';
 import MoverEfectivoModal from './MoverEfectivoModal';
+import GraficoTorta from '../Estadisticas/GraficoTorta';
 
 const formatearPrecio = (precio) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(precio);
@@ -271,11 +272,33 @@ export default function CajasPage() {
                     )}
                   </section>
 
+                  {/* Torta: los cobros por método SUMAN lo cobrado del turno, así que
+                      es una relación parte-todo real y el porcentaje significa algo. */}
+                  {(cajaActual.cobrado_por_metodo || []).length > 0 && (
+                    <section className="panel">
+                      <GraficoTorta
+                        titulo="Con qué te cobraron"
+                        total={(cajaActual.cobrado_por_metodo || []).reduce((a, c) => a + Number(c.monto), 0)}
+                        datos={cajaActual.cobrado_por_metodo.map((c) => ({
+                          clave: c.metodo,
+                          etiqueta: c.label,
+                          total: c.monto,
+                        }))}
+                      />
+                      <p className="panel-pie">
+                        Lo que entró por cada vía. Es lo que tenés que ver en el resumen del
+                        banco o de Mercado Pago.
+                      </p>
+                    </section>
+                  )}
+
                   <section className="panel">
-                    <h3 className="panel-titulo">Dónde está la plata</h3>
+                    <h3 className="panel-titulo">Con qué quedás</h3>
                     <DesgloseMetodos desglose={cajaActual.desglose} titulo={null} />
                     <p className="panel-pie">
-                      El efectivo se cuenta del cajón; el resto se compara contra el banco o Mercado Pago.
+                      El <strong>saldo</strong> de cada método: arranca del fondo inicial y le
+                      resta los gastos del cajón y los vueltos. Por eso no coincide con lo
+                      cobrado — el efectivo se cuenta del cajón al cerrar.
                     </p>
                   </section>
                 </div>

@@ -749,3 +749,70 @@ class ArqueoNegativoTests(TestCase):
         self.assertEqual(respuesta.status_code, 400, respuesta.content)
         self.caja.refresh_from_db()
         self.assertTrue(self.caja.esta_abierta)
+
+
+class CobradoPorMetodoTests(TestCase):
+    """Cuanto entro por cada via es distinto del saldo: el saldo arranca del fondo
+    inicial y le resta gastos, asi que no se puede leer como 'cuanto me pagaron'."""
+
+    def setUp(self):
+        User.objects.create_user('duena', password='x', is_staff=True)
+        self.client.force_login(User.objects.get(username='duena'))
+        categoria = Categoria.objects.create(nombre='Burguers')
+        self.producto = Producto.objects.create(categoria=categoria, nombre='Inglesa', precio=10000)
+        self.caja = Caja.objects.create(dia='2026-09-06', monto_inicial=20000, metodo_inicial='efectivo')
+
+    def _cobrar(self, metodo, monto, propina=0, **extra):
+        pedido = Pedido.objects.create(caja=self.caja, confirmado=True)
+        DetallePedido.objects.create(pedido=pedido, producto=self.producto, cantidad=1, precio_unitario=monto)
+        Pago.objects.create(pedido=pedido, metodo=metodo, monto=monto, propina=propina, **extra)
+
+    def _cobros(self):
+        respuesta = self.client.get(f'/api/cajas/{self.caja.id}/')
+        self.assertEqual(respuesta.status_code, 200, respuesta.content)
+        return {c['metodo']: Decimal(str(c['monto'])) for c in respuesta.data['cobrado_por_metodo']}
+
+    def test_no_mezcla_el_fondo_inicial_ni_los_gastos(self):
+        self._cobrar('efectivo', 10000)
+        Gasto.objects.create(
+            categoria='otros', descripcion='Pan', monto=3000,
+            metodo_pago='efectivo', caja=self.caja, sale_del_cajon=True,
+        )
+
+        cobros = self._cobros()
+
+        # Cobrado por efectivo: solo la venta. El saldo, en cambio, es
+        # 20.000 inicial + 10.000 cobrado - 3.000 de gasto = 27.000.
+        self.assertEqual(cobros['efectivo'], Decimal('10000'))
+        self.assertEqual(self.caja.desglose_por_metodo()['efectivo'], Decimal('27000'))
+
+    def test_separa_cada_via(self):
+        self._cobrar('efectivo', 10000)
+        self._cobrar('transferencia', 25000)
+        self._cobrar('mercado_pago', 7000)
+
+        cobros = self._cobros()
+
+        self.assertEqual(cobros['efectivo'], Decimal('10000'))
+        self.assertEqual(cobros['transferencia'], Decimal('25000'))
+        self.assertEqual(cobros['mercado_pago'], Decimal('7000'))
+
+    def test_la_propina_entra_por_la_misma_via(self):
+        self._cobrar('efectivo', 10000, propina=1500)
+
+        self.assertEqual(self._cobros()['efectivo'], Decimal('11500'))
+
+    def test_los_metodos_sin_cobros_no_aparecen(self):
+        self._cobrar('efectivo', 10000)
+
+        self.assertEqual(list(self._cobros()), ['efectivo'])
+
+    def test_la_suma_de_los_cobros_es_el_total_cobrado_mas_propinas(self):
+        self._cobrar('efectivo', 10000, propina=500)
+        self._cobrar('transferencia', 25000)
+
+        respuesta = self.client.get(f'/api/cajas/{self.caja.id}/')
+        suma = sum(Decimal(str(c['monto'])) for c in respuesta.data['cobrado_por_metodo'])
+
+        esperado = Decimal(str(respuesta.data['total_cobrado'])) + Decimal(str(respuesta.data['total_propinas']))
+        self.assertEqual(suma, esperado)

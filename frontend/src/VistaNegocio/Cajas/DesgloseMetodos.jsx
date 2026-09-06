@@ -2,7 +2,12 @@ import React from 'react';
 import { formatearPrecio } from '../Estadisticas/BarrasDesglose';
 
 /**
- * Cuánta plata quedó en cada método del turno.
+ * Lista de montos por método de pago.
+ *
+ * Se usa para dos cosas distintas y por eso el título es obligatorio de mirar: lo
+ * COBRADO por cada vía (lo que entró) y el SALDO de cada método (lo que queda después
+ * del fondo inicial, los gastos y los vueltos). Son números distintos y confundirlos
+ * es lo que hacía que la caja no cerrara.
  *
  * Es lo único de la caja que se puede contrastar contra la realidad: el efectivo se
  * cuenta del cajón y el resto se compara contra el banco o Mercado Pago.
