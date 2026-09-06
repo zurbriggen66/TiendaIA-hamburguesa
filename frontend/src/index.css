@@ -419,12 +419,17 @@ body {
   overflow: hidden;
 }
 
-/* Cada pantalla del panel es un wrapper con encabezado fijo + `.scroll-area`. La regla
-   va sobre el hijo directo y no sobre cada clase de página: así una pantalla nueva no
-   puede olvidarse de acotarse. Sin esto el wrapper crecía con su contenido, la
-   `.scroll-area` nunca llegaba a hacer scroll interno y terminaba desbordando hasta el
-   body — que se llevaba el sidebar para arriba al bajar. */
-.main-content > * {
+/* El wrapper de cada pantalla tiene que ser una columna acotada para que su
+   `.scroll-area` pueda hacer scroll interno; sin eso crecía con el contenido y el
+   desborde terminaba en el body, que se llevaba el sidebar para arriba al bajar.
+
+   Se selecciona por CONTENIDO ("el hijo que contiene la scroll-area") y no por su clase
+   ni con un `> *`: hay pantallas que devuelven un Fragment, y ahí el encabezado, la
+   scroll-area y hasta un <style> son hijos directos de .main-content. Un `> *` les
+   pegaba a los tres — al <style> le daba display y su CSS se veía como texto en la
+   página. Esas pantallas no necesitan la regla: sus partes ya son hijas directas de
+   .main-content, que ya es la columna acotada. */
+.main-content > :has(> .scroll-area) {
   display: flex;
   flex-direction: column;
   min-height: 0;
