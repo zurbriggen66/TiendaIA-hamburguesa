@@ -167,7 +167,7 @@ export default function DashboardLayout() {
 
       {/* Sidebar */}
       <aside className={`sidebar${sidebarAbierta ? ' sidebar-abierta' : ''}`}>
-        <div>
+        <div className="sidebar-superior">
           <div className="sidebar-brand">
             🍔 ANTOJO Admin
           </div>

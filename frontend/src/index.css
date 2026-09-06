@@ -248,7 +248,21 @@ body {
   height: 100vh;
 }
 
+/* El bloque de marca + menú tiene que poder ENCOGERSE para que el scroll del menú
+   tenga contra qué medirse. Sin esto crecía con cada sección nueva y empujaba el pie
+   (tema y cerrar sesión) fuera de la pantalla, donde el overflow del contenedor lo
+   recortaba y no había forma de llegar. */
+.sidebar-superior {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  /* Un flex item arranca en min-height:auto y no baja del tamaño de su contenido:
+     este 0 es lo que habilita el scroll interno. */
+  min-height: 0;
+}
+
 .sidebar-brand {
+  flex-shrink: 0;
   height: 64px;
   display: flex;
   align-items: center;
@@ -261,7 +275,12 @@ body {
 
 .sidebar-menu {
   padding: 24px 16px;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-fuerte) transparent;
 }
 
 .menu-section-title {
@@ -320,6 +339,7 @@ body {
 }
 
 .sidebar-footer {
+  flex-shrink: 0;
   padding: 16px;
   display: flex;
   flex-direction: column;

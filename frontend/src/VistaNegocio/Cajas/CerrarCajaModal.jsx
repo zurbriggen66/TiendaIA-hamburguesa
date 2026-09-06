@@ -23,9 +23,16 @@ export default function CerrarCajaModal({ caja, onClose, onSaved }) {
   const porCobrar = Number(caja.total_ventas) - Number(caja.total_cobrado);
   const seConto = contado.trim() !== '';
   const diferencia = seConto ? Number(contado) - esperadoEfectivo : 0;
+  // El min del input no frena a quien tipea el signo a mano: contar menos de cero
+  // billetes no existe, y guardarlo daria una diferencia inventada.
+  const conteoInvalido = seConto && Number(contado) < 0;
 
   const cerrar = async (e) => {
     e.preventDefault();
+    if (conteoInvalido) {
+      toast.alerta('El efectivo contado no puede ser negativo: poné lo que contaste.');
+      return;
+    }
     setGuardando(true);
     try {
       await api.post(`/cajas/${caja.id}/cerrar/`, {
@@ -87,7 +94,11 @@ export default function CerrarCajaModal({ caja, onClose, onSaved }) {
             />
             {/* Contarlo cada turno es lo que permite ubicar una diferencia el día que
                 pasa. Sin esto se descubre a fin de mes y ya no se sabe de dónde salió. */}
-            {seConto && (
+            {conteoInvalido ? (
+              <p className="caja-arqueo-resultado caja-arqueo-mal">
+                ⚠️ No se puede contar menos de cero. Poné lo que hay en el cajón.
+              </p>
+            ) : seConto && (
               <p className={`caja-arqueo-resultado ${diferencia === 0 ? 'caja-arqueo-ok' : 'caja-arqueo-mal'}`}>
                 {diferencia === 0
                   ? '✅ Cuadra exacto.'
@@ -111,7 +122,7 @@ export default function CerrarCajaModal({ caja, onClose, onSaved }) {
 
           <div className="modal-actions">
             <button type="button" className="btn-secundario" onClick={onClose}>Cancelar</button>
-            <button type="submit" className="btn-vibrante btn-cerrar-caja" disabled={guardando}>
+            <button type="submit" className="btn-vibrante btn-cerrar-caja" disabled={guardando || conteoInvalido}>
               {guardando ? 'Cerrando...' : 'Cerrar caja'}
             </button>
           </div>

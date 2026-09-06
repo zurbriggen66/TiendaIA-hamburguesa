@@ -730,3 +730,22 @@ class CostoDeUnProductoTests(TestCase):
         # El costo no cambia (no se suma cero en silencio) y se avisa cual falta.
         self.assertEqual(Decimal(str(producto['costo'])), Decimal('700'))
         self.assertIn('SALSA', producto['insumos_sin_costo'])
+
+
+class ArqueoNegativoTests(TestCase):
+    def setUp(self):
+        User.objects.create_user('duena', password='x', is_staff=True)
+        self.client.force_login(User.objects.get(username='duena'))
+        self.caja = Caja.objects.create(dia='2026-09-06', monto_inicial=13000, metodo_inicial='efectivo')
+
+    def test_no_se_puede_contar_un_cajon_en_negativo(self):
+        """Se puede tipear -9600 en el campo: contar menos de cero billetes no existe."""
+        respuesta = self.client.post(
+            f'/api/cajas/{self.caja.id}/cerrar/',
+            data={'efectivo_contado': '-9600'},
+            content_type='application/json',
+        )
+
+        self.assertEqual(respuesta.status_code, 400, respuesta.content)
+        self.caja.refresh_from_db()
+        self.assertTrue(self.caja.esta_abierta)

@@ -244,6 +244,14 @@ class CajaViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSet):
                     {'detail': 'El efectivo contado tiene que ser un número.'},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+            # Un conteo negativo no existe: no se pueden contar menos de cero billetes.
+            # Si el cajero quiso anotar un faltante, lo que va es lo que CONTO; la
+            # diferencia la calcula el sistema.
+            if caja.efectivo_contado < 0:
+                return Response(
+                    {'detail': 'El efectivo contado no puede ser negativo: poné lo que contaste.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         caja.cerrada_en = timezone.now()
         caja.nota_cierre = request.data.get('nota_cierre', '')
