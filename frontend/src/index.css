@@ -4915,3 +4915,33 @@ body {
 
 .caja-notas p + p { margin-top: 6px; }
 .caja-notas strong { color: var(--text); }
+
+/* Una línea con varias unidades ofrece a cuántas va el extra: se cobra y descuenta
+   stock por unidad, así que "a una" y "a las 2" son pedidos distintos. */
+.pedido-sugerido-picker-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #bbf7d0;
+}
+
+.pedido-sugerido-picker-nombre {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #14532d;
+}
+
+.pedido-sugerido-picker-cantidades {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.pedido-sugerido-picker-cantidades .pedido-sugerido-picker-opcion {
+  text-align: center;
+  padding: 8px 6px;
+  font-size: 0.78rem;
+}

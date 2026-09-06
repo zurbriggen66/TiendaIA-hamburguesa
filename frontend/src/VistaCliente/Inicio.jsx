@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api, { leerToken, guardarToken } from '../services/api';
 import { aclararColor, colorContraste } from '../utils/colores';
+import { armarLineaId, agregarExtraALinea as aplicarExtraALinea } from '../utils/carrito';
 import CuentaModal from './CuentaModal';
 import Premios from './Premios';
 import NavBar from './NavBar';
@@ -205,8 +206,6 @@ export default function Inicio() {
     navigate('/');
   };
 
-  const armarLineaId = (tipo, id, extras, sugerido, presentacionId) =>
-    `${tipo}-${id}-${presentacionId || ''}-${(extras || []).map((e) => `${e.id}x${e.cantidad}`).sort().join('_')}${sugerido ? '-carrito' : ''}`;
 
   // `sugerido` distingue una línea agregada desde la sugerencia de venta cruzada del
   // carrito (precio con descuento_carrito_pct) de una agregada normalmente desde el
@@ -234,35 +233,13 @@ export default function Inicio() {
   // Un extra sugerido en el carrito se cuelga de la línea que eligió el cliente, igual que
   // si lo hubiera marcado en el modal del producto. Antes entraba como línea suelta y la
   // cocina no podía saber sobre qué hamburguesa iba ese "+ panceta".
-  const agregarExtraALinea = (lineaId, extra) => {
-    setItems((prev) => {
-      const linea = prev.find((i) => i.lineaId === lineaId);
-      if (!linea) return prev;
-      const extrasPrevios = linea.extras || [];
-      const nuevosExtras = extrasPrevios.some((e) => e.id === extra.id)
-        ? extrasPrevios.map((e) => (e.id === extra.id ? { ...e, cantidad: e.cantidad + 1 } : e))
-        : [...extrasPrevios, {
-            ...extra,
-            precio: Number(extra.precio_sugerido_carrito),
-            cantidad: 1,
-            // Habilita el descuento de venta cruzada al mandar el pedido: el mismo extra
-            // elegido desde el modal del producto se sigue cobrando a precio de lista.
-            via_sugerencia: true,
-          }];
-      const nuevoLineaId = armarLineaId(
-        linea.tipo, linea.item.id, nuevosExtras, linea.sugerido, linea.item.presentacion_id,
-      );
-      // Si el carrito ya tenía otra línea con esta misma combinación, se fusionan en vez
-      // de quedar duplicadas (mismo criterio que agregarAlCarritoGenerico).
-      const gemela = prev.find((i) => i.lineaId === nuevoLineaId);
-      if (gemela) {
-        return prev
-          .filter((i) => i.lineaId !== lineaId)
-          .map((i) => (i.lineaId === nuevoLineaId ? { ...i, cantidad: i.cantidad + linea.cantidad } : i));
-      }
-      return prev.map((i) => (i.lineaId === lineaId ? { ...i, lineaId: nuevoLineaId, extras: nuevosExtras } : i));
-    });
+  // La lógica vive en utils/carrito.js: partir la línea, fusionarla con una gemela y
+  // mantener el orden son tres cosas fáciles de romper sin que se note en pantalla, y
+  // ahí se pueden probar.
+  const agregarExtraALinea = (lineaId, extra, unidades = 1) => {
+    setItems((prev) => aplicarExtraALinea(prev, lineaId, extra, unidades));
   };
+
 
   // Los extras (panceta, huevo, dip) SON la venta cruzada natural del carrito: el form
   // del admin deja marcarlos como sugeridos y el back les aplica el descuento igual, era

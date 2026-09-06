@@ -391,7 +391,7 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos = [], onClose
                           <button
                             type="button"
                             className="pedido-sugerido-agregar"
-                            onClick={() => (destinos.length === 1
+                            onClick={() => (destinos.length === 1 && destinos[0].cantidad === 1
                               ? onAgregarExtraALinea(destinos[0].lineaId, prod)
                               : setExtraAAsignar(prod))}
                           >
@@ -418,17 +418,41 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos = [], onClose
                     <span className="pedido-sugerido-picker-titulo">
                       ¿A cuál le sumamos {extraAAsignar.nombre}?
                     </span>
-                    {destinosPara(extraAAsignar).map((l) => (
-                      <button
-                        key={l.lineaId}
-                        type="button"
-                        className="pedido-sugerido-picker-opcion"
-                        onClick={() => { onAgregarExtraALinea(l.lineaId, extraAAsignar); setExtraAAsignar(null); }}
-                      >
-                        {l.cantidad}× {l.item.nombre}
-                        {l.item.presentacion_nombre ? ` (${l.item.presentacion_nombre})` : ''}
-                      </button>
-                    ))}
+                    {destinosPara(extraAAsignar).map((l) => {
+                      const nombre = `${l.item.nombre}${l.item.presentacion_nombre ? ` (${l.item.presentacion_nombre})` : ''}`;
+                      const elegir = (unidades) => {
+                        onAgregarExtraALinea(l.lineaId, extraAAsignar, unidades);
+                        setExtraAAsignar(null);
+                      };
+                      // Con una sola unidad no hay nada que preguntar.
+                      if (l.cantidad === 1) {
+                        return (
+                          <button
+                            key={l.lineaId}
+                            type="button"
+                            className="pedido-sugerido-picker-opcion"
+                            onClick={() => elegir(1)}
+                          >
+                            1× {nombre}
+                          </button>
+                        );
+                      }
+                      // Con varias, el extra se cobra por unidad: hay que decir a cuántas
+                      // va, o la línea se parte sin que nadie lo haya pedido.
+                      return (
+                        <div key={l.lineaId} className="pedido-sugerido-picker-grupo">
+                          <span className="pedido-sugerido-picker-nombre">{l.cantidad}× {nombre}</span>
+                          <div className="pedido-sugerido-picker-cantidades">
+                            <button type="button" className="pedido-sugerido-picker-opcion" onClick={() => elegir(1)}>
+                              A una sola
+                            </button>
+                            <button type="button" className="pedido-sugerido-picker-opcion" onClick={() => elegir(l.cantidad)}>
+                              A las {l.cantidad}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                     <button
                       type="button"
                       className="pedido-sugerido-picker-cancelar"
