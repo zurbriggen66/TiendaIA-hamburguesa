@@ -15,19 +15,24 @@ export const MODO_EMPLEADO = 'empleado';
 // Catálogo único: de acá salen el menú lateral, el guard de rutas y los checkboxes
 // de configuración. Las etiquetas son las mismas que ya usaba el sidebar.
 // `grupo` reproduce los dos títulos del menú ("Inicio" y "Gestión").
+// El ícono va en su propio campo: antes vivía pegado dentro de la etiqueta y solo
+// algunas secciones lo tenían, así que el menú quedaba desparejo. Al separarlo,
+// ninguna sección nueva puede olvidárselo sin que se note.
 export const SECCIONES = [
-  { clave: 'inicio', ruta: '/admin/inicio', etiqueta: 'Inicio', grupo: 'Inicio' },
-  { clave: 'cajas', ruta: '/admin/cajas', etiqueta: '🗄️ Caja', grupo: 'Inicio' },
-  { clave: 'productos', ruta: '/admin/productos', etiqueta: 'Productos & Stock', grupo: 'Gestión' },
-  { clave: 'estadisticas', ruta: '/admin/estadisticas', etiqueta: 'Estadísticas', grupo: 'Gestión' },
-  { clave: 'diseno', ruta: '/admin', etiqueta: 'Diseño & Colores', grupo: 'Gestión', exacta: true },
-  { clave: 'pedidos', ruta: '/admin/pedidos', etiqueta: 'Ventas & Pedidos', grupo: 'Gestión' },
-  { clave: 'combos', ruta: '/admin/combos', etiqueta: 'Combos', grupo: 'Gestión' },
-  { clave: 'antojo', ruta: '/admin/antojo', etiqueta: '🔥 Antojo del día', grupo: 'Gestión' },
-  { clave: 'cobranzas', ruta: '/admin/cobranzas', etiqueta: '💰 Cobranzas', grupo: 'Gestión' },
-  { clave: 'clientes', ruta: '/admin/clientes', etiqueta: '⭐ Clientes', grupo: 'Gestión' },
-  { clave: 'gastos', ruta: '/admin/gastos', etiqueta: 'Gastos', grupo: 'Gestión' },
-  { clave: 'impresion', ruta: '/admin/impresion', etiqueta: '🖨️ Impresión', grupo: 'Gestión' },
+  { clave: 'inicio', ruta: '/admin/inicio', icono: '🏠', etiqueta: 'Inicio', grupo: 'Inicio' },
+  { clave: 'cajas', ruta: '/admin/cajas', icono: '💵', etiqueta: 'Caja', grupo: 'Inicio' },
+  { clave: 'pedidos', ruta: '/admin/pedidos', icono: '🧾', etiqueta: 'Ventas & Pedidos', grupo: 'Gestión' },
+  { clave: 'productos', ruta: '/admin/productos', icono: '🍔', etiqueta: 'Productos', grupo: 'Gestión' },
+  { clave: 'combos', ruta: '/admin/combos', icono: '🍟', etiqueta: 'Combos', grupo: 'Gestión' },
+  { clave: 'antojo', ruta: '/admin/antojo', icono: '🔥', etiqueta: 'Antojo del día', grupo: 'Gestión' },
+  { clave: 'stock', ruta: '/admin/stock', icono: '📦', etiqueta: 'Stock & Insumos', grupo: 'Gestión' },
+  { clave: 'gastos', ruta: '/admin/gastos', icono: '💸', etiqueta: 'Gastos', grupo: 'Gestión' },
+  { clave: 'balance', ruta: '/admin/balance', icono: '⚖️', etiqueta: 'Balance', grupo: 'Análisis' },
+  { clave: 'estadisticas', ruta: '/admin/estadisticas', icono: '📊', etiqueta: 'Estadísticas', grupo: 'Análisis' },
+  { clave: 'cobranzas', ruta: '/admin/cobranzas', icono: '💰', etiqueta: 'Cobranzas', grupo: 'Análisis' },
+  { clave: 'clientes', ruta: '/admin/clientes', icono: '⭐', etiqueta: 'Clientes', grupo: 'Gestión' },
+  { clave: 'diseno', ruta: '/admin', icono: '🎨', etiqueta: 'Diseño & Colores', grupo: 'Ajustes', exacta: true },
+  { clave: 'impresion', ruta: '/admin/impresion', icono: '🖨️', etiqueta: 'Impresión', grupo: 'Ajustes' },
 ];
 
 // Permisos que no son una sección entera sino algo puntual dentro de una página.

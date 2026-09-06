@@ -186,7 +186,8 @@ export default function DashboardLayout() {
                     end={seccion.exacta}
                     className={linkClass}
                   >
-                    {seccion.etiqueta}
+                    <span className="menu-item-icono" aria-hidden="true">{seccion.icono}</span>
+                    <span className="menu-item-texto">{seccion.etiqueta}</span>
                     {seccion.clave === 'pedidos' && pedidosNuevos > 0 && (
                       <span className="sidebar-badge">{pedidosNuevos}</span>
                     )}

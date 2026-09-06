@@ -374,7 +374,7 @@ export default function Dashboard() {
                       checked={permisosEmpleado.includes(seccion.clave)}
                       onChange={() => alternarPermiso(seccion.clave)}
                     />
-                    <span>{seccion.etiqueta}</span>
+                    <span>{seccion.icono} {seccion.etiqueta}</span>
                   </label>
                 ))}
               </div>

@@ -1,8 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import api from '../../services/api';
 import GastoModal from './GastoModal';
-import InsumoModal from './InsumoModal';
-import RestockModal from './RestockModal';
 import GastoFijoModal from './GastoFijoModal';
 import GastoFijoPagarModal from './GastoFijoPagarModal';
 import { toast } from '../../utils/toast';
@@ -21,12 +19,10 @@ export default function GastosPage() {
   const [resumen, setResumen] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [mostrarGastoModal, setMostrarGastoModal] = useState(false);
-  const [modalInsumo, setModalInsumo] = useState(null);
-  const [modalRestock, setModalRestock] = useState(null);
   const [modalGastoFijo, setModalGastoFijo] = useState(null);
   const [modalPagar, setModalPagar] = useState(null);
   const [hayCajaAbierta, setHayCajaAbierta] = useState(false);
-  const [tab, setTab] = useState('stock');
+  const [tab, setTab] = useState('gastos');
 
   const cargarDatos = useCallback(async () => {
     setCargando(true);
@@ -121,13 +117,6 @@ export default function GastosPage() {
         <div className="tabs-bar">
           <button
             type="button"
-            className={`tab-boton ${tab === 'stock' ? 'tab-activo' : ''}`}
-            onClick={() => setTab('stock')}
-          >
-            Stock
-          </button>
-          <button
-            type="button"
             className={`tab-boton ${tab === 'gastos' ? 'tab-activo' : ''}`}
             onClick={() => setTab('gastos')}
           >
@@ -141,58 +130,6 @@ export default function GastosPage() {
             Gastos fijos
           </button>
         </div>
-
-        {tab === 'stock' && (
-          <>
-            <div className="seccion-header">
-              <h3>Insumos & Stock</h3>
-              <button type="button" className="btn-vibrante" onClick={() => setModalInsumo({ insumo: null })}>
-                + Nuevo insumo
-              </button>
-            </div>
-
-            {insumos.length === 0 ? (
-              <div className="estado-vacio">
-                <p>Todavía no cargaste insumos.</p>
-                <button type="button" className="btn-vibrante" onClick={() => setModalInsumo({ insumo: null })}>
-                  Cargar el primer insumo
-                </button>
-              </div>
-            ) : (
-              <div className="stock-grid">
-                {insumos.map((insumo) => {
-                  const bajo = Number(insumo.stock_minimo) > 0 && Number(insumo.cantidad_disponible) <= Number(insumo.stock_minimo);
-                  return (
-                    <div
-                      key={insumo.id}
-                      className={`stock-card ${bajo ? 'stock-card-bajo' : ''}`}
-                      onClick={() => setModalInsumo({ insumo })}
-                      role="button"
-                      tabIndex={0}
-                      title="Editar insumo"
-                    >
-                      {bajo && <span className="stock-card-aviso">⚠️ Queda poco</span>}
-                      {insumo.descuento_activo && (
-                        <span className="badge-descuento">🏷️ -{insumo.descuento_pct}%</span>
-                      )}
-                      <span className="stock-card-nombre">{insumo.nombre}</span>
-                      <strong className="stock-card-cantidad">{insumo.cantidad_disponible}</strong>
-                      <span className="stock-card-unidad">{insumo.unidad}</span>
-                      <button
-                        type="button"
-                        className="stock-card-restock"
-                        onClick={(e) => { e.stopPropagation(); setModalRestock(insumo); }}
-                        title={`Sumar stock de ${insumo.nombre}`}
-                      >
-                        + Stock
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </>
-        )}
 
         {tab === 'gastos' && (
           <>
@@ -298,22 +235,8 @@ export default function GastosPage() {
         />
       )}
 
-      {modalInsumo && (
-        <InsumoModal
-          insumo={modalInsumo.insumo}
-          onClose={() => setModalInsumo(null)}
-          onSaved={() => { setModalInsumo(null); cargarDatos(); }}
-        />
-      )}
-
-      {modalRestock && (
-        <RestockModal
-          insumo={modalRestock}
-          onClose={() => setModalRestock(null)}
-          onSaved={() => { setModalRestock(null); cargarDatos(); }}
-        />
-      )}
-
+      
+      
       {modalGastoFijo && (
         <GastoFijoModal
           gastoFijo={modalGastoFijo.gastoFijo}

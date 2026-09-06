@@ -11,8 +11,8 @@ from antojo.models import AntojoDelDia
 
 from .models import Caja, DetallePedido, MovimientoCaja, Pago, Pedido
 from .serializers import PagoSerializer
-from gastos.models import Gasto
-from productos.models import Categoria, Presentacion, Producto
+from gastos.models import Gasto, Insumo
+from productos.models import Categoria, Presentacion, Producto, ProductoInsumo
 
 
 class EliminarCajaTests(TestCase):
@@ -617,3 +617,48 @@ class CajonDeEfectivoTests(TestCase):
 
         self.assertEqual(suma, self.caja.desglose_por_metodo()['efectivo'])
         self.assertEqual(suma, Decimal('25000'))  # 13000 + 20000 - 5000 - 3000
+
+
+class BalanceDeProductosTests(TestCase):
+    """El balance cruza cuánto deja cada producto con cuántas unidades se vendieron.
+    Las unidades tienen que venir de TODOS los productos, no del top de más vendidos."""
+
+    def setUp(self):
+        User.objects.create_user('duena', password='x', is_staff=True)
+        self.client.force_login(User.objects.get(username='duena'))
+        categoria = Categoria.objects.create(nombre='Burguers')
+        insumo = Insumo.objects.create(nombre='Carne', unidad='kg', cantidad_disponible=100)
+        # El costo unitario sale de las compras cargadas del insumo.
+        Gasto.objects.create(
+            categoria='insumos', descripcion='Carne', monto=10000,
+            metodo_pago='efectivo', insumo=insumo, cantidad=10,
+        )
+        self.productos = []
+        for i in range(7):
+            producto = Producto.objects.create(categoria=categoria, nombre=f'Burger {i}', precio=5000)
+            ProductoInsumo.objects.create(producto=producto, insumo=insumo, cantidad=1)
+            self.productos.append(producto)
+
+        # Se venden los 7, con el ultimo como el MENOS vendido: si las unidades salieran
+        # de productos_mas_vendidos (top 5), este quedaria en 0.
+        pedido = Pedido.objects.create(confirmado=True)
+        for i, producto in enumerate(self.productos):
+            DetallePedido.objects.create(
+                pedido=pedido, producto=producto, cantidad=10 - i, precio_unitario=5000,
+            )
+
+    def test_todos_los_productos_traen_sus_unidades_vendidas(self):
+        respuesta = self.client.get('/api/estadisticas/')
+
+        self.assertEqual(respuesta.status_code, 200, respuesta.content)
+        por_nombre = {p['producto_nombre']: p for p in respuesta.data['costos_productos']}
+        self.assertEqual(len(por_nombre), 7)
+        # El 6to y el 7mo estan fuera del top 5 y aun asi tienen sus unidades.
+        self.assertEqual(por_nombre['Burger 5']['unidades_vendidas'], 5)
+        self.assertEqual(por_nombre['Burger 6']['unidades_vendidas'], 4)
+
+    def test_el_costo_de_lo_vendido_cuenta_todos_los_productos(self):
+        respuesta = self.client.get('/api/estadisticas/')
+
+        # 1 kg de carne por unidad, a $1.000 el kg. Se vendieron 10+9+8+7+6+5+4 = 49.
+        self.assertEqual(Decimal(str(respuesta.data['costo_insumos_periodo'])), Decimal('49000'))

@@ -63,6 +63,16 @@
 
   --tooltip-bg: #2a2f3a;
   --tooltip-texto: #f3f4f6;
+
+  /* Paleta categórica: orden FIJO, nunca ciclado. Cada método de pago tiene su slot
+     asignado, así filtrar uno no repinta a los demás (el color sigue a la entidad,
+     no a su posición en el ranking). Validada con el script de la guía de dataviz. */
+  --serie-1: #3987e5;
+  --serie-2: #d95926;
+  --serie-3: #199e70;
+  --serie-4: #c98500;
+  --serie-5: #d55181;
+  --serie-6: #008300;
 }
 
 :root[data-theme='light'] {
@@ -97,6 +107,15 @@
 
   --tooltip-bg: #16181d;
   --tooltip-texto: #ffffff;
+
+  /* Los mismos seis hues re-escalonados para fondo claro: los tonos pensados para
+     oscuro no llegan a la banda de luminosidad sobre blanco. */
+  --serie-1: #2a78d6;
+  --serie-2: #eb6834;
+  --serie-3: #1baf7a;
+  --serie-4: #eda100;
+  --serie-5: #e87ba4;
+  --serie-6: #008300;
 }
 
 /* Expone los tokens a Tailwind: `bg-surface`, `text-muted`, `rounded-lg`, etc.

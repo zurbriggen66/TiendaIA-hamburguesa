@@ -16,6 +16,8 @@ import AntojoConfigPage from './VistaNegocio/Antojo/AntojoConfigPage';
 import CobranzasPage from './VistaNegocio/Cobranzas/CobranzasPage';
 import ClientesPage from './VistaNegocio/Clientes/ClientesPage';
 import CajasPage from './VistaNegocio/Cajas/CajasPage';
+import StockPage from './VistaNegocio/Stock/StockPage';
+import BalancePage from './VistaNegocio/Balance/BalancePage';
 
 function App() {
   return (
@@ -30,6 +32,8 @@ function App() {
           <Route path="productos" element={<ProductosPage />} />
           <Route path="pedidos" element={<PedidosPage />} />
           <Route path="gastos" element={<GastosPage />} />
+          <Route path="stock" element={<StockPage />} />
+          <Route path="balance" element={<BalancePage />} />
           <Route path="estadisticas" element={<EstadisticasPage />} />
           <Route path="combos" element={<CombosPage />} />
           <Route path="impresion" element={<ImpresionPage />} />

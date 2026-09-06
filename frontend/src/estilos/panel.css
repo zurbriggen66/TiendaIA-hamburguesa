@@ -469,3 +469,230 @@
   line-height: 1.4;
   color: var(--text-muted);
 }
+
+/* Íconos del menú lateral: ancho fijo para que las etiquetas queden alineadas
+   aunque los emojis tengan anchos distintos. */
+.menu-item-icono {
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+.menu-item-texto { flex: 1; min-width: 0; }
+
+.badge-arqueo-neutro {
+  background: var(--surface-3);
+  color: var(--text-sutil);
+}
+
+/* Con cuánto cerró el turno. Va aparte del arqueo: el saldo del cajón siempre existe,
+   el conteo a mano solo si alguien lo hizo. */
+.caja-cierre-resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+  padding: 14px 16px;
+  border-radius: var(--radio);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.caja-cierre-resumen > div { display: flex; flex-direction: column; gap: 2px; }
+
+.caja-cierre-resumen span {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.caja-cierre-resumen strong {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Gráfico de torta (dona) --------------------------------------------- */
+.torta-layout {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 20px;
+  align-items: center;
+}
+
+@media (max-width: 620px) {
+  .torta-layout { grid-template-columns: 1fr; justify-items: center; }
+}
+
+.torta-lienzo { width: 170px; flex-shrink: 0; }
+.torta-svg { display: block; width: 100%; height: auto; }
+
+.torta-porcion {
+  cursor: pointer;
+  transition: stroke-width 0.12s ease;
+}
+
+.torta-centro-label {
+  fill: var(--text-muted);
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-family: inherit;
+}
+
+.torta-centro-valor {
+  fill: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+}
+
+.torta-leyenda {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+}
+
+.torta-leyenda-fila {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--radio-sm);
+  cursor: default;
+}
+
+.torta-leyenda-activa { background: var(--surface-2); }
+
+.torta-punto {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.torta-leyenda-nombre {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.torta-leyenda-monto {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.torta-leyenda-pct {
+  min-width: 34px;
+  text-align: right;
+  font-size: 0.76rem;
+  color: var(--text-sutil);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Balance -------------------------------------------------------------- */
+.balance-miradas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 18px;
+}
+
+.balance-mirada { display: flex; flex-direction: column; }
+
+.balance-resultado {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: var(--radio);
+  border: 1px solid var(--border);
+}
+
+.balance-resultado span {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.balance-resultado strong {
+  font-size: 1.6rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.balance-resultado small { font-size: 0.74rem; color: var(--text-sutil); }
+
+.balance-ok { background: var(--exito-suave); border-color: var(--exito); }
+.balance-ok strong { color: var(--exito); }
+.balance-mal { background: var(--error-suave); border-color: var(--error); }
+.balance-mal strong { color: var(--error); }
+
+.balance-alerta {
+  border-left: 4px solid var(--info);
+  background: var(--info-suave);
+}
+
+.balance-alerta-mal {
+  border-left-color: var(--error);
+  background: var(--error-suave);
+}
+
+.balance-alerta strong { display: block; font-size: 0.92rem; color: var(--text); }
+.balance-alerta p { margin: 4px 0 0; font-size: 0.84rem; line-height: 1.45; color: var(--text-muted); }
+
+.balance-tabla td { vertical-align: middle; }
+.balance-tabla td:not(:first-child) { text-align: right; }
+.balance-tabla th:not(:first-child) { text-align: right; }
+
+/* La barra hace comparable el margen de un vistazo: leer una columna de porcentajes
+   obliga a compararlos de a uno. */
+.balance-margen {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+  min-width: 130px;
+}
+
+.balance-margen-pista {
+  flex: 1;
+  height: 6px;
+  min-width: 50px;
+  border-radius: var(--radio-full);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.balance-margen-barra {
+  height: 100%;
+  border-radius: var(--radio-full);
+  background: var(--exito);
+}
+
+.balance-margen-perdida { background: var(--error); }
+
+.balance-margen-valor {
+  min-width: 48px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.balance-margen-negativo { color: var(--error); font-weight: 700; }
+.balance-sin-dato { font-size: 0.74rem; color: var(--text-sutil); font-style: italic; }
+.balance-incompleto { cursor: help; }

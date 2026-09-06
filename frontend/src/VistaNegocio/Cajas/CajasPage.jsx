@@ -323,7 +323,11 @@ export default function CajasPage() {
                             </span>
                           </div>
                           <span className="caja-historial-pedidos">{caja.total_pedidos} pedidos</span>
-                          {caja.diferencia_efectivo !== null && (
+                          {caja.diferencia_efectivo === null ? (
+                            <span className="badge-arqueo badge-arqueo-neutro" title="Se cerró sin contar el cajón">
+                              Sin arquear
+                            </span>
+                          ) : (
                             <span
                               className={`badge-arqueo ${Number(caja.diferencia_efectivo) === 0 ? 'badge-arqueo-ok' : 'badge-arqueo-mal'}`}
                               title="Arqueo del efectivo al cerrar"

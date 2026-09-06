@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 import BarrasDesglose, { formatearPrecio } from './BarrasDesglose';
 import GraficoVentas from './GraficoVentas';
+import GraficoTorta from './GraficoTorta';
 
 const pad2 = (n) => String(n).padStart(2, '0');
 // OJO: no usar toISOString() acá — convierte a UTC y en Argentina (UTC-3) eso hace
@@ -134,25 +135,17 @@ export default function EstadisticasPage() {
               />
             )}
 
-            <div className="seccion-header">
-              <h3>Con qué te pagaron las ventas</h3>
-            </div>
-            {Number(datos.ventas_totales) === 0 ? (
-              <p className="estado-vacio-chico">No hay ventas registradas en este período.</p>
-            ) : (
-              <div className="gastos-desglose-grid">
-                <div>
-                  <BarrasDesglose
-                    filas={(datos.ventas_por_metodo || []).map((f) => ({
-                      clave: f.metodo,
-                      etiqueta: f.metodo_label,
-                      total: f.total,
-                    }))}
-                    total={Number(datos.ventas_totales)}
-                  />
-                </div>
-              </div>
-            )}
+            {/* Torta y no barras: los métodos de pago SUMAN las ventas, así que es una
+                relación parte-todo real y el porcentaje significa algo. */}
+            <GraficoTorta
+              titulo="Con qué te pagaron las ventas"
+              total={Number(datos.ventas_totales)}
+              datos={(datos.ventas_por_metodo || []).map((f) => ({
+                clave: f.metodo,
+                etiqueta: f.metodo_label,
+                total: f.total,
+              }))}
+            />
 
             <div className="seccion-header">
               <h3>En qué se fue la plata</h3>

@@ -140,6 +140,15 @@ class EstadisticasView(APIView):
             costo_por_producto[producto_id] = costo.quantize(Decimal('0.01'))
             faltantes_por_producto[producto_id] = faltan
 
+        # Unidades vendidas de CADA producto (sin truncar): es lo que permite pasar de
+        # "cuanto deja una unidad" a "cuanto aporto este producto en el periodo".
+        vendidos_periodo = (
+            items_validos.filter(producto__isnull=False)
+            .values('producto__id')
+            .annotate(cantidad_total=Sum('cantidad'))
+        )
+        unidades_por_producto = {f['producto__id']: f['cantidad_total'] for f in vendidos_periodo}
+
         costos_productos = []
         for producto in Producto.objects.filter(id__in=costo_por_producto):
             costo = costo_por_producto[producto.id]
@@ -153,22 +162,15 @@ class EstadisticasView(APIView):
                 # Margen sobre la venta: de cada $100 que cobra, cuanto le queda.
                 'margen_pct': round(float(ganancia / producto.precio * 100), 1) if producto.precio else None,
                 'insumos_sin_costo': faltantes_por_producto[producto.id],
+                'unidades_vendidas': unidades_por_producto.get(producto.id, 0),
             })
         # Peor margen primero: lo que el dueño necesita ver es lo que le deja perdida,
         # no el orden alfabetico. Los sin precio (margen None) van al final.
         costos_productos.sort(key=lambda c: (c['margen_pct'] is None, c['margen_pct']))
 
-        # Lo que costaron en insumos los productos vendidos en el periodo. Se valua al
-        # costo de reposicion de hoy, no al del dia de la venta: sirve para decidir
-        # precios, no para contabilidad historica.
-        vendidos_periodo = (
-            items_validos.filter(producto__isnull=False)
-            .values('producto__id')
-            .annotate(cantidad_total=Sum('cantidad'))
-        )
         costo_insumos_periodo = sum(
-            (Decimal(fila['cantidad_total']) * costo_por_producto.get(fila['producto__id'], Decimal('0'))
-             for fila in vendidos_periodo),
+            (Decimal(cantidad) * costo_por_producto.get(producto_id, Decimal('0'))
+             for producto_id, cantidad in unidades_por_producto.items()),
             Decimal('0'),
         )
 

@@ -93,6 +93,26 @@ export default function CajaDetalleModal({ cajaId, onClose }) {
                 y si el conteo del cajon cuadro. Sin esto habia que reconstruirlo a mano. */}
             <DesgloseMetodos desglose={caja.desglose} titulo="Debería haber quedado en cada método" />
 
+            {/* Con cuánto cerró: el saldo del cajón al momento del cierre. Antes solo
+                se mostraba si además se había contado a mano, así que un turno cerrado
+                sin arqueo no dejaba rastro de cuánta plata había. */}
+            {!caja.esta_abierta && (
+              <div className="caja-cierre-resumen">
+                <div>
+                  <span>Efectivo al cerrar</span>
+                  <strong>{formatearPrecio(caja.efectivo_en_cajon)}</strong>
+                </div>
+                <div>
+                  <span>Contado a mano</span>
+                  <strong>
+                    {caja.efectivo_contado === null
+                      ? 'No se contó'
+                      : formatearPrecio(caja.efectivo_contado)}
+                  </strong>
+                </div>
+              </div>
+            )}
+
             {caja.efectivo_contado !== null && (
               <p className={`caja-arqueo-resultado ${Number(caja.diferencia_efectivo) === 0 ? 'caja-arqueo-ok' : 'caja-arqueo-mal'}`}>
                 {Number(caja.diferencia_efectivo) === 0

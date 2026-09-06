@@ -34,7 +34,10 @@ const faltantes = new Map();
 for (const ruta of archivos) {
   const texto = readFileSync(ruta, 'utf8');
   texto.split('\n').forEach((linea, i) => {
-    for (const m of linea.matchAll(/var\((--[a-z0-9-]+)/g)) {
+    // Se saltean los nombres armados en runtime (`var(--serie-${n})`): el prefijo no
+    // es una variable real y marcarlo seria un falso positivo permanente.
+    for (const m of linea.matchAll(/var\((--[a-z0-9-]+)(.?)/g)) {
+      if (m[2] === '$') continue;
       if (!definidas.has(m[1])) {
         if (!faltantes.has(m[1])) faltantes.set(m[1], []);
         faltantes.get(m[1]).push(`${ruta}:${i + 1}`);
