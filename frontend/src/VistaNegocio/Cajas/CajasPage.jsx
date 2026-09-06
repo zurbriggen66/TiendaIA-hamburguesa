@@ -81,6 +81,12 @@ export default function CajasPage() {
                 <span>Ventas</span>
                 <strong>{formatearPrecio(cajaActual.total_ventas)}</strong>
               </div>
+              {Number(cajaActual.total_propinas) > 0 && (
+                <div>
+                  <span>Propinas</span>
+                  <strong>{formatearPrecio(cajaActual.total_propinas)}</strong>
+                </div>
+              )}
               <div>
                 <span>Pedidos</span>
                 <strong>{cajaActual.total_pedidos}</strong>

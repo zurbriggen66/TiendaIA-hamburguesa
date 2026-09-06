@@ -15,6 +15,7 @@ export default function PedidoPagoModal({ pedidoId, onClose, onSaved }) {
   const [pedido, setPedido] = useState(null);
   const [metodo, setMetodo] = useState('efectivo');
   const [monto, setMonto] = useState('');
+  const [dejaVuelto, setDejaVuelto] = useState(false);
   const [guardando, setGuardando] = useState(false);
 
   const cargarPedido = useCallback(async () => {
@@ -34,16 +35,27 @@ export default function PedidoPagoModal({ pedidoId, onClose, onSaved }) {
 
   const falta = calcularFalta(pedido);
   const estaPagado = pedido !== null && falta <= 0;
+  // Lo que el cliente entrega en la mano, que no es lo mismo que lo que vale el pedido.
+  const entregado = Number(monto) || 0;
+  const vuelto = Math.max(entregado - falta, 0);
 
   const agregarPago = async (e) => {
     e.preventDefault();
-    if (!monto || Number(monto) <= 0) {
+    if (entregado <= 0) {
       alert('Ingresá un monto válido.');
       return;
     }
     setGuardando(true);
     try {
-      await api.post('/pagos/', { pedido: pedidoId, metodo, monto: Number(monto) });
+      // Al pedido se le aplica como mucho lo que falta. El excedente es vuelto (sale
+      // del cajón, no se registra) o propina (se queda, pero no es venta del pedido).
+      // Mandarlo todo como `monto` era lo que dejaba la caja inflada y sin cerrar.
+      await api.post('/pagos/', {
+        pedido: pedidoId,
+        metodo,
+        monto: Math.min(entregado, falta),
+        propina: dejaVuelto ? vuelto : 0,
+      });
       const actualizado = await cargarPedido();
       onSaved();
 
@@ -52,6 +64,7 @@ export default function PedidoPagoModal({ pedidoId, onClose, onSaved }) {
         onClose();
         return;
       }
+      setDejaVuelto(false);
       setMonto(String(calcularFalta(actualizado)));
     } catch (error) {
       console.error('Error al registrar el pago:', error);
@@ -130,7 +143,7 @@ export default function PedidoPagoModal({ pedidoId, onClose, onSaved }) {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">¿Cuánto te pagan?</label>
+                  <label className="form-label">¿Con cuánto te paga?</label>
                   <div className="pago-monto-fila">
                     <input
                       type="number"
@@ -141,25 +154,43 @@ export default function PedidoPagoModal({ pedidoId, onClose, onSaved }) {
                       value={monto}
                       onChange={(e) => setMonto(e.target.value)}
                     />
-                    {Number(monto) !== falta && (
+                    {entregado !== falta && (
                       <button type="button" className="btn-secundario pago-btn-todo" onClick={() => setMonto(String(falta))}>
                         Todo
                       </button>
                     )}
                   </div>
-                  {Number(monto) > 0 && Number(monto) < falta && (
+                  {entregado > 0 && entregado < falta && (
                     <p className="pago-aviso-parcial">
-                      Es un pago parcial: van a quedar {formatearPrecio(falta - Number(monto))} sin cobrar.
+                      Es un pago parcial: van a quedar {formatearPrecio(falta - entregado)} sin cobrar.
                     </p>
+                  )}
+
+                  {vuelto > 0 && (
+                    <>
+                      <label className="checkbox-vibrante">
+                        <input
+                          type="checkbox"
+                          checked={dejaVuelto}
+                          onChange={(e) => setDejaVuelto(e.target.checked)}
+                        />
+                        <span>Se deja los {formatearPrecio(vuelto)} de vuelto</span>
+                      </label>
+                      <p className="pago-aviso-parcial">
+                        {dejaVuelto
+                          ? `Quedan ${formatearPrecio(vuelto)} en la caja como propina.`
+                          : `Devolvele ${formatearPrecio(vuelto)} de vuelto.`}
+                      </p>
+                    </>
                   )}
                 </div>
 
                 <button type="submit" className="btn-vibrante pago-btn-confirmar" disabled={guardando}>
                   {guardando
                     ? 'Registrando...'
-                    : Number(monto) >= falta
+                    : entregado >= falta
                       ? `💰 Cobrar todo (${formatearPrecio(falta)})`
-                      : `💰 Cobrar ${formatearPrecio(monto || 0)}`}
+                      : `💰 Cobrar ${formatearPrecio(entregado)}`}
                 </button>
               </form>
             )}
