@@ -112,7 +112,9 @@ export default function PedidoCard({
               </span>
               {item.extras_detalle && item.extras_detalle.length > 0 && (
                 <span className="pedido-item-extras">
-                  + {item.extras_detalle.map((e) => `${e.cantidad > 1 ? `${e.cantidad}x ` : ''}${e.nombre}`).join(', ')}
+                  + {item.extras_detalle.map((e) => (
+                    `${e.cantidad > 1 ? `${e.cantidad}x ` : ''}${e.nombre}${e.sugerido_carrito ? ' 🛒' : ''}`
+                  )).join(', ')}
                 </span>
               )}
             </div>

@@ -231,6 +231,39 @@ export default function Inicio() {
     agregarAlCarritoGenerico('producto', { ...producto, precio: precioConDescuento }, 1, [], true);
   };
 
+  // Un extra sugerido en el carrito se cuelga de la línea que eligió el cliente, igual que
+  // si lo hubiera marcado en el modal del producto. Antes entraba como línea suelta y la
+  // cocina no podía saber sobre qué hamburguesa iba ese "+ panceta".
+  const agregarExtraALinea = (lineaId, extra) => {
+    setItems((prev) => {
+      const linea = prev.find((i) => i.lineaId === lineaId);
+      if (!linea) return prev;
+      const extrasPrevios = linea.extras || [];
+      const nuevosExtras = extrasPrevios.some((e) => e.id === extra.id)
+        ? extrasPrevios.map((e) => (e.id === extra.id ? { ...e, cantidad: e.cantidad + 1 } : e))
+        : [...extrasPrevios, {
+            ...extra,
+            precio: Number(extra.precio_sugerido_carrito),
+            cantidad: 1,
+            // Habilita el descuento de venta cruzada al mandar el pedido: el mismo extra
+            // elegido desde el modal del producto se sigue cobrando a precio de lista.
+            via_sugerencia: true,
+          }];
+      const nuevoLineaId = armarLineaId(
+        linea.tipo, linea.item.id, nuevosExtras, linea.sugerido, linea.item.presentacion_id,
+      );
+      // Si el carrito ya tenía otra línea con esta misma combinación, se fusionan en vez
+      // de quedar duplicadas (mismo criterio que agregarAlCarritoGenerico).
+      const gemela = prev.find((i) => i.lineaId === nuevoLineaId);
+      if (gemela) {
+        return prev
+          .filter((i) => i.lineaId !== lineaId)
+          .map((i) => (i.lineaId === nuevoLineaId ? { ...i, cantidad: i.cantidad + linea.cantidad } : i));
+      }
+      return prev.map((i) => (i.lineaId === lineaId ? { ...i, lineaId: nuevoLineaId, extras: nuevosExtras } : i));
+    });
+  };
+
   // Los extras (panceta, huevo, dip) SON la venta cruzada natural del carrito: el form
   // del admin deja marcarlos como sugeridos y el back les aplica el descuento igual, era
   // solo este filtro el que los escondia. `activo` sí se respeta, igual que en el menú.
@@ -406,6 +439,7 @@ export default function Inicio() {
           onCambiarCantidad={cambiarCantidad}
           onQuitar={quitarDelCarrito}
           onAgregarSugerido={agregarSugeridoAlCarrito}
+          onAgregarExtraALinea={agregarExtraALinea}
           onVaciar={() => setItems([])}
           cliente={cliente}
           onClienteActualizado={setCliente}

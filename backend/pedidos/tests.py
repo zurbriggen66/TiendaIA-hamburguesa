@@ -173,3 +173,58 @@ class AntojoVencidoTests(TestCase):
 
         self.assertEqual(banner['producto']['id'], self.producto.id)
         self.assertEqual(self._precio_cobrado(), Decimal('9000'))
+
+
+class ExtraSugeridoDesdeElCarritoTests(TestCase):
+    """El extra de la venta cruzada se cuelga de la línea que el cliente eligió y cobra
+    con descuento; el mismo extra pedido desde el modal del producto va a precio de lista."""
+
+    def setUp(self):
+        self.burgers = Categoria.objects.create(nombre='Burguers')
+        self.burger = Producto.objects.create(categoria=self.burgers, nombre='Inglesa', precio=12000)
+        self.panceta = Producto.objects.create(
+            categoria=self.burgers, nombre='Panceta ahumada', precio=1500,
+            es_extra=True, sugerido_carrito=True, descuento_carrito_pct=5,
+        )
+
+    def _pedir(self, extra_payload):
+        return self.client.post('/api/pedidos/', data={
+            'items': [{'producto': self.burger.id, 'cantidad': 1, 'extras': [extra_payload]}],
+        }, content_type='application/json')
+
+    def test_el_extra_agregado_desde_la_sugerencia_cobra_con_descuento(self):
+        respuesta = self._pedir({'producto': self.panceta.id, 'cantidad': 1, 'sugerido_carrito': True})
+
+        self.assertEqual(respuesta.status_code, 201, respuesta.content)
+        extra = DetallePedido.objects.get(pedido_id=respuesta.data['id']).extras.get()
+        self.assertTrue(extra.sugerido_carrito)
+        self.assertEqual(extra.precio_unitario, Decimal('1425'))
+
+    def test_el_mismo_extra_sin_la_marca_va_a_precio_de_lista(self):
+        respuesta = self._pedir({'producto': self.panceta.id, 'cantidad': 1})
+
+        self.assertEqual(respuesta.status_code, 201, respuesta.content)
+        extra = DetallePedido.objects.get(pedido_id=respuesta.data['id']).extras.get()
+        self.assertFalse(extra.sugerido_carrito)
+        self.assertEqual(extra.precio_unitario, Decimal('1500'))
+
+    def test_rechaza_colgar_un_extra_de_otra_categoria(self):
+        bebidas = Categoria.objects.create(nombre='Bebidas')
+        hielo = Producto.objects.create(categoria=bebidas, nombre='Hielo', precio=300, es_extra=True)
+
+        respuesta = self._pedir({'producto': hielo.id, 'cantidad': 1})
+
+        self.assertEqual(respuesta.status_code, 400, respuesta.content)
+
+    def test_el_subtotal_de_la_linea_incluye_el_extra_por_cada_unidad(self):
+        respuesta = self.client.post('/api/pedidos/', data={
+            'items': [{
+                'producto': self.burger.id, 'cantidad': 2,
+                'extras': [{'producto': self.panceta.id, 'cantidad': 1, 'sugerido_carrito': True}],
+            }],
+        }, content_type='application/json')
+
+        self.assertEqual(respuesta.status_code, 201, respuesta.content)
+        detalle = DetallePedido.objects.get(pedido_id=respuesta.data['id'])
+        # 2 x (12000 + 1425): el extra se cobra por unidad, igual que descuenta stock.
+        self.assertEqual(detalle.calcular_subtotal(), Decimal('26850'))

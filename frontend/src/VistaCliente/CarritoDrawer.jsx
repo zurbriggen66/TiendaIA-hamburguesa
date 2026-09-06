@@ -40,7 +40,7 @@ function armarMensajeWhatsapp({ nombre, telefono, tipoEntrega, direccion, zona, 
 
 const NOTA_MAX = 200;
 
-export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onCambiarCantidad, onQuitar, onAgregarSugerido, onVaciar, cliente, onClienteActualizado, tiendaAbierta = true, mensajeCerrado }) {
+export default function CarritoDrawer({ items, whatsapp, sugeridos = [], onClose, onCambiarCantidad, onQuitar, onAgregarSugerido, onAgregarExtraALinea, onVaciar, cliente, onClienteActualizado, tiendaAbierta = true, mensajeCerrado }) {
   const [nombre, setNombre] = useState(cliente?.nombre || '');
   const [telefono, setTelefono] = useState(cliente?.telefono || '');
   const [usarPuntos, setUsarPuntos] = useState(false);
@@ -56,6 +56,8 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
   const [guardadoOk, setGuardadoOk] = useState(true);
   const [errores, setErrores] = useState({});
   const [linkWhatsapp, setLinkWhatsapp] = useState(null);
+  // Extra de la tira esperando que el cliente elija a qué línea del carrito colgarlo.
+  const [extraAAsignar, setExtraAAsignar] = useState(null);
 
   // Bloquea el scroll de la página de fondo mientras el drawer está abierto. En mobile
   // (sobre todo iOS Safari) un simple `overflow: hidden` en el body no alcanza: el fondo
@@ -113,6 +115,16 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
   const lineaSugerido = (productoId) =>
     items.find((l) => l.tipo === 'producto' && l.sugerido && l.item.id === productoId);
 
+  // A qué líneas del carrito se le puede colgar este extra. Misma regla que el modal del
+  // producto (Menu.jsx): un extra solo va sobre un producto de su propia categoría, así la
+  // panceta nunca se ofrece sobre una gaseosa. El backend valida lo mismo al crear el pedido.
+  const destinosPara = (extra) =>
+    items.filter((l) => l.tipo === 'producto' && !l.item.es_extra && l.item.categoria === extra.categoria);
+
+  // Un extra sin ninguna línea compatible en el carrito no se muestra: ofrecerlo sería
+  // prometer algo que después no se puede asignar a nada.
+  const sugeridosVisibles = sugeridos.filter((p) => !p.es_extra || destinosPara(p).length > 0);
+
   const enviarPedido = async (e) => {
     e.preventDefault();
     if (items.length === 0 || !tiendaAbierta) return;
@@ -167,7 +179,9 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
               producto: linea.item.id,
               presentacion: linea.item.presentacion_id || null,
               cantidad: linea.cantidad,
-              extras: (linea.extras || []).map((e) => ({ producto: e.id, cantidad: e.cantidad })),
+              extras: (linea.extras || []).map((e) => ({
+                producto: e.id, cantidad: e.cantidad, sugerido_carrito: !!e.via_sugerencia,
+              })),
               sugerido_carrito: !!linea.sugerido,
             }
       ),
@@ -340,15 +354,18 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
               </div>
             </div>
 
-            {sugeridos && sugeridos.length > 0 && (
+            {sugeridosVisibles.length > 0 && (
               <div className="pedido-sugeridos">
                 <div className="pedido-seccion-titulo">
                   <span className="pedido-seccion-icono">🛒</span>
                   <span>Sumá con descuento</span>
                 </div>
                 <div className="pedido-sugeridos-scroll">
-                  {sugeridos.map((prod) => {
+                  {sugeridosVisibles.map((prod) => {
                     const linea = lineaSugerido(prod.id);
+                    // Los extras se cuelgan de una línea; el resto sigue entrando como
+                    // producto suelto con su propio stepper.
+                    const destinos = prod.es_extra ? destinosPara(prod) : [];
                     return (
                       <div key={prod.id} className="pedido-sugerido-card">
                         <div className="pedido-sugerido-imagen">
@@ -359,7 +376,28 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
                           <span className="precio-tachado">{formatearPrecio(prod.precio)}</span>
                           {' '}{formatearPrecio(Number(prod.precio_sugerido_carrito))}
                         </span>
-                        {linea ? (
+                        {/* En la tira conviven dos cosas que se ven igual pero entran
+                            distinto: un topping que se cuelga de un producto y un producto
+                            suelto en promo. Sin este renglón el cliente no lo sabe hasta
+                            después de tocar. */}
+                        <span className="pedido-sugerido-destino">
+                          {!prod.es_extra
+                            ? 'Producto aparte'
+                            : destinos.length === 1
+                              ? `Va en tu ${destinos[0].item.nombre}`
+                              : 'Elegís sobre cuál va'}
+                        </span>
+                        {prod.es_extra ? (
+                          <button
+                            type="button"
+                            className="pedido-sugerido-agregar"
+                            onClick={() => (destinos.length === 1
+                              ? onAgregarExtraALinea(destinos[0].lineaId, prod)
+                              : setExtraAAsignar(prod))}
+                          >
+                            + Agregar
+                          </button>
+                        ) : linea ? (
                           <div className="pedido-sugerido-stepper">
                             <button type="button" onClick={() => onCambiarCantidad(linea.lineaId, linea.cantidad - 1)} aria-label="Restar">−</button>
                             <span>{linea.cantidad}</span>
@@ -374,6 +412,32 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
                     );
                   })}
                 </div>
+
+                {extraAAsignar && (
+                  <div className="pedido-sugerido-picker">
+                    <span className="pedido-sugerido-picker-titulo">
+                      ¿A cuál le sumamos {extraAAsignar.nombre}?
+                    </span>
+                    {destinosPara(extraAAsignar).map((l) => (
+                      <button
+                        key={l.lineaId}
+                        type="button"
+                        className="pedido-sugerido-picker-opcion"
+                        onClick={() => { onAgregarExtraALinea(l.lineaId, extraAAsignar); setExtraAAsignar(null); }}
+                      >
+                        {l.cantidad}× {l.item.nombre}
+                        {l.item.presentacion_nombre ? ` (${l.item.presentacion_nombre})` : ''}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className="pedido-sugerido-picker-cancelar"
+                      onClick={() => setExtraAAsignar(null)}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
@@ -916,6 +980,71 @@ export default function CarritoDrawer({ items, whatsapp, sugeridos, onClose, onC
           font-family: inherit;
           cursor: pointer;
           transition: background 0.15s ease;
+        }
+
+        .pedido-sugerido-destino {
+          width: 100%;
+          /* Alto fijo de 1 línea por el mismo motivo que el nombre: sin esto, una tarjeta
+             con texto corto dejaría su botón más arriba que las de al lado. */
+          min-height: 0.92rem;
+          margin-bottom: 2px;
+          font-size: 0.66rem;
+          font-weight: 600;
+          color: #6b7280;
+          line-height: 1.4;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .pedido-sugerido-picker {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          margin-top: 10px;
+          padding: 12px;
+          border-radius: 14px;
+          background: #f0fdf4;
+          border: 1px solid #bbf7d0;
+        }
+
+        .pedido-sugerido-picker-titulo {
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: #166534;
+          margin-bottom: 2px;
+        }
+
+        .pedido-sugerido-picker-opcion {
+          width: 100%;
+          text-align: left;
+          background: #ffffff;
+          color: #14532d;
+          border: 1px solid #bbf7d0;
+          padding: 10px 12px;
+          border-radius: 10px;
+          font-weight: 600;
+          font-size: 0.82rem;
+          font-family: inherit;
+          cursor: pointer;
+          transition: background 0.15s ease;
+        }
+
+        .pedido-sugerido-picker-opcion:hover {
+          background: #dcfce7;
+        }
+
+        .pedido-sugerido-picker-cancelar {
+          align-self: flex-start;
+          background: none;
+          border: none;
+          padding: 4px 2px;
+          color: #6b7280;
+          font-size: 0.76rem;
+          font-weight: 600;
+          font-family: inherit;
+          cursor: pointer;
+          text-decoration: underline;
         }
         .pedido-sugerido-agregar:hover {
           background: #bbf7d0;

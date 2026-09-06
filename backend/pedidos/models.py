@@ -188,6 +188,10 @@ class DetalleExtra(models.Model):
     extra = models.ForeignKey(Producto, on_delete=models.PROTECT, related_name='usado_como_extra')
     cantidad = models.PositiveIntegerField(default=1)
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
+    # Mismo criterio que DetallePedido.sugerido_carrito: solo los extras agregados desde
+    # la venta cruzada del carrito cobran el precio con descuento_carrito_pct. El mismo
+    # extra elegido en el modal del producto se sigue vendiendo a precio de lista.
+    sugerido_carrito = models.BooleanField(default=False)
 
     def __str__(self):
         return f'+ {self.cantidad}x {self.extra.nombre} en {self.detalle_pedido}'

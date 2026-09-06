@@ -82,6 +82,9 @@ class PagoSerializer(serializers.ModelSerializer):
 class ExtraSeleccionadoSerializer(serializers.Serializer):
     producto = serializers.PrimaryKeyRelatedField(queryset=Producto.objects.filter(es_extra=True))
     cantidad = serializers.IntegerField(min_value=1, default=1)
+    # Lo manda el carrito cuando el extra se agregó desde la tira de venta cruzada. Solo
+    # habilita el descuento; el precio en sí lo calcula el servidor, nunca llega por body.
+    sugerido_carrito = serializers.BooleanField(default=False)
 
 
 class DetallePedidoSerializer(serializers.ModelSerializer):
@@ -123,7 +126,10 @@ class DetallePedidoSerializer(serializers.ModelSerializer):
         # prefetch_related del viewset (items__extras__extra), volviendo a la base una vez
         # por cada línea del pedido. Así se usa el cache que ya vino cargado.
         return [
-            {'producto': e.extra_id, 'nombre': e.extra.nombre, 'cantidad': e.cantidad, 'precio_unitario': e.precio_unitario}
+            {
+                'producto': e.extra_id, 'nombre': e.extra.nombre, 'cantidad': e.cantidad,
+                'precio_unitario': e.precio_unitario, 'sugerido_carrito': e.sugerido_carrito,
+            }
             for e in obj.extras.all()
         ]
 
@@ -143,6 +149,18 @@ class DetallePedidoSerializer(serializers.ModelSerializer):
         # al que viene en la misma línea (el cliente podría intentar mandar la más barata).
         if presentacion and producto and presentacion.producto_id != producto.id:
             raise serializers.ValidationError('La presentación elegida no corresponde a ese producto.')
+        # Un extra solo se puede colgar de un producto de su misma categoría: es lo que
+        # evita que termine en el ticket de cocina un "+ panceta" sobre una gaseosa. Las
+        # dos pantallas que cargan pedidos (tienda y admin) ya filtran así, pero la regla
+        # tiene que vivir acá para que valga aunque el pedido llegue por otro lado.
+        ajenos = [
+            e['producto'].nombre for e in (data.get('extras') or [])
+            if producto and e['producto'].categoria_id != producto.categoria_id
+        ]
+        if ajenos:
+            raise serializers.ValidationError(
+                f'Estos extras no son de la categoría de {producto.nombre}: {", ".join(ajenos)}.'
+            )
         return data
 
 
@@ -302,11 +320,16 @@ class PedidoSerializer(serializers.ModelSerializer):
                 )
                 for extra_sel in extras_data:
                     extra_producto = extra_sel['producto']
+                    via_sugerencia = extra_sel.get('sugerido_carrito', False)
                     DetalleExtra.objects.create(
                         detalle_pedido=detalle,
                         extra=extra_producto,
                         cantidad=extra_sel.get('cantidad', 1),
-                        precio_unitario=extra_producto.precio,
+                        precio_unitario=(
+                            extra_producto.precio_sugerido_carrito() if via_sugerencia
+                            else extra_producto.precio
+                        ),
+                        sugerido_carrito=via_sugerencia,
                     )
             else:
                 detalle = DetallePedido.objects.create(
