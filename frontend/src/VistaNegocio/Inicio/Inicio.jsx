@@ -778,7 +778,7 @@ export default function Inicio() {
             position: absolute;
             inset: 0;
             border-radius: 999px;
-            background: rgba(255, 255, 255, 0.15);
+            background: var(--border);
             transition: background 0.2s ease;
           }
 
@@ -869,7 +869,7 @@ export default function Inicio() {
             font-weight: 600;
             letter-spacing: 0.5px;
             text-transform: uppercase;
-            color: rgba(255, 255, 255, 0.65);
+            color: var(--text-muted);
           }
 
           .inicio-card-subtexto {
@@ -889,19 +889,19 @@ export default function Inicio() {
             font-variant-numeric: tabular-nums;
             letter-spacing: 1px;
             margin: 12px 0 0;
-            color: rgba(255, 255, 255, 0.9);
+            color: var(--text);
             display: flex;
             align-items: baseline;
           }
 
           .inicio-reloj-separador {
-            color: rgba(255, 255, 255, 0.35);
+            color: var(--text-muted);
             margin: 0 1px;
           }
 
           .inicio-reloj-segundos {
             font-size: 1.9rem;
-            color: rgba(255, 255, 255, 0.9);
+            color: var(--text);
           }
 
           .inicio-ojito {
@@ -929,7 +929,7 @@ export default function Inicio() {
             font-size: 1.5rem;
             font-weight: 800;
             margin: 12px 0 0;
-            color: rgba(255, 255, 255, 0.55);
+            color: var(--text-muted);
           }
 
           .inicio-btn-caja {
@@ -977,7 +977,7 @@ export default function Inicio() {
             gap: 24px;
             margin-top: 16px;
             padding-top: 16px;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 1px solid var(--border);
           }
 
           .inicio-caja-stats div {
@@ -995,7 +995,7 @@ export default function Inicio() {
 
           .inicio-caja-stats strong {
             font-size: 1.05rem;
-            color: rgba(255, 255, 255, 0.9);
+            color: var(--text);
           }
 
           .inicio-card-confirmar {
@@ -1019,8 +1019,8 @@ export default function Inicio() {
             align-items: center;
             justify-content: space-between;
             gap: 14px;
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: var(--surface-2);
+            border: 1px solid var(--border);
             border-radius: 12px;
             padding: 14px 18px;
           }
@@ -1146,7 +1146,7 @@ export default function Inicio() {
             gap: 8px;
             margin-top: 16px;
             padding-top: 16px;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 1px solid var(--border);
           }
 
           .inicio-gasto-fijo-item {
