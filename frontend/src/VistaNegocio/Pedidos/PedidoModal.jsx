@@ -3,6 +3,7 @@ import api from '../../services/api';
 import { presentacionesConBase } from '../../utils/presentaciones';
 import { precioBaseConDescuento, tieneDescuento, mejorPorcentajeDescuento } from '../../utils/precios';
 import { toast } from '../../utils/toast';
+import { imprimirPedido, pedidosCreadosAca } from '../../utils/impresion';
 
 const COLORES_CHIP = ['chip-mostaza', 'chip-naranja', 'chip-tomate'];
 
@@ -33,6 +34,7 @@ export default function PedidoModal({ productos, categorias, localidades, antojo
   });
   const [filas, setFilas] = useState([]);
   const [guardando, setGuardando] = useState(false);
+  const [imprimirTicket, setImprimirTicket] = useState(true);
 
   const productosPrincipales = productos.filter((p) => !p.es_extra);
   const extrasTodos = productos.filter((p) => p.es_extra);
@@ -112,7 +114,7 @@ export default function PedidoModal({ productos, categorias, localidades, antojo
 
     setGuardando(true);
     try {
-      await api.post('/pedidos/', {
+      const { data } = await api.post('/pedidos/', {
         cliente,
         telefono,
         origen: 'admin',
@@ -130,6 +132,8 @@ export default function PedidoModal({ productos, categorias, localidades, antojo
           extras: f.extras.map((ex) => ({ producto: ex.id, cantidad: ex.cantidad })),
         })),
       });
+      pedidosCreadosAca.add(data.id);
+      if (imprimirTicket) imprimirPedido(data);
       onSaved();
     } catch (error) {
       console.error('Error al crear el pedido:', error);
@@ -423,6 +427,13 @@ export default function PedidoModal({ productos, categorias, localidades, antojo
           <div className="pedido-total-estimado">
             <span>Total estimado</span>
             <strong>{formatearPrecio(totalEstimado)}</strong>
+          </div>
+
+          <div className="form-group">
+            <label className="checkbox-vibrante">
+              <input type="checkbox" checked={imprimirTicket} onChange={(e) => setImprimirTicket(e.target.checked)} />
+              <span>🖨️ Imprimir ticket al crear</span>
+            </label>
           </div>
 
           <div className="modal-actions">

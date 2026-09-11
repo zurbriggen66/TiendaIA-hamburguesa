@@ -7,6 +7,10 @@ const CONFIG_DEFAULT = {
   autoImprimir: false,
 };
 
+// Pedidos cargados desde el modal de este dispositivo: ya decidieron ahí si se imprimen,
+// así el auto-imprimir no los saca de nuevo (ni los imprime si destildaron la casilla).
+export const pedidosCreadosAca = new Set();
+
 export function obtenerConfigImpresion() {
   try {
     const guardado = JSON.parse(localStorage.getItem(CLAVE_LOCAL_STORAGE));
