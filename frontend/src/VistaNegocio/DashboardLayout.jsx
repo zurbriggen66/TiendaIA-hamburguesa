@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import api, { guardarTokenAdmin } from '../services/api';
-import { obtenerConfigImpresion, imprimirPedido } from '../utils/impresion';
+import { obtenerConfigImpresion, imprimirPedido, pedidosCreadosAca } from '../utils/impresion';
 import { useModo } from './ModoContext';
 import { seccionDeRuta } from '../utils/modoEmpleado';
 import AdminLogin from './AdminLogin';
@@ -78,7 +78,7 @@ export default function DashboardLayout() {
           setTimeout(() => setToast((actual) => (actual === nuevos[0] ? null : actual)), 7000);
 
           if (obtenerConfigImpresion().autoImprimir) {
-            nuevos.forEach((p) => imprimirPedido(p));
+            nuevos.filter((p) => !pedidosCreadosAca.has(p.id)).forEach((p) => imprimirPedido(p));
           }
         }
       } catch (error) {
