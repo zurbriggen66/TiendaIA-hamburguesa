@@ -32,10 +32,18 @@ export default function PedidoPagoModal({ pedidoId, onClose, onSaved }) {
   // Al abrir, el monto viene precargado con lo que falta: el caso normal (cobrar todo
   // de una) es apretar un botón, sin escribir nada.
   useEffect(() => {
-    cargarPedido().then((data) => {
-      const restante = calcularFalta(data);
-      if (restante > 0) setMonto(String(restante));
-    });
+    cargarPedido()
+      .then((data) => {
+        const restante = calcularFalta(data);
+        if (restante > 0) setMonto(String(restante));
+      })
+      // Sin esto, un corte de red dejaba el modal en "Cargando..." para siempre.
+      .catch((error) => {
+        console.error('Error al cargar el pedido a cobrar:', error);
+        toast.error('No se pudo abrir el cobro. Probá de nuevo.');
+        onClose();
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cargarPedido]);
 
   const falta = calcularFalta(pedido);
@@ -54,6 +62,7 @@ export default function PedidoPagoModal({ pedidoId, onClose, onSaved }) {
       return;
     }
     setGuardando(true);
+    let pagoRegistrado = false;
     try {
       // Al pedido se le aplica como mucho lo que falta. El excedente es vuelto (sale
       // del cajón, no se registra) o propina (se queda, pero no es venta del pedido).
@@ -68,8 +77,9 @@ export default function PedidoPagoModal({ pedidoId, onClose, onSaved }) {
         vuelto_monto: vueltoPorOtraVia ? vuelto : 0,
         vuelto_metodo: vueltoPorOtraVia ? vueltoMetodo : '',
       });
-      const actualizado = await cargarPedido();
+      pagoRegistrado = true;
       onSaved();
+      const actualizado = await cargarPedido();
 
       // Si con este pago el pedido quedó saldado, no hay nada más que hacer acá: se cierra solo.
       if (calcularFalta(actualizado) <= 0) {
@@ -81,7 +91,15 @@ export default function PedidoPagoModal({ pedidoId, onClose, onSaved }) {
       setMonto(String(calcularFalta(actualizado)));
     } catch (error) {
       console.error('Error al registrar el pago:', error);
-      toast.error('Hubo un problema al registrar el pago.');
+      if (pagoRegistrado) {
+        // El pago ya quedó guardado y solo falló la actualización de este modal. Decir
+        // "problema al registrar" invitaba a cobrarlo de nuevo: se cierra y la pantalla
+        // de atrás muestra lo que realmente quedó.
+        toast.error('El pago se registró, pero no se pudo actualizar el detalle.');
+        onClose();
+      } else {
+        toast.error('Hubo un problema al registrar el pago.');
+      }
     } finally {
       setGuardando(false);
     }

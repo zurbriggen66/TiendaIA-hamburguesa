@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useOutletContext } from 'react-router-dom';
 import api from '../../services/api';
 import AbrirCajaModal from '../Cajas/AbrirCajaModal';
 import CerrarCajaModal from '../Cajas/CerrarCajaModal';
@@ -27,11 +27,49 @@ const formatearHora = (fecha) =>
 
 const ORDEN_ESTADOS = ['pendiente', 'en_preparacion', 'listo', 'entregado'];
 
+// El reloj tiene su propio estado a propósito: cuando vivía en Inicio, el tic de cada
+// segundo redibujaba la pantalla entera (todas las tarjetas de pedidos y el modal
+// abierto) y en una tablet se sentía como lag constante.
+function RelojEnVivo() {
+  const [reloj, setReloj] = useState(new Date());
+
+  useEffect(() => {
+    const interval = setInterval(() => setReloj(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const horas = String(reloj.getHours()).padStart(2, '0');
+  const minutos = String(reloj.getMinutes()).padStart(2, '0');
+  const segundos = String(reloj.getSeconds()).padStart(2, '0');
+  const fechaLegible = reloj.toLocaleDateString('es-AR', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+
+  return (
+    <div className="inicio-card inicio-card-reloj">
+      <div className="inicio-card-encabezado">
+        <span className="inicio-card-icono">🕐</span>
+        <h3 className="inicio-card-titulo">Reloj en vivo</h3>
+      </div>
+      <div className="inicio-reloj-numeros">
+        <span>{horas}</span>
+        <span className="inicio-reloj-separador">:</span>
+        <span>{minutos}</span>
+        <span className="inicio-reloj-separador">:</span>
+        <span className="inicio-reloj-segundos">{segundos}</span>
+      </div>
+      <p className="inicio-card-subtexto inicio-fecha-capitalizada">{fechaLegible}</p>
+    </div>
+  );
+}
+
 export default function Inicio() {
   const { esEmpleado, puede, entrarModoEmpleado } = useModo();
   const verMontos = puede('ver_montos');
 
-  const [reloj, setReloj] = useState(new Date());
   const [ventasHoy, setVentasHoy] = useState(0);
   const [ticketPromedio, setTicketPromedio] = useState(0);
   const [totalPedidosCaja, setTotalPedidosCaja] = useState(0);
@@ -52,6 +90,7 @@ export default function Inicio() {
   const [guardandoEstadoTienda, setGuardandoEstadoTienda] = useState(false);
 
   const [productos, setProductos] = useState([]);
+  const [antojo, setAntojo] = useState(null);
   const [categorias, setCategorias] = useState([]);
   const [localidades, setLocalidades] = useState([]);
   // Ocultar el monto sirve cuando hay clientes mirando la pantalla. Se recuerda
@@ -65,15 +104,18 @@ export default function Inicio() {
   const [modalPago, setModalPago] = useState(null);
   const [modalEnvio, setModalEnvio] = useState(null);
 
-  useEffect(() => {
-    const interval = setInterval(() => setReloj(new Date()), 1000);
-    return () => clearInterval(interval);
-  }, []);
+  // Cada recarga se numera: si dos se pisan (cobrar y enseguida confirmar otro pedido),
+  // la respuesta que llega tarde se descarta en vez de pisar datos más nuevos.
+  const consultaActual = useRef(0);
+  const yaCargo = useRef(false);
 
+  // Solo la primera carga muestra "Cargando...". Las recargas después de cobrar, crear
+  // o confirmar actualizan en el lugar: antes vaciaban la lista entera en cada acción
+  // y la pantalla parpadeaba (el "pantallazo" que se veía después de crear un pedido).
   const cargarInicio = async () => {
-    setCargando(true);
+    const consulta = ++consultaActual.current;
     try {
-      const [resHoy, resPorConfirmar, resRecientes, resProductos, resCategorias, resLocalidades, resFijos, resConfig] = await Promise.all([
+      const [resHoy, resPorConfirmar, resRecientes, resProductos, resCategorias, resLocalidades, resFijos, resConfig, resAntojo] = await Promise.all([
         api.get('/estadisticas/hoy/'),
         // page_size alto: ambas listas se muestran enteras, no queremos que un día
         // movido las recorte a los 20 por defecto de la paginación.
@@ -86,13 +128,19 @@ export default function Inicio() {
         // dibuja, así que ni pedimos los datos.
         verMontos ? api.get('/gastos-fijos/alertas/') : Promise.resolve({ data: {} }),
         api.get('/configuracion/'),
+        // Solo sirve para mostrar el descuento en el total estimado del modal: si falla,
+        // Inicio carga igual en vez de quedarse sin datos por un dato secundario.
+        api.get('/antojo-del-dia/').catch(() => ({ data: null })),
       ]);
+      if (consulta !== consultaActual.current) return;
       const data = resHoy.data;
       if (resConfig.data && resConfig.data.length > 0) {
         const ultimaConfig = resConfig.data[resConfig.data.length - 1];
         setConfigId(ultimaConfig.id);
         setTiendaAbierta(ultimaConfig.tienda_abierta ?? true);
-        setMensajeCerrado(ultimaConfig.mensaje_cerrado || '');
+        // Solo en la primera carga: Inicio también se recarga solo cuando entra un
+        // pedido, y eso no puede pisar lo que alguien esté escribiendo en el mensaje.
+        if (!yaCargo.current) setMensajeCerrado(ultimaConfig.mensaje_cerrado || '');
       }
       setVentasHoy(data.ventas_totales || 0);
       setTicketPromedio(data.ticket_promedio || 0);
@@ -101,17 +149,24 @@ export default function Inicio() {
       setCajaAbierta(Boolean(data.caja_abierta));
       setPorConfirmar((resPorConfirmar.data.results || []).filter((p) => p.estado !== 'cancelado'));
       setPedidosRecientes(resRecientes.data.results || []);
-      setProductos(resProductos.data);
+      // Igual que en Pedidos: un producto oculto no se ofrece para pedidos nuevos.
+      setProductos(resProductos.data.filter((p) => p.activo !== false));
+      setAntojo(resAntojo.data);
       setCategorias(resCategorias.data);
       setLocalidades(resLocalidades.data);
       setGastosFijos(resFijos.data.gastos || []);
       setTotalGastosFijos(Number(resFijos.data.total_pendiente) || 0);
       setError(null);
+      yaCargo.current = true;
     } catch (err) {
       console.error('Error cargando datos de Inicio:', err);
-      setError('No se pudieron cargar los datos de hoy.');
+      if (consulta !== consultaActual.current) return;
+      // Si ya había datos en pantalla, se dejan y se avisa: cambiarlos por un cartel de
+      // error por un corte de red de un segundo era otro pantallazo.
+      if (yaCargo.current) toast.error('No se pudieron actualizar los datos de hoy.');
+      else setError('No se pudieron cargar los datos de hoy.');
     } finally {
-      setCargando(false);
+      if (consulta === consultaActual.current) setCargando(false);
     }
   };
 
@@ -119,6 +174,15 @@ export default function Inicio() {
     cargarInicio();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // El menú lateral ya consulta cada 15s si entraron pedidos; cuando avisa de uno
+  // nuevo, Inicio se actualiza solo. Antes sonaba el aviso pero "Pedidos por
+  // confirmar" no mostraba nada hasta recargar la página a mano.
+  const { ultimaNovedad } = useOutletContext() || {};
+  useEffect(() => {
+    if (ultimaNovedad) cargarInicio();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ultimaNovedad]);
 
   const confirmarPedido = async (pedido) => {
     setConfirmando(pedido.id);
@@ -221,16 +285,6 @@ export default function Inicio() {
   const porVencer = gastosFijos.filter((g) => g.esta_por_vencer);
   const hayVencidos = gastosFijos.some((g) => g.dias_restantes < 0);
   const faltaJuntar = Math.max(0, totalGastosFijos - Number(ventasHoy || 0));
-
-  const horas = String(reloj.getHours()).padStart(2, '0');
-  const minutos = String(reloj.getMinutes()).padStart(2, '0');
-  const segundos = String(reloj.getSeconds()).padStart(2, '0');
-  const fechaLegible = reloj.toLocaleDateString('es-AR', {
-    weekday: 'long',
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  });
 
   return (
     <>
@@ -354,20 +408,7 @@ export default function Inicio() {
               </div>
             </div>
           ) : (
-            <div className="inicio-card inicio-card-reloj">
-              <div className="inicio-card-encabezado">
-                <span className="inicio-card-icono">🕐</span>
-                <h3 className="inicio-card-titulo">Reloj en vivo</h3>
-              </div>
-              <div className="inicio-reloj-numeros">
-                <span>{horas}</span>
-                <span className="inicio-reloj-separador">:</span>
-                <span>{minutos}</span>
-                <span className="inicio-reloj-separador">:</span>
-                <span className="inicio-reloj-segundos">{segundos}</span>
-              </div>
-              <p className="inicio-card-subtexto inicio-fecha-capitalizada">{fechaLegible}</p>
-            </div>
+            <RelojEnVivo />
           )}
 
           {/* Tarjeta: Caja actual */}
@@ -555,6 +596,7 @@ export default function Inicio() {
           productos={productos}
           categorias={categorias}
           localidades={localidades}
+          antojo={antojo}
           onClose={() => setMostrarNuevoPedido(false)}
           onSaved={() => { setMostrarNuevoPedido(false); cargarInicio(); }}
         />

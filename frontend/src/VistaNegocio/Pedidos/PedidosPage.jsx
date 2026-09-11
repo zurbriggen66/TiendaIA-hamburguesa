@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../../services/api';
 import PedidoModal from './PedidoModal';
 import PedidoCard from './PedidoCard';
@@ -90,12 +90,21 @@ export default function PedidosPage() {
     return {};
   }, [filtroPeriodo, mesSeleccionado, diaSeleccionado, desdeRango, hastaRango]);
 
+  // Cada consulta se numera: si se cambia el filtro rápido, o se guarda algo mientras
+  // "Cargar más" sigue en camino, la respuesta vieja se descarta en vez de pisar (o
+  // duplicar) la lista nueva.
+  const consultaActual = useRef(0);
+
   // La página 1 reemplaza la lista; las siguientes se suman abajo ("Cargar más").
-  const cargarPedidos = useCallback(async (pagina = 1) => {
-    if (pagina === 1) setCargando(true);
-    else setCargandoMas(true);
+  // `silencioso` es para recargar después de guardar: la lista queda a la vista y se
+  // actualiza en el lugar, en vez de vaciarse y mostrar "Cargando..." en cada acción.
+  const cargarPedidos = useCallback(async (pagina = 1, silencioso = false) => {
+    const consulta = ++consultaActual.current;
+    if (pagina > 1) setCargandoMas(true);
+    else if (!silencioso) setCargando(true);
     try {
       const { data } = await api.get('/pedidos/', { params: { ...paramsDelPeriodo(), page: pagina } });
+      if (consulta !== consultaActual.current) return;
       setPedidos((prev) => (pagina === 1 ? data.results : [...prev, ...data.results]));
       setTotalPedidos(data.count);
       setHayMas(Boolean(data.next));
@@ -103,8 +112,10 @@ export default function PedidosPage() {
     } catch (error) {
       console.error('Error al cargar los pedidos:', error);
     } finally {
-      setCargando(false);
-      setCargandoMas(false);
+      if (consulta === consultaActual.current) {
+        setCargando(false);
+        setCargandoMas(false);
+      }
     }
   }, [paramsDelPeriodo]);
 
@@ -118,7 +129,7 @@ export default function PedidosPage() {
 
   // Los modales necesitan recargar pedidos (y, si tocan stock, el catálogo) al guardar.
   const cargarDatos = useCallback(() => {
-    cargarPedidos();
+    cargarPedidos(1, true);
     cargarCatalogo();
   }, [cargarPedidos, cargarCatalogo]);
 

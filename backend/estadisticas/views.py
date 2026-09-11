@@ -313,7 +313,14 @@ class HoyView(APIView):
                 'pedidos': [],
             })
 
-        pedidos_totales = Pedido.objects.filter(caja=caja, confirmado=True).exclude(estado='cancelado')
+        # prefetch: calcular_total() recorre items y extras de cada pedido; sin esto eran
+        # 2-3 consultas por pedido (344 con 95 pedidos) y la pantalla Inicio, que pide
+        # este endpoint después de cada cobro, se iba poniendo lenta a lo largo de la noche.
+        pedidos_totales = (
+            Pedido.objects.filter(caja=caja, confirmado=True)
+            .exclude(estado='cancelado')
+            .prefetch_related('items__extras')
+        )
 
         # Los "últimos pedidos de la caja" muestran cualquier estado (no solo listo/entregado)
         # para que el dueño vea todo lo que entró desde que abrió, con un tope para no

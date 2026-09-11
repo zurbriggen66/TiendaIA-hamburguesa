@@ -1554,12 +1554,27 @@ body {
 /* Mientras el pedido no esté cobrado, "Cobrar" es la acción principal de la tarjeta:
    va relleno, más grande y con un latido suave para que no se pase por alto. */
 .pedido-accion-cobrar-pendiente {
+  position: relative;
   background: linear-gradient(135deg, #22c55e, #16a34a);
   border-color: transparent;
   color: #ffffff;
   font-size: 0.82rem;
   padding: 8px 16px;
   box-shadow: 0 4px 12px -4px rgba(34, 197, 94, 0.6);
+}
+
+/* El latido anima SOLO la opacidad de una sombra más fuerte encimada. Antes animaba el
+   box-shadow del botón, que el navegador no puede delegar a la placa de video: con
+   varios pedidos sin cobrar en pantalla recalculaba y repintaba todos los botones en
+   cada cuadro, y en una tablet eso era un tirón cada 2 segundos. */
+.pedido-accion-cobrar-pendiente::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 4px 18px -2px rgba(34, 197, 94, 0.95);
+  opacity: 0;
+  pointer-events: none;
   animation: cobrarLatido 2.2s ease-in-out infinite;
 }
 
@@ -1567,6 +1582,9 @@ body {
   background: linear-gradient(135deg, #16a34a, #15803d);
   border-color: transparent;
   color: #ffffff;
+}
+
+.pedido-accion-cobrar-pendiente:hover::after {
   animation: none;
 }
 
@@ -1575,12 +1593,12 @@ body {
 }
 
 @keyframes cobrarLatido {
-  0%, 100% { box-shadow: 0 4px 12px -4px rgba(34, 197, 94, 0.6); }
-  50% { box-shadow: 0 4px 18px -2px rgba(34, 197, 94, 0.95); }
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pedido-accion-cobrar-pendiente {
+  .pedido-accion-cobrar-pendiente::after {
     animation: none;
   }
 }

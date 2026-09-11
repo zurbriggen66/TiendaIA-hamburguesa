@@ -7,14 +7,19 @@ import { seccionDeRuta } from '../utils/modoEmpleado';
 import AdminLogin from './AdminLogin';
 import SelectorTema from './SelectorTema';
 import Toasts from './Toasts';
+import ErrorPantalla from './ErrorPantalla';
 
 const INTERVALO_CONSULTA_MS = 15000;
+
+// Un solo contexto de audio para toda la sesión: antes se creaba uno nuevo por cada
+// aviso y ninguno se cerraba, así que en un turno largo quedaban decenas abiertos.
+let contextoAudio = null;
 
 function reproducirSonidoAviso() {
   try {
     const Ctx = window.AudioContext || window.webkitAudioContext;
     if (!Ctx) return;
-    const ctx = new Ctx();
+    const ctx = (contextoAudio ||= new Ctx());
     if (ctx.state === 'suspended') ctx.resume();
 
     const tono = (frecuencia, inicio, duracion) => {
@@ -47,6 +52,9 @@ export default function DashboardLayout() {
   const [toast, setToast] = useState(null);
   const [sidebarAbierta, setSidebarAbierta] = useState(false);
   const [pidiendoCredenciales, setPidiendoCredenciales] = useState(false);
+  // Cambia cada vez que entra un pedido nuevo; las pantallas que lo leen (Inicio) se
+  // actualizan solas sin tener que consultar el servidor por su cuenta.
+  const [ultimaNovedad, setUltimaNovedad] = useState(0);
   const idsVistos = useRef(new Set());
   const primeraConsulta = useRef(true);
 
@@ -74,6 +82,7 @@ export default function DashboardLayout() {
           nuevos.forEach((p) => idsVistos.current.add(p.id));
           reproducirSonidoAviso();
           setPedidosNuevos((n) => n + nuevos.length);
+          setUltimaNovedad(Date.now());
           setToast(nuevos[0]);
           setTimeout(() => setToast((actual) => (actual === nuevos[0] ? null : actual)), 7000);
 
@@ -226,7 +235,9 @@ export default function DashboardLayout() {
 
       {/* Contenido Principal */}
       <main className="main-content">
-        <Outlet />
+        <ErrorPantalla key={location.pathname}>
+          <Outlet context={{ ultimaNovedad }} />
+        </ErrorPantalla>
       </main>
 
       {toast && (

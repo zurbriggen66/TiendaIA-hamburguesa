@@ -133,7 +133,16 @@ export default function PedidoModal({ productos, categorias, localidades, antojo
         })),
       });
       pedidosCreadosAca.add(data.id);
-      if (imprimirTicket) imprimirPedido(data);
+      // Aparte del try de arriba: si falla la impresora el pedido YA está creado, y
+      // decir "problema al crear" invitaba a cargarlo de nuevo (pedido duplicado).
+      if (imprimirTicket) {
+        try {
+          imprimirPedido(data);
+        } catch (error) {
+          console.error('Error al imprimir el ticket:', error);
+          toast.error('El pedido se creó, pero no se pudo imprimir el ticket.');
+        }
+      }
       onSaved();
     } catch (error) {
       console.error('Error al crear el pedido:', error);
