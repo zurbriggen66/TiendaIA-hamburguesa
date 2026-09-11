@@ -1,10 +1,12 @@
 from decimal import Decimal
 
 from django.contrib.auth.models import User
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 
 from gastos.models import Gasto, Insumo
-from pedidos.models import Caja, DetallePedido, Pago, Pedido
+from pedidos.models import Caja, DetalleExtra, DetallePedido, Pago, Pedido
 from productos.models import Categoria, Producto, ProductoInsumo
 
 
@@ -96,3 +98,34 @@ class CostoDeProductoTests(TestCase):
         datos = self.client.get('/api/estadisticas/').json()
 
         self.assertEqual(Decimal(str(datos['costo_insumos_periodo'])), Decimal('7500'))
+
+
+class HoyTests(TestCase):
+    """/estadisticas/hoy/ se pide después de cada cobro en Inicio: si hace consultas por
+    pedido, la pantalla se pone más lenta a medida que avanza la noche."""
+
+    def setUp(self):
+        User.objects.create_user('duenio', password='x', is_staff=True)
+        self.client.login(username='duenio', password='x')
+        categoria = Categoria.objects.create(nombre='Hamburguesas')
+        self.producto = Producto.objects.create(categoria=categoria, nombre='Clásica', precio=1000)
+        self.extra = Producto.objects.create(categoria=categoria, nombre='Panceta', precio=300, es_extra=True)
+        self.caja = Caja.objects.create(dia='2026-09-11')
+
+    def _crear_pedidos(self, cantidad):
+        for _ in range(cantidad):
+            pedido = Pedido.objects.create(caja=self.caja, confirmado=True)
+            detalle = DetallePedido.objects.create(pedido=pedido, producto=self.producto, cantidad=2, precio_unitario=1000)
+            DetalleExtra.objects.create(detalle_pedido=detalle, extra=self.extra, cantidad=1, precio_unitario=300)
+
+    def test_las_consultas_no_crecen_con_la_cantidad_de_pedidos(self):
+        self._crear_pedidos(3)
+        with CaptureQueriesContext(connection) as con_pocos:
+            self.client.get('/api/estadisticas/hoy/')
+        self._crear_pedidos(20)
+        with CaptureQueriesContext(connection) as con_muchos:
+            respuesta = self.client.get('/api/estadisticas/hoy/')
+
+        self.assertEqual(len(con_muchos), len(con_pocos))
+        # 23 pedidos de 2 x (1000 + 300 de extra)
+        self.assertEqual(Decimal(str(respuesta.json()['ventas_totales'])), Decimal('59800'))

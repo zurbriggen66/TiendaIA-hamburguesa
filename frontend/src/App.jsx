@@ -4,6 +4,7 @@ import Inicio from './VistaCliente/Inicio';
 import Dashboard from './VistaNegocio/Dashboard/Dashboard';
 import DashboardLayout from './VistaNegocio/DashboardLayout';
 import RequiereAdmin from './VistaNegocio/RequiereAdmin';
+import ErrorPantalla from './VistaNegocio/ErrorPantalla';
 import { ModoProvider } from './VistaNegocio/ModoContext';
 import InicioPage from './VistaNegocio/Inicio/Inicio';
 import ProductosPage from './VistaNegocio/Productos/ProductosPage';
@@ -22,26 +23,30 @@ import BalancePage from './VistaNegocio/Balance/BalancePage';
 function App() {
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<Inicio />} />
-        <Route path="/producto/:id" element={<Inicio />} />
-        <Route path="/admin" element={<RequiereAdmin><ModoProvider><DashboardLayout /></ModoProvider></RequiereAdmin>}>
-          <Route index element={<Dashboard />} />
-          <Route path="inicio" element={<InicioPage />} />
-          <Route path="cajas" element={<CajasPage />} />
-          <Route path="productos" element={<ProductosPage />} />
-          <Route path="pedidos" element={<PedidosPage />} />
-          <Route path="gastos" element={<GastosPage />} />
-          <Route path="stock" element={<StockPage />} />
-          <Route path="balance" element={<BalancePage />} />
-          <Route path="estadisticas" element={<EstadisticasPage />} />
-          <Route path="combos" element={<CombosPage />} />
-          <Route path="impresion" element={<ImpresionPage />} />
-          <Route path="antojo" element={<AntojoConfigPage />} />
-          <Route path="cobranzas" element={<CobranzasPage />} />
-          <Route path="clientes" element={<ClientesPage />} />
-        </Route>
-      </Routes>
+      {/* Red de seguridad general (tienda pública incluida); el panel además tiene la
+          suya alrededor del contenido, en DashboardLayout. */}
+      <ErrorPantalla>
+        <Routes>
+          <Route path="/" element={<Inicio />} />
+          <Route path="/producto/:id" element={<Inicio />} />
+          <Route path="/admin" element={<RequiereAdmin><ModoProvider><DashboardLayout /></ModoProvider></RequiereAdmin>}>
+            <Route index element={<Dashboard />} />
+            <Route path="inicio" element={<InicioPage />} />
+            <Route path="cajas" element={<CajasPage />} />
+            <Route path="productos" element={<ProductosPage />} />
+            <Route path="pedidos" element={<PedidosPage />} />
+            <Route path="gastos" element={<GastosPage />} />
+            <Route path="stock" element={<StockPage />} />
+            <Route path="balance" element={<BalancePage />} />
+            <Route path="estadisticas" element={<EstadisticasPage />} />
+            <Route path="combos" element={<CombosPage />} />
+            <Route path="impresion" element={<ImpresionPage />} />
+            <Route path="antojo" element={<AntojoConfigPage />} />
+            <Route path="cobranzas" element={<CobranzasPage />} />
+            <Route path="clientes" element={<ClientesPage />} />
+          </Route>
+        </Routes>
+      </ErrorPantalla>
     </Router>
   );
 }
