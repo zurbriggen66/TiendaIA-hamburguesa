@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function NavBar({ configuracion, totalItems, onPedir, cliente, onAbrirCuenta, onCerrarSesion }) {
+export default function NavBar({ configuracion, totalItems, onPedir, cliente, onAbrirCuenta, onAbrirMiCuenta }) {
   const [menuAbierto, setMenuAbierto] = useState(false);
 
   const scrollA = (id) => (e) => {
@@ -31,8 +31,9 @@ export default function NavBar({ configuracion, totalItems, onPedir, cliente, on
         <button
           type="button"
           className="nav-btn-cuenta nav-btn-cuenta-activa"
-          onClick={onCerrarSesion}
-          title="Cerrar sesión"
+          onClick={onAbrirMiCuenta}
+          title="Mi cuenta: puntos, pedidos y datos"
+          aria-label={`Mi cuenta, ${cliente.puntos} puntos`}
         >
           <span className="nav-btn-cuenta-estrella" aria-hidden="true">⭐</span>
           <span className="nav-btn-cuenta-pts">{cliente.puntos}</span>
@@ -63,8 +64,8 @@ export default function NavBar({ configuracion, totalItems, onPedir, cliente, on
           <a
             href="#"
             className="nav-cuenta"
-            onClick={(e) => { e.preventDefault(); setMenuAbierto(false); onCerrarSesion(); }}
-            title="Cerrar sesión"
+            onClick={(e) => { e.preventDefault(); setMenuAbierto(false); onAbrirMiCuenta(); }}
+            title="Mi cuenta"
           >
             ⭐ {cliente.puntos} pts · {cliente.nombre.split(' ')[0]}
           </a>

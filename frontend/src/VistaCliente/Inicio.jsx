@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api, { leerToken, guardarToken } from '../services/api';
 import { aclararColor, colorContraste } from '../utils/colores';
-import { armarLineaId, agregarExtraALinea as aplicarExtraALinea } from '../utils/carrito';
+import { armarLineaId, agregarExtraALinea as aplicarExtraALinea, lineasParaRepetir } from '../utils/carrito';
+import { toast } from '../utils/toast';
+import Toasts from '../VistaNegocio/Toasts';
 import CuentaModal from './CuentaModal';
+import MiCuentaPanel from './MiCuentaPanel';
 import Premios from './Premios';
 import NavBar from './NavBar';
 import Hero from './Hero';
@@ -80,6 +83,7 @@ export default function Inicio() {
   const [productoDetalleId, setProductoDetalleId] = useState(null);
   const [cliente, setCliente] = useState(null);
   const [mostrarCuenta, setMostrarCuenta] = useState(false);
+  const [mostrarMiCuenta, setMostrarMiCuenta] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [antojo, setAntojo] = useState(null);
 
@@ -188,6 +192,7 @@ export default function Inicio() {
   const cerrarSesion = () => {
     guardarToken(null);
     setCliente(null);
+    setMostrarMiCuenta(false);
   };
 
   // Cada producto tiene su propia URL compartible (/producto/:id): si se entra directo
@@ -247,6 +252,22 @@ export default function Inicio() {
   const sugeridosCarrito = productos.filter(
     (p) => p.sugerido_carrito && Number(p.descuento_carrito_pct) > 0 && p.activo !== false
   );
+
+  // "Repetir pedido" desde Mi cuenta: suma al carrito lo que se pidió aquella vez, con los
+  // precios de hoy. Lo que ya no se vende se avisa en vez de agregarse.
+  const repetirPedido = (pedido) => {
+    const { lineas, faltantes } = lineasParaRepetir(pedido, productos, combos, antojo);
+    if (lineas.length === 0) {
+      toast.alerta('Ninguno de los productos de ese pedido está disponible hoy.');
+      return;
+    }
+    lineas.forEach((l) => agregarAlCarritoGenerico(l.tipo, l.item, l.cantidad, l.extras));
+    setMostrarMiCuenta(false);
+    setCarritoAbierto(true);
+    if (faltantes.length > 0) {
+      toast.alerta(`No agregamos ${faltantes.join(', ')} porque hoy no está disponible.`);
+    }
+  };
 
   const cambiarCantidad = (lineaId, cantidad) => {
     if (cantidad <= 0) {
@@ -362,8 +383,10 @@ export default function Inicio() {
         onPedir={pedirPorWhatsapp}
         cliente={cliente}
         onAbrirCuenta={() => setMostrarCuenta(true)}
-        onCerrarSesion={cerrarSesion}
+        onAbrirMiCuenta={() => setMostrarMiCuenta(true)}
       />
+
+      <Toasts />
 
       {!configuracion.tienda_abierta && (
         <div className="tienda-cerrada-aviso">
@@ -425,6 +448,16 @@ export default function Inicio() {
 
       {mostrarCuenta && (
         <CuentaModal onClose={() => setMostrarCuenta(false)} onIngreso={setCliente} />
+      )}
+
+      {mostrarMiCuenta && cliente && (
+        <MiCuentaPanel
+          cliente={cliente}
+          onClose={() => setMostrarMiCuenta(false)}
+          onCerrarSesion={cerrarSesion}
+          onRepetir={repetirPedido}
+          onClienteActualizado={setCliente}
+        />
       )}
 
       {/* <-- AQUÍ RENDERIZAMOS EL NUEVO FOOTER --> */}

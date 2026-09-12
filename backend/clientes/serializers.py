@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -51,6 +53,27 @@ class ClienteSerializer(serializers.ModelSerializer):
         config = ConfiguracionSitio.objects.last()
         valor = config.valor_punto if config else 1
         return obj.puntos * valor
+
+
+class ClienteConComprasSerializer(ClienteSerializer):
+    """Para el listado del admin: el acumulado de cada cliente. Espera `compras`
+    precargado (ver ClienteViewSet.get_queryset) para no consultar por cliente."""
+
+    total_comprado = serializers.SerializerMethodField()
+    cantidad_pedidos = serializers.SerializerMethodField()
+    ultima_compra = serializers.SerializerMethodField()
+
+    class Meta(ClienteSerializer.Meta):
+        fields = ClienteSerializer.Meta.fields + ['total_comprado', 'cantidad_pedidos', 'ultima_compra']
+
+    def get_total_comprado(self, obj):
+        return sum((p.calcular_total() for p in obj.compras), Decimal('0'))
+
+    def get_cantidad_pedidos(self, obj):
+        return len(obj.compras)
+
+    def get_ultima_compra(self, obj):
+        return obj.compras[0].creado if obj.compras else None
 
 
 class RecompensaSerializer(serializers.ModelSerializer):
