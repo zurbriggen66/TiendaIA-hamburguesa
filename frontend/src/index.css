@@ -5171,3 +5171,22 @@ body {
   font-size: .86rem;
   color: var(--text);
 }
+
+.clientes-buscador {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.clientes-buscador .input-vibrante { flex: 1; min-width: 0; }
+.clientes-buscador-conteo { font-size: .8rem; color: var(--text-muted); white-space: nowrap; }
+
+/* Celular: la fila de 5 columnas no entraba (el total se cortaba y el teléfono se partía
+   en tres líneas). Se apila: puntos arriba, nombre y total al lado, compras abajo. */
+@media (max-width: 640px) {
+  .cliente-fila { grid-template-columns: 1fr auto; gap: 6px 12px; }
+  .cliente-fila .badge-categoria { grid-column: 1 / -1; justify-self: start; }
+  .cliente-fila .gasto-fila-monto { grid-column: 2; grid-row: 2; }
+  .cliente-fila .gasto-fila-fecha { grid-column: 1 / -1; }
+  .cliente-fila-flecha { display: none; }
+  .clientes-buscador { flex-wrap: wrap; }
+}
