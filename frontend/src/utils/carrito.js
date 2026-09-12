@@ -1,3 +1,6 @@
+// Con extensión: este archivo también lo importa el chequeo de node (scripts/test-carrito.mjs).
+import { precioBaseConDescuento } from './precios.js';
+
 /**
  * Lógica del carrito que vale la pena tener aparte y poder probar.
  *
@@ -67,4 +70,58 @@ export function agregarExtraALinea(items, lineaId, extra, unidades = 1) {
       ? [resto, { ...linea, lineaId: nuevoLineaId, extras: nuevosExtras, cantidad: cuantas }]
       : [i]
   ));
+}
+
+/**
+ * Convierte un pedido anterior en líneas de carrito ("Repetir pedido"), con los precios y
+ * descuentos de HOY: el cliente paga lo que sale ahora, no lo que salía aquella vez.
+ *
+ * Lo que ya no se vende (producto oculto o borrado, una variante o un extra que dejó de
+ * existir) no se agrega: se devuelve en `faltantes` para avisarle al cliente, en vez de
+ * mandar al local un pedido con algo que no puede hacer.
+ */
+export function lineasParaRepetir(pedido, productos, combos, antojo) {
+  const productoPorId = new Map(productos.filter((p) => p.activo !== false).map((p) => [p.id, p]));
+  const comboPorId = new Map((combos || []).filter((c) => c.activo !== false).map((c) => [c.id, c]));
+  const lineas = [];
+  const faltantes = [];
+
+  for (const item of pedido.items || []) {
+    if (item.combo) {
+      const combo = comboPorId.get(item.combo);
+      if (combo) lineas.push({ tipo: 'combo', item: combo, cantidad: item.cantidad, extras: [] });
+      else faltantes.push(item.combo_nombre || 'Un combo');
+      continue;
+    }
+
+    const producto = productoPorId.get(item.producto);
+    const presentacion = item.presentacion
+      ? (producto?.presentaciones || []).find((pr) => pr.id === item.presentacion)
+      : null;
+    if (!producto || (item.presentacion && !presentacion)) {
+      faltantes.push([item.producto_nombre, item.presentacion_nombre].filter(Boolean).join(' ') || 'Un producto');
+      continue;
+    }
+
+    const extras = [];
+    for (const e of item.extras_detalle || []) {
+      const extra = productoPorId.get(e.producto);
+      if (extra) extras.push({ ...extra, cantidad: e.cantidad });
+      else faltantes.push(`${e.nombre} (extra de ${producto.nombre})`);
+    }
+
+    lineas.push({
+      tipo: 'producto',
+      // Misma forma que arma el modal del menú al tocar "Agregar al pedido".
+      item: {
+        ...producto,
+        precio: precioBaseConDescuento(producto, presentacion, antojo),
+        presentacion_id: presentacion?.id ?? null,
+        presentacion_nombre: presentacion?.nombre ?? null,
+      },
+      cantidad: item.cantidad,
+      extras,
+    });
+  }
+  return { lineas, faltantes };
 }

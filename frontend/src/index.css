@@ -4196,7 +4196,9 @@ body {
   align-items: center;
   justify-content: center;
   padding: 18px;
-  z-index: 1200;
+  /* Por encima del navbar de la tienda (z-index 9999 en celular, ver NavBar.jsx): con
+     1200 la barra tapaba el borde de arriba del modal y su botón de cerrar. */
+  z-index: 10000;
   animation: cuentaFondo .25s ease-out;
 }
 
@@ -4824,7 +4826,8 @@ body {
   position: fixed;
   top: 16px;
   right: 16px;
-  z-index: 3000;
+  /* Encima de todo, incluido el carrito de la tienda (10000): un aviso tapado no avisa. */
+  z-index: 10001;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -4962,4 +4965,209 @@ body {
   text-align: center;
   padding: 8px 6px;
   font-size: 0.78rem;
+}
+
+
+/* ===== Mi cuenta (cliente logueado): puntos, pedidos para repetir y datos ===== */
+.mi-cuenta { padding-top: 30px; }
+
+.mi-cuenta-hola {
+  margin: 0 36px 14px 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.mi-cuenta-puntos {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #fff4e0, #ffe3c2);
+  border: 1px solid #f6d3a8;
+}
+.mi-cuenta-puntos-estrella { font-size: 2rem; line-height: 1; }
+.mi-cuenta-puntos strong { display: block; font-size: 1.25rem; font-weight: 800; color: #241a13; }
+.mi-cuenta-puntos small { color: #7a5b3f; font-size: .8rem; }
+
+.mi-cuenta-premio {
+  margin: 10px 0 0;
+  font-size: .84rem;
+  color: #6f6259;
+}
+
+.mi-cuenta-titulo {
+  margin: 22px 0 10px;
+  font-size: .78rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #8a7c70;
+}
+
+.mi-cuenta-vacio {
+  margin: 0;
+  padding: 14px;
+  border-radius: 12px;
+  background: #f7f2ec;
+  color: #6f6259;
+  font-size: .85rem;
+}
+
+.mi-cuenta-pedidos { display: flex; flex-direction: column; gap: 10px; }
+
+.mi-cuenta-pedido {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid #ece3d9;
+}
+
+.mi-cuenta-pedido-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .82rem;
+  color: #8a7c70;
+}
+.mi-cuenta-pedido-cabecera strong { margin-left: auto; color: #241a13; font-size: .95rem; }
+
+.mi-cuenta-por-confirmar {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: .7rem;
+  font-weight: 700;
+}
+
+.mi-cuenta-pedido-items {
+  margin: 8px 0 10px;
+  padding-left: 18px;
+  font-size: .86rem;
+  color: #3b2d22;
+}
+.mi-cuenta-pedido-items li + li { margin-top: 2px; }
+
+.mi-cuenta-repetir {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  background: #f97316;
+  color: #fff;
+  font-weight: 800;
+  font-size: .88rem;
+  cursor: pointer;
+}
+.mi-cuenta-repetir:hover { background: #ea580c; }
+
+.mi-cuenta-datos { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.mi-cuenta-datos div { display: flex; justify-content: space-between; gap: 12px; font-size: .86rem; }
+.mi-cuenta-datos dt { color: #8a7c70; }
+.mi-cuenta-datos dd { margin: 0; color: #241a13; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+
+.mi-cuenta-salir {
+  width: 100%;
+  margin-top: 22px;
+  padding: 11px;
+  border-radius: 10px;
+  border: 1px solid #e6dcd1;
+  background: transparent;
+  color: #b91c1c;
+  font-weight: 700;
+  cursor: pointer;
+}
+.mi-cuenta-salir:hover { background: #fef2f2; }
+
+
+/* ===== Admin: ficha de cliente registrado ===== */
+.cliente-fila {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color .15s ease;
+}
+.cliente-fila:hover { border-color: var(--accent); }
+.cliente-fila-flecha { color: var(--text-muted); font-size: 1.3rem; line-height: 1; }
+
+.cliente-detalle { width: min(100%, 640px); }
+
+.cliente-detalle-contacto {
+  margin: -8px 0 16px;
+  color: var(--text-muted);
+  font-size: .85rem;
+  overflow-wrap: anywhere;
+}
+
+.cliente-detalle-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+}
+.cliente-detalle-stats div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.cliente-detalle-stats span {
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--text-muted);
+}
+.cliente-detalle-stats strong { font-size: 1.1rem; color: var(--text); }
+
+.cliente-detalle-nota { margin: 8px 0 0; font-size: .8rem; color: var(--text-muted); }
+
+.cliente-detalle-titulo {
+  margin: 20px 0 8px;
+  font-size: .78rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-muted);
+}
+
+.cliente-detalle-favoritos div {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  padding: 7px 0;
+  font-size: .86rem;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+}
+.cliente-detalle-favoritos div span:nth-child(2) { color: var(--text-muted); }
+
+.cliente-detalle-pedidos { display: flex; flex-direction: column; gap: 8px; }
+
+.cliente-detalle-pedido {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.cliente-detalle-no-suma { opacity: .55; }
+
+.cliente-detalle-pedido-cabecera {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: .8rem;
+  color: var(--text-muted);
+}
+.cliente-detalle-pedido-cabecera strong { margin-left: auto; font-size: .95rem; color: var(--text); }
+
+.cliente-detalle-pedido ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: .86rem;
+  color: var(--text);
 }

@@ -9,7 +9,7 @@
  *   node scripts/test-carrito.mjs
  */
 import assert from 'node:assert/strict';
-import { agregarExtraALinea, armarLineaId } from '../src/utils/carrito.js';
+import { agregarExtraALinea, armarLineaId, lineasParaRepetir } from '../src/utils/carrito.js';
 
 const DIP = { id: 9, nombre: 'DIP', precio_sugerido_carrito: 1425, categoria: 1 };
 const HUEVO = { id: 8, nombre: 'HUEVO', precio_sugerido_carrito: 570, categoria: 1 };
@@ -89,6 +89,44 @@ test('el mismo extra dos veces sube su cantidad', () => {
 test('una linea que no existe deja el carrito igual', () => {
   const antes = [linea('ARGENTA', 2)];
   assert.equal(agregarExtraALinea(antes, 'no-existe', DIP, 1), antes);
+});
+
+// --- Repetir pedido ---
+const INDIA = { id: 1, nombre: 'INDIA', precio: 10000, activo: true, presentaciones: [{ id: 7, nombre: 'DOBLE', precio: 13000 }] };
+const PANCETA = { id: 20, nombre: 'PANCETA', precio: 1500, activo: true, es_extra: true };
+const OCULTO = { id: 2, nombre: 'VIEJA', precio: 9000, activo: false };
+const COMBO = { id: 5, nombre: 'DIA DEL NIÑO', precio: 15000, activo: true };
+const CATALOGO = [INDIA, PANCETA, OCULTO];
+const itemPedido = (extra) => ({ producto: 1, producto_nombre: 'INDIA', presentacion: null, cantidad: 1, extras_detalle: [], ...extra });
+
+test('repetir: arma la linea con variante, extras por unidad y precio de hoy', () => {
+  const pedido = { items: [itemPedido({ presentacion: 7, presentacion_nombre: 'DOBLE', cantidad: 2, extras_detalle: [{ producto: 20, nombre: 'PANCETA', cantidad: 1 }] })] };
+  const { lineas, faltantes } = lineasParaRepetir(pedido, CATALOGO, [], null);
+  assert.equal(faltantes.length, 0);
+  assert.equal(lineas.length, 1);
+  assert.equal(lineas[0].cantidad, 2);
+  assert.equal(lineas[0].item.presentacion_id, 7);
+  assert.equal(lineas[0].item.precio, 13000);
+  assert.deepEqual(lineas[0].extras.map((e) => [e.id, e.cantidad, e.precio]), [[20, 1, 1500]]);
+});
+
+test('repetir: aplica el descuento del antojo del dia vigente', () => {
+  const antojo = { producto: { id: 1 }, presentacion: null, descuento_pct: 10 };
+  const { lineas } = lineasParaRepetir({ items: [itemPedido()] }, CATALOGO, [], antojo);
+  assert.equal(lineas[0].item.precio, 9000);
+});
+
+test('repetir: saltea lo que ya no se vende y lo avisa', () => {
+  const pedido = { items: [
+    itemPedido({ producto: 2, producto_nombre: 'VIEJA' }),
+    itemPedido({ presentacion: 99, presentacion_nombre: 'TRIPLE' }),
+    itemPedido({ extras_detalle: [{ producto: 404, nombre: 'DIP', cantidad: 1 }] }),
+    { combo: 5, combo_nombre: 'DIA DEL NIÑO', cantidad: 1 },
+    { combo: 6, combo_nombre: 'COMBO VIEJO', cantidad: 1 },
+  ] };
+  const { lineas, faltantes } = lineasParaRepetir(pedido, CATALOGO, [COMBO], null);
+  assert.deepEqual(faltantes, ['VIEJA', 'INDIA TRIPLE', 'DIP (extra de INDIA)', 'COMBO VIEJO']);
+  assert.deepEqual(lineas.map((l) => [l.tipo, l.item.nombre, l.extras.length]), [['producto', 'INDIA', 0], ['combo', 'DIA DEL NIÑO', 0]]);
 });
 
 let fallas = 0;

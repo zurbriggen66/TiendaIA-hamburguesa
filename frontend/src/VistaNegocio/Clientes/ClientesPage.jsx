@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import api from '../../services/api';
 import { toast } from '../../utils/toast';
+import ClienteDetalleModal from './ClienteDetalleModal';
 
 const formatearPrecio = (v) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(v);
@@ -14,6 +15,7 @@ export default function ClientesPage() {
   const [clientes, setClientes] = useState([]);
   const [recompensas, setRecompensas] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [clienteAbierto, setClienteAbierto] = useState(null);
 
   const [configId, setConfigId] = useState(null);
   const [pesosPorPunto, setPesosPorPunto] = useState(100);
@@ -31,7 +33,8 @@ export default function ClientesPage() {
         api.get('/recompensas/'),
         api.get('/configuracion/'),
       ]);
-      setClientes(resClientes.data);
+      // Primero los que más compraron: son los clientes que más conviene cuidar.
+      setClientes([...resClientes.data].sort((a, b) => Number(b.total_comprado) - Number(a.total_comprado)));
       setRecompensas(resRecompensas.data);
       if (resConfig.data && resConfig.data.length > 0) {
         const c = resConfig.data[resConfig.data.length - 1];
@@ -134,8 +137,11 @@ export default function ClientesPage() {
             </div>
           ) : (
             <div className="gastos-tabla">
+              <p className="form-ayuda" style={{ margin: '0 0 4px' }}>
+                Tocá un cliente para ver qué compró y cada pedido que hizo con su cuenta.
+              </p>
               {clientes.map((c) => (
-                <div key={c.id} className="gasto-fila">
+                <button key={c.id} type="button" className="gasto-fila cliente-fila" onClick={() => setClienteAbierto(c)}>
                   <span className="badge-categoria badge-categoria-servicios">⭐ {c.puntos} pts</span>
                   <div className="gasto-fila-info">
                     <strong>{c.nombre || c.email}</strong>
@@ -143,12 +149,21 @@ export default function ClientesPage() {
                       {c.email}{c.telefono && ` · 📞 ${c.telefono}`}
                     </span>
                   </div>
-                  <span className="gasto-fila-fecha">desde {formatearFecha(c.creado)}</span>
-                  <span className="gasto-fila-monto">{formatearPrecio(c.puntos_en_pesos)}</span>
-                </div>
+                  <span className="gasto-fila-fecha">
+                    {c.cantidad_pedidos > 0
+                      ? `${c.cantidad_pedidos} ${c.cantidad_pedidos === 1 ? 'pedido' : 'pedidos'} · última ${formatearFecha(c.ultima_compra)}`
+                      : `sin compras · desde ${formatearFecha(c.creado)}`}
+                  </span>
+                  <span className="gasto-fila-monto">{formatearPrecio(c.total_comprado)}</span>
+                  <span className="cliente-fila-flecha" aria-hidden="true">›</span>
+                </button>
               ))}
             </div>
           )
+        )}
+
+        {clienteAbierto && (
+          <ClienteDetalleModal cliente={clienteAbierto} onClose={() => setClienteAbierto(null)} />
         )}
 
         {tab === 'puntos' && (
