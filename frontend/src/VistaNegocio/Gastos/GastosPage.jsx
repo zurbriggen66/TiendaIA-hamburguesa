@@ -55,7 +55,10 @@ export default function GastosPage() {
   }, [cargarDatos]);
 
   const eliminarGasto = async (gasto) => {
-    if (!window.confirm(`¿Eliminar el gasto "${gasto.descripcion}"?`)) return;
+    const restaStock = gasto.categoria === 'insumos' && gasto.insumo && Number(gasto.cantidad) > 0
+      ? `\n\nSe van a descontar ${Number(gasto.cantidad)} de ${gasto.insumo_nombre} del stock.`
+      : '';
+    if (!window.confirm(`¿Eliminar el gasto "${gasto.descripcion}"?${restaStock}`)) return;
     try {
       await api.delete(`/gastos/${gasto.id}/`);
       cargarDatos();

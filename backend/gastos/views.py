@@ -1,12 +1,19 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
+from django.db import transaction
 from django.db.models import ProtectedError
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from core.permissions import EsAdmin
-from .models import Insumo, Gasto, GastoFijo
+from .models import Insumo, Gasto, GastoFijo, mover_stock
 from .serializers import InsumoSerializer, GastoSerializer, GastoFijoSerializer
+
+
+def _numero(valor):
+    """18.00 -> '18', 2.50 -> '2.5': para que el detalle de un ajuste se lea como se habla."""
+    texto = f'{valor:f}'
+    return texto.rstrip('0').rstrip('.') if '.' in texto else texto
 
 
 class InsumoViewSet(viewsets.ModelViewSet):
@@ -22,6 +29,41 @@ class InsumoViewSet(viewsets.ModelViewSet):
                 {'detail': 'No se puede eliminar el insumo porque está vinculado a productos existentes.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+    @action(detail=True, methods=['post'])
+    def ajustar(self, request, pk=None):
+        """Recuento físico: se carga cuánto HAY de verdad y queda asentada la diferencia
+        como un movimiento, en vez de pisar el número sin dejar rastro."""
+        insumo = self.get_object()
+        try:
+            real = Decimal(str(request.data.get('cantidad_real')))
+        except (InvalidOperation, TypeError):
+            real = None
+        if real is None or not real.is_finite() or real < 0:
+            return Response({'detail': 'Ingresá cuánto hay (un número, 0 o más).'}, status=status.HTTP_400_BAD_REQUEST)
+        with transaction.atomic():
+            actual = Insumo.objects.select_for_update().values_list('cantidad_disponible', flat=True).get(pk=insumo.pk)
+            motivo = str(request.data.get('motivo') or '').strip() or 'Recuento'
+            mover_stock(insumo.pk, real - actual, 'ajuste', detalle=f'{motivo} (había {_numero(actual)}, se contaron {_numero(real)})')
+        insumo.refresh_from_db()
+        return Response(self.get_serializer(insumo).data)
+
+    @action(detail=True, methods=['get'])
+    def movimientos(self, request, pk=None):
+        """Últimos movimientos de stock del insumo, para poder explicar cualquier número."""
+        insumo = self.get_object()
+        return Response([
+            {
+                'id': m.id,
+                'tipo': m.tipo,
+                'tipo_label': m.get_tipo_display(),
+                'cantidad': m.cantidad,
+                'stock_resultante': m.stock_resultante,
+                'detalle': m.detalle,
+                'creado': m.creado,
+            }
+            for m in insumo.movimientos.all()[:50]
+        ])
 
     @action(detail=True, methods=['get'])
     def historial(self, request, pk=None):
@@ -61,6 +103,16 @@ class GastoViewSet(viewsets.ModelViewSet):
     permission_classes = [EsAdmin]
     queryset = Gasto.objects.select_related('insumo')
     serializer_class = GastoSerializer
+
+    @transaction.atomic
+    def perform_destroy(self, instance):
+        # Borrar una compra resta lo que había sumado. Antes el stock quedaba inflado:
+        # cargar 50 de prueba y borrar el gasto dejaba las 50 unidades para siempre.
+        efecto = instance.efecto_en_stock()
+        if efecto:
+            mover_stock(efecto[0], -efecto[1], 'compra_anulada', gasto=instance,
+                        detalle=f'Compra borrada: {instance.descripcion}')
+        instance.delete()
 
     @action(detail=False, methods=['get'])
     def resumen(self, request):

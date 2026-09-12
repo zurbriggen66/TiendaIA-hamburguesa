@@ -47,8 +47,9 @@ export default function StockPage() {
   const sinCosto = insumos.filter((i) => i.costo_unitario === null);
   const visibles = soloBajos ? bajos : insumos;
   // Lo que vale la mercadería parada: es plata comprada que todavía no se vendió.
+  // Un stock negativo (se vendió más de lo cargado) no es mercadería: cuenta como 0.
   const valorInmovilizado = insumos.reduce(
-    (acc, i) => acc + Number(i.cantidad_disponible || 0) * Number(i.costo_unitario || 0),
+    (acc, i) => acc + Math.max(0, Number(i.cantidad_disponible || 0)) * Number(i.costo_unitario || 0),
     0,
   );
 

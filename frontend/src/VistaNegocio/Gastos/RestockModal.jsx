@@ -9,6 +9,11 @@ const formatearPrecio = (precio) =>
 const formatearFecha = (fecha) =>
   new Date(fecha).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
+const formatearFechaHora = (fecha) =>
+  new Date(fecha).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+
+const conSigno = (n) => `${Number(n) > 0 ? '+' : ''}${Number(n)}`;
+
 // Atajo para el caso más común de "Gastos": comprar más de un insumo que ya existe.
 // Un gasto categoria='insumos' con insumo+cantidad hace las dos cosas a la vez
 // (ver GastoSerializer.create en el backend) — acá solo se preselecciona el insumo
@@ -20,9 +25,12 @@ export default function RestockModal({ insumo, onClose, onSaved }) {
   const [metodoPago, setMetodoPago] = useState('efectivo');
   const [guardando, setGuardando] = useState(false);
   const [historial, setHistorial] = useState(null);
+  const [movimientos, setMovimientos] = useState([]);
 
   useEffect(() => {
     api.get(`/insumos/${insumo.id}/historial/`).then((res) => setHistorial(res.data)).catch(() => {});
+    // Para poder explicar el número: cada venta, compra, cancelación y recuento.
+    api.get(`/insumos/${insumo.id}/movimientos/`).then((res) => setMovimientos(res.data)).catch(() => {});
   }, [insumo.id]);
 
   const precioUnidad = Number(cantidad) > 0 && Number(monto) > 0 ? Number(monto) / Number(cantidad) : null;
@@ -121,6 +129,21 @@ export default function RestockModal({ insumo, onClose, onSaved }) {
                     <span>{formatearFecha(c.fecha)}</span>
                     <span>{c.cantidad} {insumo.unidad}</span>
                     <span>{formatearPrecio(c.monto)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {movimientos.length > 0 && (
+            <div className="form-group">
+              <label className="form-label">Últimos movimientos</label>
+              <div className="restock-historial">
+                {movimientos.slice(0, 8).map((m) => (
+                  <div key={m.id} className="restock-historial-fila" title={m.tipo_label}>
+                    <span>{formatearFechaHora(m.creado)} · {m.detalle || m.tipo_label}</span>
+                    <span>{Number(m.cantidad) === 0 ? '' : `${conSigno(m.cantidad)} ${insumo.unidad}`}</span>
+                    <span>= {Number(m.stock_resultante)}</span>
                   </div>
                 ))}
               </div>
