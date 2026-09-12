@@ -8,6 +8,9 @@ const formatearPrecio = (v) =>
 
 const formatearFecha = (iso) => new Date(iso).toLocaleDateString('es-AR');
 
+// Sin mayúsculas ni acentos: "gomez" encuentra a "Gómez".
+const normalizar = (texto) => String(texto || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
 const COMPRA_EJEMPLO = 10000;
 
 export default function ClientesPage() {
@@ -16,6 +19,7 @@ export default function ClientesPage() {
   const [recompensas, setRecompensas] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [clienteAbierto, setClienteAbierto] = useState(null);
+  const [busqueda, setBusqueda] = useState('');
 
   const [configId, setConfigId] = useState(null);
   const [pesosPorPunto, setPesosPorPunto] = useState(100);
@@ -108,6 +112,17 @@ export default function ClientesPage() {
     }
   };
 
+  // La lista ya viene entera, así que se filtra acá mismo. El teléfono se compara solo
+  // por dígitos: "3544 30-5116" encuentra "3544305116".
+  const termino = normalizar(busqueda.trim());
+  const digitos = busqueda.replace(/\D/g, '');
+  const clientesFiltrados = termino
+    ? clientes.filter((c) => (
+      normalizar(`${c.nombre} ${c.email}`).includes(termino)
+      || (digitos.length >= 3 && (c.telefono || '').replace(/\D/g, '').includes(digitos))
+    ))
+    : clientes;
+
   // Ejemplo en vivo, para que se entienda qué se está configurando.
   const puntosEjemplo = Math.floor(COMPRA_EJEMPLO / Math.max(Number(pesosPorPunto) || 1, 1));
 
@@ -137,10 +152,26 @@ export default function ClientesPage() {
             </div>
           ) : (
             <div className="gastos-tabla">
+              <div className="clientes-buscador">
+                <input
+                  type="search"
+                  className="input-vibrante"
+                  placeholder="🔍 Buscar por nombre, email o teléfono"
+                  aria-label="Buscar cliente"
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                />
+                <span className="clientes-buscador-conteo">
+                  {termino ? `${clientesFiltrados.length} de ${clientes.length}` : `${clientes.length} clientes`}
+                </span>
+              </div>
               <p className="form-ayuda" style={{ margin: '0 0 4px' }}>
                 Tocá un cliente para ver qué compró y cada pedido que hizo con su cuenta.
               </p>
-              {clientes.map((c) => (
+              {clientesFiltrados.length === 0 && (
+                <p className="estado-vacio">Ningún cliente coincide con "{busqueda.trim()}".</p>
+              )}
+              {clientesFiltrados.map((c) => (
                 <button key={c.id} type="button" className="gasto-fila cliente-fila" onClick={() => setClienteAbierto(c)}>
                   <span className="badge-categoria badge-categoria-servicios">⭐ {c.puntos} pts</span>
                   <div className="gasto-fila-info">
