@@ -567,6 +567,17 @@ body {
   padding: 40px;
 }
 
+/* Celular: ahí la pantalla scrollea como una página normal y .scroll-area crece con su
+   contenido, así que no tiene nada propio para scrollear. Con overscroll-behavior:
+   contain el deslizamiento del dedo no pasaba a la página y no se podía bajar en
+   ninguna sección (pasó en un Motorola). Va DESPUÉS de la regla base a propósito: con
+   la misma especificidad, una regla anterior queda pisada. */
+@media (max-width: 768px) {
+  .scroll-area {
+    overscroll-behavior: auto;
+  }
+}
+
 .form-card {
   max-width: 650px;
   margin: 0 auto;
