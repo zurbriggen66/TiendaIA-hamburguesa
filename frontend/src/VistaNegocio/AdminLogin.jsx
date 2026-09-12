@@ -15,8 +15,12 @@ export default function AdminLogin({ onIngreso }) {
       const { data } = await api.post('/admin-login/', { usuario: usuario.trim(), password });
       guardarTokenAdmin(data.token);
       onIngreso();
-    } catch {
-      setError('Usuario o contraseña incorrectos.');
+    } catch (err) {
+      // Solo un 401 es "datos incorrectos". Sin señal o con el servidor caído decía lo
+      // mismo, y desde el celular parecía que la contraseña estaba mal.
+      setError(err.response?.status === 401
+        ? 'Usuario o contraseña incorrectos.'
+        : 'No se pudo conectar con el servidor. Revisá la conexión y probá de nuevo.');
     } finally {
       setEnviando(false);
     }
@@ -37,6 +41,10 @@ export default function AdminLogin({ onIngreso }) {
             onChange={(e) => setUsuario(e.target.value)}
             autoFocus
             autoComplete="username"
+            // El teclado del celular ponía la primera letra en mayúscula ("Antojo").
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
           />
         </div>
 

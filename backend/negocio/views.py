@@ -1,4 +1,5 @@
 from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
 from rest_framework import status, viewsets
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
@@ -24,10 +25,16 @@ class AdminLoginView(APIView):
     permission_classes = []
 
     def post(self, request):
-        usuario = authenticate(
-            username=(request.data.get('usuario') or '').strip(),
-            password=request.data.get('password') or '',
-        )
+        nombre = (request.data.get('usuario') or '').strip()
+        # Sin distinguir mayúsculas: el teclado del celular pone "Antojo" solo, y como el
+        # usuario es "antojo" el login fallaba con la contraseña bien puesta (y el
+        # autocompletar del navegador lo recuerda así para siempre). Si justo existe el
+        # nombre exacto se usa ese; si no, el único que coincida ignorando mayúsculas.
+        if not User.objects.filter(username=nombre).exists():
+            parecidos = list(User.objects.filter(username__iexact=nombre).values_list('username', flat=True)[:2])
+            if len(parecidos) == 1:
+                nombre = parecidos[0]
+        usuario = authenticate(username=nombre, password=request.data.get('password') or '')
         if not usuario or not usuario.is_staff:
             return Response({'detail': 'Usuario o contraseña incorrectos.'}, status=status.HTTP_401_UNAUTHORIZED)
         token, _ = Token.objects.get_or_create(user=usuario)
