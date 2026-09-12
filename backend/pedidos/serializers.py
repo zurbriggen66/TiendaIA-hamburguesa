@@ -1,4 +1,8 @@
+from collections import defaultdict
 from decimal import Decimal
+
+from django.db import transaction
+from django.db.models import Sum
 
 from rest_framework import serializers
 from .models import METODOS_PAGO, Pedido, DetallePedido, DetalleExtra, Localidad, MovimientoCaja, Pago, Caja
@@ -7,6 +11,7 @@ from antojo.models import AntojoDelDia
 from negocio.models import ConfiguracionSitio
 from clientes.models import Recompensa
 from clientes.puntos import calcular_descuento as calcular_descuento_puntos, canjear_recompensa
+from gastos.models import MovimientoStock, mover_stock
 
 
 class LocalidadSerializer(serializers.ModelSerializer):
@@ -294,16 +299,62 @@ def calcular_precio_producto(producto, antojo_activo, via_sugerencia_carrito=Fal
     return 0, precio_base
 
 
-def mover_stock_item(item, signo):
+def consumo_de_item(item):
+    """Cuánto de cada insumo lleva una línea de pedido: la receta del producto, lo que
+    suma la variante (Doble = +1 medallón) y los extras. Los extras son por unidad: 2 x
+    INDIA con panceta son 2 pancetas."""
+    consumo = defaultdict(Decimal)
     if item.producto_id:
-        item.producto.ajustar_stock(signo * item.cantidad)
+        for pi in item.producto.detalle_insumos.all():
+            consumo[pi.insumo_id] += pi.cantidad * item.cantidad
         if item.presentacion_id:
-            item.presentacion.ajustar_stock_extra(signo * item.cantidad)
+            for pi in item.presentacion.detalle_insumos_extra.all():
+                consumo[pi.insumo_id] += pi.cantidad * item.cantidad
         for extra in item.extras.all():
-            extra.extra.ajustar_stock(signo * extra.cantidad * item.cantidad)
+            for pi in extra.extra.detalle_insumos.all():
+                consumo[pi.insumo_id] += pi.cantidad * extra.cantidad * item.cantidad
     elif item.combo_id:
         for ci in item.combo.items.select_related('producto'):
-            ci.producto.ajustar_stock(signo * ci.cantidad * item.cantidad)
+            for pi in ci.producto.detalle_insumos.all():
+                consumo[pi.insumo_id] += pi.cantidad * ci.cantidad * item.cantidad
+    return consumo
+
+
+def _nombre_item(item):
+    if item.combo_id:
+        return item.combo.nombre
+    variante = f' {item.presentacion.nombre}' if item.presentacion_id else ''
+    return f'{item.producto.nombre}{variante}'
+
+
+def descontar_stock_pedido(pedido, motivo=''):
+    for item in pedido.items.all():
+        for insumo_id, cantidad in consumo_de_item(item).items():
+            mover_stock(
+                insumo_id, -cantidad, 'venta', pedido=pedido,
+                detalle=f'Pedido #{pedido.id}{motivo}: {item.cantidad} x {_nombre_item(item)}',
+            )
+
+
+def devolver_stock_pedido(pedido, motivo):
+    """Devuelve lo que el pedido descontó de verdad, sumando sus movimientos, y no lo
+    que diría la receta de hoy: si la receta cambió desde que se vendió, recalcular
+    devolvía de más o de menos."""
+    movimientos = pedido.movimientos_stock.all()
+    if movimientos.exists():
+        for fila in movimientos.values('insumo').annotate(neto=Sum('cantidad')):
+            if fila['neto']:
+                mover_stock(fila['insumo'], -fila['neto'], 'devolucion', pedido=pedido,
+                            detalle=f'Pedido #{pedido.id} {motivo}')
+        return
+    inicio_historial = MovimientoStock.objects.order_by('creado').values_list('creado', flat=True).first()
+    if inicio_historial is None or pedido.creado < inicio_historial:
+        # Pedido de antes de que existiera el historial: no hay registro de lo que movió,
+        # así que se recalcula con la receta actual (lo mismo que se hacía antes).
+        for item in pedido.items.all():
+            for insumo_id, cantidad in consumo_de_item(item).items():
+                mover_stock(insumo_id, cantidad, 'devolucion', pedido=pedido,
+                            detalle=f'Pedido #{pedido.id} {motivo}: {item.cantidad} x {_nombre_item(item)}')
 
 
 class PedidoSerializer(serializers.ModelSerializer):
@@ -372,6 +423,9 @@ class PedidoSerializer(serializers.ModelSerializer):
             )
         return data
 
+    # Atómico: si algo falla a mitad (un premio sin puntos, un item inválido) no puede
+    # quedar un pedido a medias con el stock ya descontado.
+    @transaction.atomic
     def create(self, validated_data):
         items_data = validated_data.pop('items')
         usar_puntos = validated_data.pop('usar_puntos', False)
@@ -431,7 +485,8 @@ class PedidoSerializer(serializers.ModelSerializer):
                     cantidad=item['cantidad'],
                     precio_unitario=combo.precio,
                 )
-            mover_stock_item(detalle, signo=-1)
+
+        descontar_stock_pedido(pedido)
 
         # El canje va al final: recién acá se conoce el total real del pedido.
         if usar_puntos and cliente:
@@ -456,11 +511,16 @@ class PedidoSerializer(serializers.ModelSerializer):
 
         return pedido
 
+    @transaction.atomic
     def update(self, instance, validated_data):
-        se_cancela = validated_data.get('estado') == 'cancelado' and instance.estado != 'cancelado'
+        nuevo_estado = validated_data.get('estado', instance.estado)
+        se_cancela = nuevo_estado == 'cancelado' and instance.estado != 'cancelado'
+        # Volver un pedido cancelado a la cola: la cancelación había devuelto el stock,
+        # así que hay que descontarlo otra vez (antes quedaba devuelto para siempre).
+        se_reactiva = instance.estado == 'cancelado' and nuevo_estado != 'cancelado'
         pedido = super().update(instance, validated_data)
         if se_cancela:
-            items = pedido.items.prefetch_related('extras__extra', 'combo__items__producto')
-            for item in items:
-                mover_stock_item(item, signo=1)
+            devolver_stock_pedido(pedido, 'cancelado')
+        elif se_reactiva:
+            descontar_stock_pedido(pedido, ' reactivado')
         return pedido

@@ -38,18 +38,20 @@ export default function InsumoModal({ insumo, onClose, onSaved }) {
       return;
     }
 
+    // Al editar, el stock solo se manda si lo tocaron (un recuento). Mandarlo siempre
+    // hacía que el número que había al abrir el modal pisara lo vendido en el medio.
+    const cambioStock = !insumo || String(cantidad) !== String(insumo.cantidad_disponible);
+    if (cambioStock && (cantidad === '' || Number(cantidad) < 0)) {
+      toast.alerta(insumo ? 'Poné cuánto hay en realidad (0 o más).' : 'El stock no puede ser negativo.');
+      return;
+    }
+
     setGuardando(true);
     try {
-      if (Number(cantidad) < 0) {
-        toast.alerta('El stock no puede ser negativo.');
-        setGuardando(false);
-        return;
-      }
       const datos = {
         nombre: nombre.trim(),
         unidad,
         stock_minimo: stockMinimo || 0,
-        cantidad_disponible: cantidad || 0,
         precio: precio || 0,
         costo_manual: costoManual || 0,
         descuento_pct: Number(descuentoPct) > 0 ? Number(descuentoPct) : 0,
@@ -57,8 +59,11 @@ export default function InsumoModal({ insumo, onClose, onSaved }) {
       };
       if (insumo) {
         await api.patch(`/insumos/${insumo.id}/`, datos);
+        if (cambioStock) {
+          await api.post(`/insumos/${insumo.id}/ajustar/`, { cantidad_real: cantidad, motivo: 'Recuento' });
+        }
       } else {
-        await api.post('/insumos/', datos);
+        await api.post('/insumos/', { ...datos, cantidad_disponible: cantidad || 0 });
       }
       onSaved();
     } catch (error) {
@@ -100,7 +105,7 @@ export default function InsumoModal({ insumo, onClose, onSaved }) {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Stock actual</label>
+            <label className="form-label">{insumo ? 'Stock (si hiciste un recuento, poné cuánto hay)' : 'Stock actual'}</label>
             <div className="input-con-sufijo">
               <input
                 type="number"
@@ -113,7 +118,10 @@ export default function InsumoModal({ insumo, onClose, onSaved }) {
               />
               <span>{unidad}</span>
             </div>
-            <p className="form-ayuda">Corregilo a mano cuando hagas un recuento. Los pedidos lo descuentan solos.</p>
+            <p className="form-ayuda">
+              Los pedidos lo descuentan y las compras lo suman solos.{' '}
+              {insumo && 'Si lo cambiás, queda anotado como ajuste por recuento con la diferencia.'}
+            </p>
           </div>
 
           <div className="form-group">

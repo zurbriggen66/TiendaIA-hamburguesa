@@ -1,5 +1,6 @@
+from django.db import transaction
 from rest_framework import serializers
-from .models import Insumo, Gasto, GastoFijo
+from .models import Insumo, Gasto, GastoFijo, mover_stock
 
 
 class InsumoSerializer(serializers.ModelSerializer):
@@ -32,9 +33,25 @@ class InsumoSerializer(serializers.ModelSerializer):
         return value
 
     def validate_cantidad_disponible(self, value):
-        if value < 0:
+        # Solo cuenta al crear (el stock inicial). Al editar se ignora, ver update().
+        if self.instance is None and value < 0:
             raise serializers.ValidationError('El stock no puede ser negativo.')
         return value
+
+    @transaction.atomic
+    def create(self, validated_data):
+        inicial = validated_data.pop('cantidad_disponible', 0) or 0
+        insumo = super().create(validated_data)
+        mover_stock(insumo.id, inicial, 'inicial', detalle='Stock al crear el insumo')
+        insumo.refresh_from_db()
+        return insumo
+
+    def update(self, instance, validated_data):
+        # El stock no se edita desde acá: lo mueven los pedidos, las compras y el ajuste
+        # por recuento (/insumos/<id>/ajustar/). Aceptarlo hacía que un modal abierto hace
+        # rato mandara el número viejo y borrara todo lo vendido o comprado en el medio.
+        validated_data.pop('cantidad_disponible', None)
+        return super().update(instance, validated_data)
 
     def validate_stock_minimo(self, value):
         if value < 0:
@@ -54,6 +71,7 @@ class GastoSerializer(serializers.ModelSerializer):
         # si no, un gasto podria cargarse contra un turno ya cerrado y cuadrado.
         read_only_fields = ['caja']
 
+    @transaction.atomic
     def create(self, validated_data):
         from pedidos.models import Caja
 
@@ -63,10 +81,24 @@ class GastoSerializer(serializers.ModelSerializer):
         if not caja_abierta:
             validated_data['sale_del_cajon'] = False
         gasto = Gasto.objects.create(**validated_data)
-        insumo = gasto.insumo
-        if gasto.categoria == 'insumos' and insumo and gasto.cantidad:
-            insumo.cantidad_disponible += gasto.cantidad
-            insumo.save()
+        efecto = gasto.efecto_en_stock()
+        if efecto:
+            mover_stock(*efecto, 'compra', gasto=gasto, detalle=gasto.descripcion)
+        return gasto
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        # Corregir una compra (otra cantidad, otro insumo, otra categoría) deshace lo que
+        # sumó la versión anterior y aplica la nueva. Antes el stock no se enteraba.
+        anterior = instance.efecto_en_stock()
+        gasto = super().update(instance, validated_data)
+        nuevo = gasto.efecto_en_stock()
+        if anterior != nuevo:
+            if anterior:
+                mover_stock(anterior[0], -anterior[1], 'compra_anulada', gasto=gasto,
+                            detalle=f'Compra corregida: {gasto.descripcion}')
+            if nuevo:
+                mover_stock(*nuevo, 'compra', gasto=gasto, detalle=gasto.descripcion)
         return gasto
 
 

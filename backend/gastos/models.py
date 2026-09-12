@@ -3,6 +3,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 from django.db import models
+from django.db.models import F
 from django.utils import timezone
 
 from pedidos.models import Pago
@@ -108,6 +109,71 @@ class Gasto(models.Model):
 
     def __str__(self):
         return f'{self.descripcion} - ${self.monto}'
+
+    def efecto_en_stock(self):
+        """(insumo_id, cantidad) que este gasto sumó al stock, o None si no sumó nada.
+        Solo una compra de insumos con insumo y cantidad mueve stock."""
+        if self.categoria == 'insumos' and self.insumo_id and self.cantidad:
+            return self.insumo_id, self.cantidad
+        return None
+
+
+class MovimientoStock(models.Model):
+    """Cada suma o resta del stock de un insumo, con su motivo.
+
+    Antes el stock era solo un número que se pisaba: cuando no cuadraba con lo que había
+    en la heladera no había forma de saber si fue una venta, una compra borrada o alguien
+    que lo editó a mano. Además, guardar lo que REALMENTE se movió permite deshacer un
+    pedido exacto, aunque después se haya cambiado la receta.
+    """
+
+    TIPOS = [
+        ('inicial', 'Saldo inicial'),
+        ('venta', 'Venta'),
+        ('devolucion', 'Pedido cancelado o borrado'),
+        ('compra', 'Compra'),
+        ('compra_anulada', 'Compra borrada o corregida'),
+        ('ajuste', 'Ajuste por recuento'),
+    ]
+
+    insumo = models.ForeignKey(Insumo, on_delete=models.CASCADE, related_name='movimientos')
+    tipo = models.CharField(max_length=20, choices=TIPOS)
+    # Con signo: negativo resta, positivo suma.
+    cantidad = models.DecimalField(max_digits=10, decimal_places=2)
+    stock_resultante = models.DecimalField(max_digits=10, decimal_places=2)
+    # SET_NULL: si se borra el pedido o el gasto, el movimiento queda (y su detalle dice cuál era).
+    pedido = models.ForeignKey(
+        'pedidos.Pedido', null=True, blank=True, on_delete=models.SET_NULL, related_name='movimientos_stock',
+    )
+    gasto = models.ForeignKey(
+        Gasto, null=True, blank=True, on_delete=models.SET_NULL, related_name='movimientos_stock',
+    )
+    detalle = models.CharField(max_length=200, blank=True)
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-creado', '-id']
+
+    def __str__(self):
+        return f'{self.insumo} {self.cantidad:+} ({self.tipo})'
+
+
+def mover_stock(insumo_id, cantidad, tipo, *, pedido=None, gasto=None, detalle=''):
+    """Único lugar que cambia el stock de un insumo: suma (o resta) y deja asentado el
+    movimiento.
+
+    El stock PUEDE quedar negativo, a propósito: antes se cortaba en 0 y lo vendido de
+    más desaparecía de la cuenta (marcaba -3 cuando faltaban 10). Un negativo dice la
+    verdad: se vendió más de lo que figuraba cargado.
+    """
+    if not cantidad:
+        return
+    Insumo.objects.filter(pk=insumo_id).update(cantidad_disponible=F('cantidad_disponible') + cantidad)
+    resultante = Insumo.objects.values_list('cantidad_disponible', flat=True).get(pk=insumo_id)
+    MovimientoStock.objects.create(
+        insumo_id=insumo_id, tipo=tipo, cantidad=cantidad, stock_resultante=resultante,
+        pedido=pedido, gasto=gasto, detalle=detalle[:200],
+    )
 
 
 class GastoFijo(models.Model):

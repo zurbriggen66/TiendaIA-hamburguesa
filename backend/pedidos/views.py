@@ -1,6 +1,7 @@
 from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 
+from django.db import transaction
 from django.http import JsonResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -13,7 +14,7 @@ from core.permissions import EsAdmin, EsAdminOSoloLectura, es_staff
 from .models import Pedido, Localidad, Pago, Caja
 from .serializers import (
     PedidoSerializer, LocalidadSerializer, PagoSerializer, CajaSerializer,
-    MovimientoCajaSerializer, mover_stock_item,
+    MovimientoCajaSerializer, devolver_stock_pedido,
 )
 from clientes.puntos import acreditar as acreditar_puntos
 
@@ -98,13 +99,12 @@ class PedidoViewSet(viewsets.ModelViewSet):
         acreditar_puntos(pedido)
         return Response(self.get_serializer(pedido).data)
 
+    @transaction.atomic
     def perform_destroy(self, instance):
         # Si el pedido no estaba cancelado, el stock que descontó al crearse sigue "afuera" —
         # hay que devolverlo antes de borrarlo. Si ya estaba cancelado, la cancelación ya lo devolvió.
         if instance.estado != 'cancelado':
-            items = instance.items.prefetch_related('extras__extra', 'combo__items__producto')
-            for item in items:
-                mover_stock_item(item, signo=1)
+            devolver_stock_pedido(instance, 'borrado')
         instance.delete()
 
 
