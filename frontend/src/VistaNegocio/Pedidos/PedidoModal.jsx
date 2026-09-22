@@ -3,7 +3,7 @@ import api from '../../services/api';
 import { presentacionesConBase } from '../../utils/presentaciones';
 import { precioBaseConDescuento, tieneDescuento, mejorPorcentajeDescuento } from '../../utils/precios';
 import { toast } from '../../utils/toast';
-import { imprimirPedido, pedidosCreadosAca } from '../../utils/impresion';
+import { imprimirYMarcar, pedidosCreadosAca } from '../../utils/impresion';
 
 const COLORES_CHIP = ['chip-mostaza', 'chip-naranja', 'chip-tomate'];
 
@@ -137,7 +137,7 @@ export default function PedidoModal({ productos, categorias, localidades, antojo
       // decir "problema al crear" invitaba a cargarlo de nuevo (pedido duplicado).
       if (imprimirTicket) {
         try {
-          imprimirPedido(data);
+          imprimirYMarcar(data);
         } catch (error) {
           console.error('Error al imprimir el ticket:', error);
           toast.error('El pedido se creó, pero no se pudo imprimir el ticket.');

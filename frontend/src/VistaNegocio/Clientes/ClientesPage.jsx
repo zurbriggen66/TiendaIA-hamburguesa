@@ -152,7 +152,7 @@ export default function ClientesPage() {
             </div>
           ) : (
             <div className="gastos-tabla">
-              <div className="clientes-buscador">
+              <div className="buscador-admin">
                 <input
                   type="search"
                   className="input-vibrante"
@@ -161,7 +161,7 @@ export default function ClientesPage() {
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
                 />
-                <span className="clientes-buscador-conteo">
+                <span className="buscador-admin-conteo">
                   {termino ? `${clientesFiltrados.length} de ${clientes.length}` : `${clientes.length} clientes`}
                 </span>
               </div>

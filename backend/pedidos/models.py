@@ -56,6 +56,10 @@ class Pedido(models.Model):
     # realmente envió el WhatsApp (el botón de la tienda solo abre WhatsApp, no garantiza el envío).
     # Los pedidos cargados a mano en el admin se consideran confirmados desde que se crean.
     confirmado = models.BooleanField(default=True)
+    # Si ya se imprimió su ticket. Vive en el servidor y no en el navegador porque el
+    # local imprime desde varios dispositivos: lo que imprimió la tablet tiene que verse
+    # impreso en la compu del mostrador.
+    impreso = models.BooleanField(default=False)
     cliente_registrado = models.ForeignKey(
         'clientes.Cliente', null=True, blank=True, on_delete=models.SET_NULL, related_name='pedidos',
     )

@@ -68,9 +68,24 @@ export default function PedidoCard({
         <button type="button" className="pedido-accion pedido-accion-detalle" title="Ver detalles del pedido" onClick={() => onDetalle(pedido)}>
           <span aria-hidden="true">📝</span>Detalle
         </button>
-        <button type="button" className="pedido-accion pedido-accion-imprimir" title="Imprimir ticket" onClick={() => onImprimir(pedido)}>
-          <span aria-hidden="true">🖨️</span>Imprimir
-        </button>
+        {pedido.impreso ? (
+          // Ya salió: queda como marca, no como acción. Igual se puede repetir (un ticket
+          // se moja, se pierde), pero preguntando, para no imprimir de más sin querer.
+          <button
+            type="button"
+            className="pedido-accion pedido-accion-impreso"
+            title="El ticket ya se imprimió. Tocá si necesitás otra copia."
+            onClick={() => {
+              if (window.confirm(`El ticket de ${pedido.cliente || `Pedido #${pedido.id}`} ya se imprimió. ¿Imprimir otra copia?`)) onImprimir(pedido);
+            }}
+          >
+            <span aria-hidden="true">✅</span>Impreso
+          </button>
+        ) : (
+          <button type="button" className="pedido-accion pedido-accion-imprimir" title="Imprimir ticket" onClick={() => onImprimir(pedido)}>
+            <span aria-hidden="true">🖨️</span>Imprimir
+          </button>
+        )}
         {puedeEliminar && (
           <button type="button" className="pedido-accion pedido-accion-eliminar" title="Eliminar pedido" onClick={() => onEliminar(pedido)}>
             <span aria-hidden="true">🗑</span>Eliminar

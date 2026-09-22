@@ -376,7 +376,7 @@ class PedidoSerializer(serializers.ModelSerializer):
         model = Pedido
         fields = [
             'id', 'cliente', 'telefono', 'tipo_entrega', 'direccion', 'estado', 'creado', 'items',
-            'localidad', 'localidad_nombre', 'caja', 'origen', 'confirmado', 'costo_envio', 'descuento_pct',
+            'localidad', 'localidad_nombre', 'caja', 'origen', 'confirmado', 'impreso', 'costo_envio', 'descuento_pct',
             'hora_salida', 'nota', 'pagos', 'subtotal', 'total', 'cobrado', 'estado_cobro',
             'puntos_usados', 'descuento_puntos', 'usar_puntos',
             'recompensa', 'recompensa_nombre', 'recompensa_id',

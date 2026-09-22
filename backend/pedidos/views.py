@@ -2,6 +2,7 @@ from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
+from django.db.models import Q
 from django.http import JsonResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -62,6 +63,13 @@ class PedidoViewSet(viewsets.ModelViewSet):
         if origen:
             queryset = queryset.filter(origen=origen)
 
+        # Buscador de Ventas & Pedidos: por nombre del cliente (o su teléfono). Va en el
+        # servidor y no en la pantalla porque la lista viene paginada: filtrar solo lo
+        # que ya se bajó encontraría el pedido de ayer pero no el de la semana pasada.
+        buscar = (self.request.query_params.get('buscar') or '').strip()
+        if buscar:
+            queryset = queryset.filter(Q(cliente__icontains=buscar) | Q(telefono__icontains=buscar))
+
         ultimas_horas = self.request.query_params.get('ultimas_horas')
         if ultimas_horas:
             try:
@@ -84,6 +92,15 @@ class PedidoViewSet(viewsets.ModelViewSet):
             caja_abierta = Caja.objects.filter(cerrada_en__isnull=True).order_by('-abierta_en').first()
             pedido = serializer.save(caja=caja_abierta, confirmado=True)
             acreditar_puntos(pedido)
+
+    @action(detail=True, methods=['post'], url_path='marcar-impreso')
+    def marcar_impreso(self, request, pk=None):
+        """El ticket ya salió: deja de ofrecerse para imprimir (se puede repetir a mano)."""
+        pedido = self.get_object()
+        if not pedido.impreso:
+            pedido.impreso = True
+            pedido.save(update_fields=['impreso'])
+        return Response(self.get_serializer(pedido).data)
 
     @action(detail=True, methods=['post'])
     def confirmar(self, request, pk=None):

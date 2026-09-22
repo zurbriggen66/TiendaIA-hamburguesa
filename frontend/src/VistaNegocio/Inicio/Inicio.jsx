@@ -7,7 +7,7 @@ import PedidoModal from '../Pedidos/PedidoModal';
 import PedidoCard from '../Pedidos/PedidoCard';
 import PedidoPagoModal from '../Pedidos/PedidoPagoModal';
 import PedidoEnvioDescuentoModal from '../Pedidos/PedidoEnvioDescuentoModal';
-import { imprimirPedido } from '../../utils/impresion';
+import { imprimirYMarcar } from '../../utils/impresion';
 import { useModo } from '../ModoContext';
 import { toast } from '../../utils/toast';
 
@@ -261,6 +261,11 @@ export default function Inicio() {
       console.error('Error al cancelar el pedido:', err);
       toast.error('No se pudo cancelar el pedido.');
     }
+  };
+
+  const imprimirReciente = async (pedido) => {
+    const actualizado = await imprimirYMarcar(pedido);
+    if (actualizado) setPedidosRecientes((prev) => prev.map((p) => (p.id === actualizado.id ? actualizado : p)));
   };
 
   const eliminarPedidoReciente = async (pedido) => {
@@ -563,7 +568,7 @@ export default function Inicio() {
                   pedido={pedido}
                   onCobrar={(p) => setModalPago(p.id)}
                   onDetalle={setModalEnvio}
-                  onImprimir={imprimirPedido}
+                  onImprimir={imprimirReciente}
                   onEliminar={eliminarPedidoReciente}
                   onAvanzarEstado={avanzarEstadoReciente}
                   onCancelar={cancelarPedidoReciente}

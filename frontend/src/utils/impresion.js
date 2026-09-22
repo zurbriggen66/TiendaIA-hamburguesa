@@ -1,3 +1,4 @@
+import api from '../services/api';
 import { textoExtras } from './extras';
 const CLAVE_LOCAL_STORAGE = 'antojo_config_impresion';
 
@@ -222,4 +223,23 @@ export function imprimirPrueba() {
     items: [{ cantidad: 2, producto_nombre: 'Hamburguesa Clásica', subtotal: 12000 }],
   };
   imprimirHtml(construirHtmlTicket(pedidoDePrueba, config));
+}
+
+/**
+ * Imprime el ticket y deja el pedido marcado como impreso en el SERVIDOR.
+ *
+ * En el servidor y no en el navegador porque el local imprime desde varios
+ * dispositivos: lo que sacó la tablet tiene que verse impreso en la compu del
+ * mostrador. Devuelve el pedido actualizado para refrescarlo en pantalla; si falla el
+ * marcado devuelve null, pero el ticket igual salió.
+ */
+export async function imprimirYMarcar(pedido) {
+  imprimirPedido(pedido);
+  try {
+    const { data } = await api.post(`/pedidos/${pedido.id}/marcar-impreso/`);
+    return data;
+  } catch (error) {
+    console.error('No se pudo marcar el pedido como impreso:', error);
+    return null;
+  }
 }

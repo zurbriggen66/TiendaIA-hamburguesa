@@ -5,10 +5,17 @@ import PedidoCard from './PedidoCard';
 import LocalidadModal from './LocalidadModal';
 import PedidoEnvioDescuentoModal from './PedidoEnvioDescuentoModal';
 import PedidoPagoModal from './PedidoPagoModal';
-import { imprimirPedido } from '../../utils/impresion';
+import { imprimirYMarcar } from '../../utils/impresion';
 import { toast } from '../../utils/toast';
 
 const ORDEN_ESTADOS = ['pendiente', 'en_preparacion', 'listo', 'entregado'];
+
+const PERIODOS = [
+  { clave: 'rango', etiqueta: 'Rango' },
+  { clave: 'dia', etiqueta: 'Por día' },
+  { clave: 'mensual', etiqueta: 'Mensual' },
+  { clave: 'general', etiqueta: 'General' },
+];
 
 const pad2 = (n) => String(n).padStart(2, '0');
 // OJO: no usar toISOString() acá — convierte a UTC y en Argentina (UTC-3) eso hace
@@ -54,6 +61,8 @@ export default function PedidosPage() {
   const [modalLocalidad, setModalLocalidad] = useState(null);
   const [modalEnvio, setModalEnvio] = useState(null);
   const [modalPago, setModalPago] = useState(null);
+  const [busqueda, setBusqueda] = useState('');
+  const [busquedaAplicada, setBusquedaAplicada] = useState('');
 
   // El catálogo (productos/categorías/localidades) no depende del filtro de pedidos —
   // se carga una sola vez, en vez de repetirse cada vez que cambia el período elegido.
@@ -76,6 +85,12 @@ export default function PedidosPage() {
     }
   }, []);
 
+  // Se espera a que deje de tipear para no consultar en cada letra.
+  useEffect(() => {
+    const id = setTimeout(() => setBusquedaAplicada(busqueda.trim()), 300);
+    return () => clearTimeout(id);
+  }, [busqueda]);
+
   const paramsDelPeriodo = useCallback(() => {
     if (filtroPeriodo === 'mensual') {
       const { primero, ultimo } = primerYUltimoDiaDelMes(mesSeleccionado);
@@ -90,6 +105,13 @@ export default function PedidosPage() {
     return {};
   }, [filtroPeriodo, mesSeleccionado, diaSeleccionado, desdeRango, hastaRango]);
 
+  // Buscando se mira TODO el historial: el sentido de buscar un cliente es encontrar
+  // sus pedidos, no los que además caigan en el período elegido.
+  const paramsDeConsulta = useCallback(
+    () => (busquedaAplicada ? { buscar: busquedaAplicada } : paramsDelPeriodo()),
+    [busquedaAplicada, paramsDelPeriodo],
+  );
+
   // Cada consulta se numera: si se cambia el filtro rápido, o se guarda algo mientras
   // "Cargar más" sigue en camino, la respuesta vieja se descarta en vez de pisar (o
   // duplicar) la lista nueva.
@@ -103,7 +125,7 @@ export default function PedidosPage() {
     if (pagina > 1) setCargandoMas(true);
     else if (!silencioso) setCargando(true);
     try {
-      const { data } = await api.get('/pedidos/', { params: { ...paramsDelPeriodo(), page: pagina } });
+      const { data } = await api.get('/pedidos/', { params: { ...paramsDeConsulta(), page: pagina } });
       if (consulta !== consultaActual.current) return;
       setPedidos((prev) => (pagina === 1 ? data.results : [...prev, ...data.results]));
       setTotalPedidos(data.count);
@@ -117,7 +139,7 @@ export default function PedidosPage() {
         setCargandoMas(false);
       }
     }
-  }, [paramsDelPeriodo]);
+  }, [paramsDeConsulta]);
 
   useEffect(() => {
     cargarCatalogo();
@@ -152,6 +174,11 @@ export default function PedidosPage() {
   const cancelarPedido = (pedido) => {
     if (!window.confirm('¿Cancelar este pedido?')) return;
     cambiarEstado(pedido, 'cancelado');
+  };
+
+  const imprimir = async (pedido) => {
+    const actualizado = await imprimirYMarcar(pedido);
+    if (actualizado) setPedidos((prev) => prev.map((p) => (p.id === actualizado.id ? actualizado : p)));
   };
 
   const eliminarPedido = async (pedido) => {
@@ -196,69 +223,93 @@ export default function PedidosPage() {
           </button>
         </div>
 
+        {/* Buscador, período y fechas en una sola casilla: antes el selector de fechas
+            quedaba suelto debajo de las pestañas y se leía como un filtro aparte. */}
         {tab === 'pedidos' && (
-          <div className="tabs-bar">
-            <button type="button" className={`tab-boton ${filtroPeriodo === 'rango' ? 'tab-activo' : ''}`} onClick={() => setFiltroPeriodo('rango')}>
-              Rango
-            </button>
-            <button type="button" className={`tab-boton ${filtroPeriodo === 'dia' ? 'tab-activo' : ''}`} onClick={() => setFiltroPeriodo('dia')}>
-              Por día
-            </button>
-            <button type="button" className={`tab-boton ${filtroPeriodo === 'mensual' ? 'tab-activo' : ''}`} onClick={() => setFiltroPeriodo('mensual')}>
-              Mensual
-            </button>
-            <button type="button" className={`tab-boton ${filtroPeriodo === 'general' ? 'tab-activo' : ''}`} onClick={() => setFiltroPeriodo('general')}>
-              General
-            </button>
-          </div>
-        )}
-
-        {tab === 'pedidos' && filtroPeriodo === 'rango' && (
-          <div className="form-row estadisticas-selector-periodo">
-            <div className="form-group">
-              <label className="form-label">Desde</label>
+          <div className="pedidos-filtros">
+            <div className="buscador-admin">
               <input
-                type="date"
+                type="search"
                 className="input-vibrante"
-                value={desdeRango}
-                max={hastaRango}
-                onChange={(e) => setDesdeRango(e.target.value)}
+                placeholder="🔍 Buscar pedidos por nombre del cliente"
+                aria-label="Buscar pedidos por cliente"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
               />
+              {busquedaAplicada && (
+                <span className="buscador-admin-conteo">{totalPedidos} en todo el historial</span>
+              )}
             </div>
-            <div className="form-group">
-              <label className="form-label">Hasta</label>
-              <input
-                type="date"
-                className="input-vibrante"
-                value={hastaRango}
-                min={desdeRango}
-                onChange={(e) => setHastaRango(e.target.value)}
-              />
-            </div>
-          </div>
-        )}
 
-        {tab === 'pedidos' && filtroPeriodo === 'mensual' && (
-          <div className="form-group estadisticas-selector-periodo">
-            <label className="form-label">Mes</label>
-            <input
-              type="month"
-              className="input-vibrante"
-              value={mesSeleccionado}
-              onChange={(e) => setMesSeleccionado(e.target.value)}
-            />
-          </div>
-        )}
+            {!busquedaAplicada && (
+              <div className="pedidos-filtros-periodo">
+                <div className="filtros-periodo-opciones">
+                  {PERIODOS.map(({ clave, etiqueta }) => (
+                    <button
+                      key={clave}
+                      type="button"
+                      className={`filtro-chip ${filtroPeriodo === clave ? 'filtro-chip-activo' : ''}`}
+                      onClick={() => setFiltroPeriodo(clave)}
+                    >
+                      {etiqueta}
+                    </button>
+                  ))}
+                </div>
 
-        {tab === 'pedidos' && filtroPeriodo === 'dia' && (
-          <div className="form-group estadisticas-selector-periodo">
-            <label className="form-label">Día</label>
-            <input
-              type="date"
-              className="input-vibrante"
-              value={diaSeleccionado}
-              onChange={(e) => setDiaSeleccionado(e.target.value)}
-            />
+                {/* Un solo selector, que cambia según el período elegido. */}
+                <div className="filtros-periodo-campos">
+                  {filtroPeriodo === 'rango' && (
+                    <>
+                      <label className="filtro-campo">
+                        <span>Desde</span>
+                        <input
+                          type="date"
+                          className="input-vibrante"
+                          value={desdeRango}
+                          max={hastaRango}
+                          onChange={(e) => setDesdeRango(e.target.value)}
+                        />
+                      </label>
+                      <label className="filtro-campo">
+                        <span>Hasta</span>
+                        <input
+                          type="date"
+                          className="input-vibrante"
+                          value={hastaRango}
+                          min={desdeRango}
+                          onChange={(e) => setHastaRango(e.target.value)}
+                        />
+                      </label>
+                    </>
+                  )}
+                  {filtroPeriodo === 'dia' && (
+                    <label className="filtro-campo">
+                      <span>Día</span>
+                      <input
+                        type="date"
+                        className="input-vibrante"
+                        value={diaSeleccionado}
+                        onChange={(e) => setDiaSeleccionado(e.target.value)}
+                      />
+                    </label>
+                  )}
+                  {filtroPeriodo === 'mensual' && (
+                    <label className="filtro-campo">
+                      <span>Mes</span>
+                      <input
+                        type="month"
+                        className="input-vibrante"
+                        value={mesSeleccionado}
+                        onChange={(e) => setMesSeleccionado(e.target.value)}
+                      />
+                    </label>
+                  )}
+                  {filtroPeriodo === 'general' && (
+                    <span className="filtros-nota">Todos los pedidos cargados</span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -274,6 +325,8 @@ export default function PedidosPage() {
                     Crear el primer pedido
                   </button>
                 </>
+              ) : busquedaAplicada ? (
+                <p>Ningún pedido de un cliente que se llame "{busquedaAplicada}".</p>
               ) : (
                 <p>No hay pedidos en este período.</p>
               )}
@@ -295,7 +348,7 @@ export default function PedidosPage() {
                   pedido={pedido}
                   onCobrar={(p) => setModalPago(p.id)}
                   onDetalle={setModalEnvio}
-                  onImprimir={imprimirPedido}
+                  onImprimir={imprimir}
                   onEliminar={eliminarPedido}
                   onAvanzarEstado={avanzarEstado}
                   onCancelar={cancelarPedido}

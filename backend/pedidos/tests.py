@@ -903,3 +903,40 @@ class AntojoSoloLaClasicaTests(TestCase):
         self.assertTrue(banner['solo_base'])
         self.assertEqual(banner['presentacion'], {'id': None, 'nombre': 'CLASICA'})
         self.assertEqual(Decimal(banner['precio_con_descuento']), Decimal('9000'))
+class BuscadorEImpresoTests(TestCase):
+    """Dos pedidos del mostrador: encontrar los de un cliente por nombre, y que un
+    ticket ya impreso no vuelva a ofrecerse para imprimir."""
+
+    def setUp(self):
+        User.objects.create_user('duena', password='x', is_staff=True)
+        self.client.login(username='duena', password='x')
+        categoria = Categoria.objects.create(nombre='Burguers')
+        self.producto = Producto.objects.create(categoria=categoria, nombre='INGLESA', precio=9980)
+        for nombre, telefono in [('joaco', '3541000001'), ('Joaquina', '3541000002'), ('Danilo', '1160378050')]:
+            pedido = Pedido.objects.create(cliente=nombre, telefono=telefono, confirmado=True)
+            DetallePedido.objects.create(pedido=pedido, producto=self.producto, cantidad=1, precio_unitario=9980)
+
+    def nombres(self, **params):
+        return sorted(p['cliente'] for p in self.client.get('/api/pedidos/', params).json()['results'])
+
+    def test_busca_por_nombre_sin_importar_mayusculas_ni_si_esta_completo(self):
+        self.assertEqual(self.nombres(buscar='joac'), ['joaco'])
+        self.assertEqual(self.nombres(buscar='Joa'), ['Joaquina', 'joaco'])
+        self.assertEqual(self.nombres(buscar='DANILO'), ['Danilo'])
+        self.assertEqual(self.nombres(buscar='nadie'), [])
+
+    def test_tambien_encuentra_por_telefono(self):
+        self.assertEqual(self.nombres(buscar='1160378050'), ['Danilo'])
+
+    def test_sin_buscar_trae_todos(self):
+        self.assertEqual(len(self.nombres()), 3)
+
+    def test_un_pedido_nace_sin_imprimir_y_se_marca_una_sola_vez(self):
+        pedido = Pedido.objects.first()
+        self.assertFalse(pedido.impreso)
+        respuesta = self.client.post(f'/api/pedidos/{pedido.id}/marcar-impreso/')
+        self.assertEqual(respuesta.status_code, 200, respuesta.content)
+        self.assertTrue(respuesta.json()['impreso'])
+        self.client.post(f'/api/pedidos/{pedido.id}/marcar-impreso/')
+        pedido.refresh_from_db()
+        self.assertTrue(pedido.impreso)
