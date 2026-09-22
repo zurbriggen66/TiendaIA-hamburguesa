@@ -271,10 +271,14 @@ def calcular_precio_producto(producto, antojo_activo, via_sugerencia_carrito=Fal
     # Si el antojo apunta a una variante puntual (ej. "Doble"), el descuento solo
     # compite cuando el pedido es justo esa variante — no en la hamburguesa simple ni
     # en otra presentación. Sin variante elegida en el antojo, aplica a cualquiera.
-    antojo_coincide = antojo_activo and antojo_activo.producto_id == producto.id and (
-        not antojo_activo.presentacion_id
-        or (presentacion and presentacion.id == antojo_activo.presentacion_id)
-    )
+    # `solo_base`: el antojo es la clasica, la que no lleva ninguna presentacion extra.
+    if antojo_activo and antojo_activo.solo_base:
+        antojo_coincide = antojo_activo.producto_id == producto.id and presentacion is None
+    else:
+        antojo_coincide = antojo_activo and antojo_activo.producto_id == producto.id and (
+            not antojo_activo.presentacion_id
+            or (presentacion and presentacion.id == antojo_activo.presentacion_id)
+        )
     if antojo_coincide:
         descuento = Decimal(antojo_activo.descuento_pct) / Decimal(100)
         precio_antojo = (precio_base * (Decimal(1) - descuento)).quantize(Decimal('1'))

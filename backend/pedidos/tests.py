@@ -867,3 +867,39 @@ class CostoRapidoTests(TestCase):
         self.assertEqual(respuesta.status_code, 400, respuesta.content)
         self.insumo.refresh_from_db()
         self.assertEqual(self.insumo.costo_unitario(), Decimal('200'))
+
+
+class AntojoSoloLaClasicaTests(TestCase):
+    """El descuento puesto en la clasica no puede derramar a la Doble.
+
+    La clasica no tiene fila en Presentacion (es el producto suelto), asi que apuntarla
+    con `presentacion` era imposible y dejar el campo vacio descontaba en TODAS las
+    variantes. Para eso esta `solo_base`.
+    """
+
+    def setUp(self):
+        categoria = Categoria.objects.create(nombre='Hamburguesas')
+        self.producto = Producto.objects.create(categoria=categoria, nombre='ARGENTA', precio=10000)
+        self.doble = Presentacion.objects.create(producto=self.producto, nombre='Doble', precio=14000)
+        AntojoDelDia.objects.create(producto=self.producto, descuento_pct=10, activo=True, solo_base=True)
+
+    def _precio_cobrado(self, presentacion=None):
+        item = {'producto': self.producto.id, 'cantidad': 1}
+        if presentacion:
+            item['presentacion'] = presentacion.id
+        respuesta = self.client.post('/api/pedidos/', data={'items': [item]}, content_type='application/json')
+        self.assertEqual(respuesta.status_code, 201, respuesta.content)
+        return DetallePedido.objects.get(pedido_id=respuesta.data['id']).precio_unitario
+
+    def test_la_clasica_se_lleva_el_descuento(self):
+        self.assertEqual(self._precio_cobrado(), Decimal('9000'))
+
+    def test_la_doble_se_cobra_a_precio_de_lista(self):
+        self.assertEqual(self._precio_cobrado(self.doble), Decimal('14000'))
+
+    def test_el_banner_muestra_la_clasica(self):
+        banner = self.client.get('/api/antojo-del-dia/').json()
+
+        self.assertTrue(banner['solo_base'])
+        self.assertEqual(banner['presentacion'], {'id': None, 'nombre': 'CLASICA'})
+        self.assertEqual(Decimal(banner['precio_con_descuento']), Decimal('9000'))

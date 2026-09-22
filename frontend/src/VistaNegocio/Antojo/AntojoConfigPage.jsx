@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 import { toast } from '../../utils/toast';
+import { presentacionesConBase } from '../../utils/presentaciones';
 
 const pad2 = (n) => String(n).padStart(2, '0');
 // Igual que en DescuentoProductoModal: el input datetime-local trabaja en hora local.
@@ -37,7 +38,7 @@ export default function AntojoConfigPage() {
           const config = resConfig.data[resConfig.data.length - 1];
           setConfigId(config.id);
           setProductoId(config.producto || '');
-          setPresentacionId(config.presentacion || '');
+          setPresentacionId(config.presentacion || (config.solo_base ? 'base' : ''));
           setDescuentoPct(config.descuento_pct);
           setActivo(config.activo);
           setActivoHasta(aDatetimeLocal(config.activo_hasta));
@@ -66,7 +67,8 @@ export default function AntojoConfigPage() {
 
     const datos = {
       producto: productoId || null,
-      presentacion: presentacionId || null,
+      presentacion: presentacionId === 'base' ? null : (presentacionId || null),
+      solo_base: presentacionId === 'base',
       descuento_pct: Number(descuentoPct) || 0,
       activo,
       activo_hasta: activoHasta ? new Date(activoHasta).toISOString() : null,
@@ -90,7 +92,9 @@ export default function AntojoConfigPage() {
   };
 
   const productoElegido = productos.find((p) => String(p.id) === String(productoId));
-  const presentacionElegida = (productoElegido?.presentaciones || []).find((p) => String(p.id) === String(presentacionId));
+  // La clasica no tiene fila propia: su "precio de lista" es el del producto suelto.
+  const variantes = productoElegido ? presentacionesConBase(productoElegido) : [];
+  const presentacionElegida = variantes.find((p) => String(p.id ?? 'base') === String(presentacionId));
   const precioLista = presentacionElegida ? presentacionElegida.precio : productoElegido?.precio;
 
   return (
@@ -121,17 +125,17 @@ export default function AntojoConfigPage() {
                 </select>
               </div>
 
-              {productoElegido && productoElegido.presentaciones && productoElegido.presentaciones.length > 0 && (
+              {variantes.length > 0 && (
                 <div className="form-group">
                   <label className="form-label">Variante (opcional)</label>
                   <select className="input-vibrante" value={presentacionId} onChange={(e) => setPresentacionId(e.target.value)}>
                     <option value="">Cualquier variante (la de siempre)</option>
-                    {productoElegido.presentaciones.map((p) => (
-                      <option key={p.id} value={p.id}>{p.nombre} — {formatearPrecio(p.precio)}</option>
+                    {variantes.map((p) => (
+                      <option key={p.id ?? 'base'} value={p.id ?? 'base'}>{p.nombre} — {formatearPrecio(p.precio)}</option>
                     ))}
                   </select>
                   <p className="form-ayuda">
-                    Si elegís una (ej. "Doble"), el descuento aplica solo a esa variante puntual. Sin elegir ninguna, aplica a cualquiera que pida el cliente.
+                    Si elegís una (ej. "Doble" o "CLASICA"), el descuento aplica solo a esa variante puntual. Sin elegir ninguna, aplica a cualquiera que pida el cliente.
                   </p>
                 </div>
               )}

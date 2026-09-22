@@ -10,7 +10,7 @@ class AntojoDelDiaConfigSerializer(serializers.ModelSerializer):
         model = AntojoDelDia
         fields = [
             'id', 'producto', 'producto_nombre', 'presentacion', 'presentacion_nombre',
-            'descuento_pct', 'activo', 'activo_hasta',
+            'solo_base', 'descuento_pct', 'activo', 'activo_hasta',
         ]
         extra_kwargs = {
             'producto': {'required': False, 'allow_null': True},
@@ -23,6 +23,9 @@ class AntojoDelDiaConfigSerializer(serializers.ModelSerializer):
         presentacion = data.get('presentacion', getattr(self.instance, 'presentacion', None))
         if activo and not producto:
             raise serializers.ValidationError('Elegí un producto para poder activar el Antojo del día.')
+        solo_base = data.get('solo_base', getattr(self.instance, 'solo_base', False))
+        if solo_base and presentacion:
+            raise serializers.ValidationError('Elegí una variante o la clásica, no las dos.')
         if presentacion and producto and presentacion.producto_id != producto.id:
             raise serializers.ValidationError('Esa variante no corresponde al producto elegido.')
         return data

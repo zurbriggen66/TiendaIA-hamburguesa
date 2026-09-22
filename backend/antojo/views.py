@@ -33,6 +33,7 @@ class AntojoDelDiaView(APIView):
 
         return Response({
             'descuento_pct': antojo.descuento_pct,
+            'solo_base': antojo.solo_base,
             'activo_hasta': antojo.activo_hasta,
             'producto': {
                 'id': producto.id,
@@ -41,7 +42,11 @@ class AntojoDelDiaView(APIView):
                 'imagen': imagen_url,
                 'categoria_nombre': producto.categoria.nombre,
             },
-            'presentacion': {'id': presentacion.id, 'nombre': presentacion.nombre} if presentacion else None,
+            'presentacion': (
+                {'id': presentacion.id, 'nombre': presentacion.nombre} if presentacion
+                else {'id': None, 'nombre': 'CLASICA'} if antojo.solo_base
+                else None
+            ),
             'precio_original': precio_lista,
             'precio_con_descuento': precio_con_descuento,
         })

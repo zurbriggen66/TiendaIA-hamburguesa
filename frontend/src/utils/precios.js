@@ -8,8 +8,11 @@ export const precioBaseSinDescuento = (producto, presentacion) =>
 // descuento al cliente (así decide el servidor al cobrar, en calcular_precio_producto).
 // Si el antojo apunta a una variante puntual (ej. "Doble"), solo aplica cuando el
 // pedido es justo esa variante; si no especifica ninguna, aplica a cualquiera.
+// `solo_base`: la clasica, la que no lleva ninguna presentacion extra (esa variante no
+// tiene fila propia en la base, es el producto suelto, por eso no alcanza con el id).
 const antojoAplica = (producto, presentacion, antojo) => {
   if (!antojo || !antojo.producto || antojo.producto.id !== producto.id) return false;
+  if (antojo.solo_base) return !presentacion?.id;
   if (antojo.presentacion) return presentacion?.id === antojo.presentacion.id;
   return true;
 };

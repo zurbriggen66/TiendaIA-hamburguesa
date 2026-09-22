@@ -11,6 +11,10 @@ class AntojoDelDia(models.Model):
     presentacion = models.ForeignKey(
         'productos.Presentacion', null=True, blank=True, on_delete=models.SET_NULL,
     )
+    # La variante "clasica" (el producto sin ninguna presentacion extra) no tiene fila
+    # en Presentacion: es el propio producto. Sin esto no habia forma de decir "el
+    # descuento va solo a la simple": presentacion vacia significa "cualquier variante".
+    solo_base = models.BooleanField(default=False)
     descuento_pct = models.PositiveIntegerField(default=15)
     activo = models.BooleanField(default=False)
     # Vacío = sin vencimiento (se apaga a mano, como era antes).
