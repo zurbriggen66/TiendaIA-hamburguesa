@@ -5,7 +5,7 @@ import PedidoCard from './PedidoCard';
 import LocalidadModal from './LocalidadModal';
 import PedidoEnvioDescuentoModal from './PedidoEnvioDescuentoModal';
 import PedidoPagoModal from './PedidoPagoModal';
-import { imprimirPedido } from '../../utils/impresion';
+import { imprimirYMarcar } from '../../utils/impresion';
 import { toast } from '../../utils/toast';
 
 const ORDEN_ESTADOS = ['pendiente', 'en_preparacion', 'listo', 'entregado'];
@@ -54,6 +54,8 @@ export default function PedidosPage() {
   const [modalLocalidad, setModalLocalidad] = useState(null);
   const [modalEnvio, setModalEnvio] = useState(null);
   const [modalPago, setModalPago] = useState(null);
+  const [busqueda, setBusqueda] = useState('');
+  const [busquedaAplicada, setBusquedaAplicada] = useState('');
 
   // El catálogo (productos/categorías/localidades) no depende del filtro de pedidos —
   // se carga una sola vez, en vez de repetirse cada vez que cambia el período elegido.
@@ -76,6 +78,12 @@ export default function PedidosPage() {
     }
   }, []);
 
+  // Se espera a que deje de tipear para no consultar en cada letra.
+  useEffect(() => {
+    const id = setTimeout(() => setBusquedaAplicada(busqueda.trim()), 300);
+    return () => clearTimeout(id);
+  }, [busqueda]);
+
   const paramsDelPeriodo = useCallback(() => {
     if (filtroPeriodo === 'mensual') {
       const { primero, ultimo } = primerYUltimoDiaDelMes(mesSeleccionado);
@@ -90,6 +98,13 @@ export default function PedidosPage() {
     return {};
   }, [filtroPeriodo, mesSeleccionado, diaSeleccionado, desdeRango, hastaRango]);
 
+  // Buscando se mira TODO el historial: el sentido de buscar un cliente es encontrar
+  // sus pedidos, no los que además caigan en el período elegido.
+  const paramsDeConsulta = useCallback(
+    () => (busquedaAplicada ? { buscar: busquedaAplicada } : paramsDelPeriodo()),
+    [busquedaAplicada, paramsDelPeriodo],
+  );
+
   // Cada consulta se numera: si se cambia el filtro rápido, o se guarda algo mientras
   // "Cargar más" sigue en camino, la respuesta vieja se descarta en vez de pisar (o
   // duplicar) la lista nueva.
@@ -103,7 +118,7 @@ export default function PedidosPage() {
     if (pagina > 1) setCargandoMas(true);
     else if (!silencioso) setCargando(true);
     try {
-      const { data } = await api.get('/pedidos/', { params: { ...paramsDelPeriodo(), page: pagina } });
+      const { data } = await api.get('/pedidos/', { params: { ...paramsDeConsulta(), page: pagina } });
       if (consulta !== consultaActual.current) return;
       setPedidos((prev) => (pagina === 1 ? data.results : [...prev, ...data.results]));
       setTotalPedidos(data.count);
@@ -117,7 +132,7 @@ export default function PedidosPage() {
         setCargandoMas(false);
       }
     }
-  }, [paramsDelPeriodo]);
+  }, [paramsDeConsulta]);
 
   useEffect(() => {
     cargarCatalogo();
@@ -152,6 +167,11 @@ export default function PedidosPage() {
   const cancelarPedido = (pedido) => {
     if (!window.confirm('¿Cancelar este pedido?')) return;
     cambiarEstado(pedido, 'cancelado');
+  };
+
+  const imprimir = async (pedido) => {
+    const actualizado = await imprimirYMarcar(pedido);
+    if (actualizado) setPedidos((prev) => prev.map((p) => (p.id === actualizado.id ? actualizado : p)));
   };
 
   const eliminarPedido = async (pedido) => {
@@ -197,6 +217,22 @@ export default function PedidosPage() {
         </div>
 
         {tab === 'pedidos' && (
+          <div className="buscador-admin">
+            <input
+              type="search"
+              className="input-vibrante"
+              placeholder="🔍 Buscar pedidos por nombre del cliente"
+              aria-label="Buscar pedidos por cliente"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+            />
+            {busquedaAplicada && (
+              <span className="buscador-admin-conteo">{totalPedidos} en todo el historial</span>
+            )}
+          </div>
+        )}
+
+        {tab === 'pedidos' && !busquedaAplicada && (
           <div className="tabs-bar">
             <button type="button" className={`tab-boton ${filtroPeriodo === 'rango' ? 'tab-activo' : ''}`} onClick={() => setFiltroPeriodo('rango')}>
               Rango
@@ -213,7 +249,7 @@ export default function PedidosPage() {
           </div>
         )}
 
-        {tab === 'pedidos' && filtroPeriodo === 'rango' && (
+        {tab === 'pedidos' && !busquedaAplicada && filtroPeriodo === 'rango' && (
           <div className="form-row estadisticas-selector-periodo">
             <div className="form-group">
               <label className="form-label">Desde</label>
@@ -238,7 +274,7 @@ export default function PedidosPage() {
           </div>
         )}
 
-        {tab === 'pedidos' && filtroPeriodo === 'mensual' && (
+        {tab === 'pedidos' && !busquedaAplicada && filtroPeriodo === 'mensual' && (
           <div className="form-group estadisticas-selector-periodo">
             <label className="form-label">Mes</label>
             <input
@@ -250,7 +286,7 @@ export default function PedidosPage() {
           </div>
         )}
 
-        {tab === 'pedidos' && filtroPeriodo === 'dia' && (
+        {tab === 'pedidos' && !busquedaAplicada && filtroPeriodo === 'dia' && (
           <div className="form-group estadisticas-selector-periodo">
             <label className="form-label">Día</label>
             <input
@@ -274,6 +310,8 @@ export default function PedidosPage() {
                     Crear el primer pedido
                   </button>
                 </>
+              ) : busquedaAplicada ? (
+                <p>Ningún pedido de un cliente que se llame "{busquedaAplicada}".</p>
               ) : (
                 <p>No hay pedidos en este período.</p>
               )}
@@ -295,7 +333,7 @@ export default function PedidosPage() {
                   pedido={pedido}
                   onCobrar={(p) => setModalPago(p.id)}
                   onDetalle={setModalEnvio}
-                  onImprimir={imprimirPedido}
+                  onImprimir={imprimir}
                   onEliminar={eliminarPedido}
                   onAvanzarEstado={avanzarEstado}
                   onCancelar={cancelarPedido}

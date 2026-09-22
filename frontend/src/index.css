@@ -5187,13 +5187,22 @@ body {
   color: var(--text);
 }
 
-.clientes-buscador {
+/* Buscador de una pantalla del panel (Clientes, Ventas & Pedidos). */
+.buscador-admin {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-bottom: 16px;
 }
-.clientes-buscador .input-vibrante { flex: 1; min-width: 0; }
-.clientes-buscador-conteo { font-size: .8rem; color: var(--text-muted); white-space: nowrap; }
+.buscador-admin .input-vibrante { flex: 1; min-width: 0; }
+.buscador-admin-conteo { font-size: .8rem; color: var(--text-muted); white-space: nowrap; }
+
+/* Ticket ya impreso: queda como marca, no como acción llamativa. */
+.pedido-accion-impreso {
+  color: var(--exito, #22c55e);
+  border-style: dashed;
+  opacity: .75;
+}
 
 /* Celular: la fila de 5 columnas no entraba (el total se cortaba y el teléfono se partía
    en tres líneas). Se apila: puntos arriba, nombre y total al lado, compras abajo. */
@@ -5203,5 +5212,5 @@ body {
   .cliente-fila .gasto-fila-monto { grid-column: 2; grid-row: 2; }
   .cliente-fila .gasto-fila-fecha { grid-column: 1 / -1; }
   .cliente-fila-flecha { display: none; }
-  .clientes-buscador { flex-wrap: wrap; }
+  .buscador-admin { flex-wrap: wrap; }
 }
