@@ -5214,3 +5214,77 @@ body {
   .cliente-fila-flecha { display: none; }
   .buscador-admin { flex-wrap: wrap; }
 }
+
+/* Ventas & Pedidos: buscador, período y fechas dentro de una sola casilla. */
+.pedidos-filtros {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+.pedidos-filtros .buscador-admin { margin-bottom: 0; }
+
+.pedidos-filtros-periodo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.filtros-periodo-opciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.filtro-chip {
+  border: none;
+  background: none;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: .84rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.filtro-chip:hover { color: var(--text); }
+.filtro-chip-activo { background: var(--accent); color: var(--accent-contraste); }
+
+.filtros-periodo-campos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.filtro-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: .7rem;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.filtro-campo .input-vibrante { padding: 8px 10px; font-size: .86rem; }
+
+.filtros-nota { font-size: .82rem; color: var(--text-muted); padding-bottom: 8px; }
+
+@media (max-width: 640px) {
+  /* nowrap: en columna, permitir envolver le hacía reservar una segunda "columna" y
+     dejaba un hueco vacío de 67px entre las opciones y las fechas. */
+  .pedidos-filtros-periodo { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+  .filtros-periodo-opciones { justify-content: center; }
+  .filtros-periodo-campos .filtro-campo { flex: 1 1 140px; }
+}

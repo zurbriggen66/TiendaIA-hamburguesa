@@ -10,6 +10,13 @@ import { toast } from '../../utils/toast';
 
 const ORDEN_ESTADOS = ['pendiente', 'en_preparacion', 'listo', 'entregado'];
 
+const PERIODOS = [
+  { clave: 'rango', etiqueta: 'Rango' },
+  { clave: 'dia', etiqueta: 'Por día' },
+  { clave: 'mensual', etiqueta: 'Mensual' },
+  { clave: 'general', etiqueta: 'General' },
+];
+
 const pad2 = (n) => String(n).padStart(2, '0');
 // OJO: no usar toISOString() acá — convierte a UTC y en Argentina (UTC-3) eso hace
 // que "hoy" salte al día siguiente a partir de las 21:00 hora local.
@@ -216,85 +223,93 @@ export default function PedidosPage() {
           </button>
         </div>
 
+        {/* Buscador, período y fechas en una sola casilla: antes el selector de fechas
+            quedaba suelto debajo de las pestañas y se leía como un filtro aparte. */}
         {tab === 'pedidos' && (
-          <div className="buscador-admin">
-            <input
-              type="search"
-              className="input-vibrante"
-              placeholder="🔍 Buscar pedidos por nombre del cliente"
-              aria-label="Buscar pedidos por cliente"
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-            />
-            {busquedaAplicada && (
-              <span className="buscador-admin-conteo">{totalPedidos} en todo el historial</span>
+          <div className="pedidos-filtros">
+            <div className="buscador-admin">
+              <input
+                type="search"
+                className="input-vibrante"
+                placeholder="🔍 Buscar pedidos por nombre del cliente"
+                aria-label="Buscar pedidos por cliente"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+              />
+              {busquedaAplicada && (
+                <span className="buscador-admin-conteo">{totalPedidos} en todo el historial</span>
+              )}
+            </div>
+
+            {!busquedaAplicada && (
+              <div className="pedidos-filtros-periodo">
+                <div className="filtros-periodo-opciones">
+                  {PERIODOS.map(({ clave, etiqueta }) => (
+                    <button
+                      key={clave}
+                      type="button"
+                      className={`filtro-chip ${filtroPeriodo === clave ? 'filtro-chip-activo' : ''}`}
+                      onClick={() => setFiltroPeriodo(clave)}
+                    >
+                      {etiqueta}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Un solo selector, que cambia según el período elegido. */}
+                <div className="filtros-periodo-campos">
+                  {filtroPeriodo === 'rango' && (
+                    <>
+                      <label className="filtro-campo">
+                        <span>Desde</span>
+                        <input
+                          type="date"
+                          className="input-vibrante"
+                          value={desdeRango}
+                          max={hastaRango}
+                          onChange={(e) => setDesdeRango(e.target.value)}
+                        />
+                      </label>
+                      <label className="filtro-campo">
+                        <span>Hasta</span>
+                        <input
+                          type="date"
+                          className="input-vibrante"
+                          value={hastaRango}
+                          min={desdeRango}
+                          onChange={(e) => setHastaRango(e.target.value)}
+                        />
+                      </label>
+                    </>
+                  )}
+                  {filtroPeriodo === 'dia' && (
+                    <label className="filtro-campo">
+                      <span>Día</span>
+                      <input
+                        type="date"
+                        className="input-vibrante"
+                        value={diaSeleccionado}
+                        onChange={(e) => setDiaSeleccionado(e.target.value)}
+                      />
+                    </label>
+                  )}
+                  {filtroPeriodo === 'mensual' && (
+                    <label className="filtro-campo">
+                      <span>Mes</span>
+                      <input
+                        type="month"
+                        className="input-vibrante"
+                        value={mesSeleccionado}
+                        onChange={(e) => setMesSeleccionado(e.target.value)}
+                      />
+                    </label>
+                  )}
+                  {filtroPeriodo === 'general' && (
+                    <span className="filtros-nota">Todos los pedidos cargados</span>
+                  )}
+                </div>
+              </div>
             )}
-          </div>
-        )}
-
-        {tab === 'pedidos' && !busquedaAplicada && (
-          <div className="tabs-bar">
-            <button type="button" className={`tab-boton ${filtroPeriodo === 'rango' ? 'tab-activo' : ''}`} onClick={() => setFiltroPeriodo('rango')}>
-              Rango
-            </button>
-            <button type="button" className={`tab-boton ${filtroPeriodo === 'dia' ? 'tab-activo' : ''}`} onClick={() => setFiltroPeriodo('dia')}>
-              Por día
-            </button>
-            <button type="button" className={`tab-boton ${filtroPeriodo === 'mensual' ? 'tab-activo' : ''}`} onClick={() => setFiltroPeriodo('mensual')}>
-              Mensual
-            </button>
-            <button type="button" className={`tab-boton ${filtroPeriodo === 'general' ? 'tab-activo' : ''}`} onClick={() => setFiltroPeriodo('general')}>
-              General
-            </button>
-          </div>
-        )}
-
-        {tab === 'pedidos' && !busquedaAplicada && filtroPeriodo === 'rango' && (
-          <div className="form-row estadisticas-selector-periodo">
-            <div className="form-group">
-              <label className="form-label">Desde</label>
-              <input
-                type="date"
-                className="input-vibrante"
-                value={desdeRango}
-                max={hastaRango}
-                onChange={(e) => setDesdeRango(e.target.value)}
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Hasta</label>
-              <input
-                type="date"
-                className="input-vibrante"
-                value={hastaRango}
-                min={desdeRango}
-                onChange={(e) => setHastaRango(e.target.value)}
-              />
-            </div>
-          </div>
-        )}
-
-        {tab === 'pedidos' && !busquedaAplicada && filtroPeriodo === 'mensual' && (
-          <div className="form-group estadisticas-selector-periodo">
-            <label className="form-label">Mes</label>
-            <input
-              type="month"
-              className="input-vibrante"
-              value={mesSeleccionado}
-              onChange={(e) => setMesSeleccionado(e.target.value)}
-            />
-          </div>
-        )}
-
-        {tab === 'pedidos' && !busquedaAplicada && filtroPeriodo === 'dia' && (
-          <div className="form-group estadisticas-selector-periodo">
-            <label className="form-label">Día</label>
-            <input
-              type="date"
-              className="input-vibrante"
-              value={diaSeleccionado}
-              onChange={(e) => setDiaSeleccionado(e.target.value)}
-            />
           </div>
         )}
 
