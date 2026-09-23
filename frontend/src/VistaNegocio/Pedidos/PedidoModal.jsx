@@ -3,7 +3,7 @@ import api from '../../services/api';
 import { presentacionesConBase } from '../../utils/presentaciones';
 import { precioBaseConDescuento, tieneDescuento, mejorPorcentajeDescuento } from '../../utils/precios';
 import { toast } from '../../utils/toast';
-import { imprimirYMarcar, pedidosCreadosAca } from '../../utils/impresion';
+import { imprimirPedido, pedidosCreadosAca } from '../../utils/impresion';
 
 const COLORES_CHIP = ['chip-mostaza', 'chip-naranja', 'chip-tomate'];
 
@@ -118,6 +118,10 @@ export default function PedidoModal({ productos, categorias, localidades, antojo
         cliente,
         telefono,
         origen: 'admin',
+        // Nace marcado en la misma llamada que lo crea. Marcarlo después, con otro
+        // pedido al servidor, llegaba tarde: la lista ya se había refrescado y la
+        // tarjeta seguía ofreciendo "Imprimir".
+        impreso: imprimirTicket,
         tipo_entrega: tipoEntrega,
         direccion: tipoEntrega === 'delivery' ? direccion : '',
         localidad: tipoEntrega === 'delivery' ? (localidadId || null) : null,
@@ -137,7 +141,7 @@ export default function PedidoModal({ productos, categorias, localidades, antojo
       // decir "problema al crear" invitaba a cargarlo de nuevo (pedido duplicado).
       if (imprimirTicket) {
         try {
-          imprimirYMarcar(data);
+          imprimirPedido(data);
         } catch (error) {
           console.error('Error al imprimir el ticket:', error);
           toast.error('El pedido se creó, pero no se pudo imprimir el ticket.');
