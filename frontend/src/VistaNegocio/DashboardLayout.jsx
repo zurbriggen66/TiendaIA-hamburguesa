@@ -82,13 +82,15 @@ export default function DashboardLayout() {
           nuevos.forEach((p) => idsVistos.current.add(p.id));
           reproducirSonidoAviso();
           setPedidosNuevos((n) => n + nuevos.length);
-          setUltimaNovedad(Date.now());
           setToast(nuevos[0]);
           setTimeout(() => setToast((actual) => (actual === nuevos[0] ? null : actual)), 7000);
 
-          if (obtenerConfigImpresion().autoImprimir) {
-            nuevos.filter((p) => !pedidosCreadosAca.has(p.id)).forEach((p) => imprimirYMarcar(p));
-          }
+          // El aviso a las pantallas sale DESPUÉS de marcar los tickets impresos: si
+          // salía antes, la pantalla se refrescaba con los pedidos todavía sin marcar.
+          const impresos = obtenerConfigImpresion().autoImprimir
+            ? Promise.all(nuevos.filter((p) => !pedidosCreadosAca.has(p.id)).map((p) => imprimirYMarcar(p)))
+            : Promise.resolve();
+          impresos.finally(() => setUltimaNovedad(Date.now()));
         }
       } catch (error) {
         console.error('Error al chequear pedidos nuevos:', error);

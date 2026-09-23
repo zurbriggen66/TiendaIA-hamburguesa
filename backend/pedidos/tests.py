@@ -931,6 +931,23 @@ class BuscadorEImpresoTests(TestCase):
     def test_sin_buscar_trae_todos(self):
         self.assertEqual(len(self.nombres()), 3)
 
+    def test_un_pedido_se_puede_crear_ya_impreso(self):
+        """La casilla "Imprimir ticket al crear" manda impreso=True en la misma llamada:
+        marcarlo después, con otro request, llegaba tarde y la tarjeta seguía ofreciendo
+        imprimir."""
+        cuerpo = {'cliente': 'Ignacio', 'origen': 'admin', 'tipo_entrega': 'retiro', 'impreso': True,
+                  'items': [{'producto': self.producto.id, 'cantidad': 1, 'extras': []}]}
+        respuesta = self.client.post('/api/pedidos/', cuerpo, content_type='application/json')
+        self.assertEqual(respuesta.status_code, 201, respuesta.content)
+        self.assertTrue(respuesta.json()['impreso'])
+        self.assertTrue(Pedido.objects.get(id=respuesta.json()['id']).impreso)
+
+    def test_un_pedido_sin_la_casilla_queda_sin_imprimir(self):
+        cuerpo = {'cliente': 'Ignacio', 'origen': 'admin', 'tipo_entrega': 'retiro', 'impreso': False,
+                  'items': [{'producto': self.producto.id, 'cantidad': 1, 'extras': []}]}
+        respuesta = self.client.post('/api/pedidos/', cuerpo, content_type='application/json')
+        self.assertFalse(respuesta.json()['impreso'])
+
     def test_un_pedido_nace_sin_imprimir_y_se_marca_una_sola_vez(self):
         pedido = Pedido.objects.first()
         self.assertFalse(pedido.impreso)
